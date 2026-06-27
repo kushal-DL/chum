@@ -45,8 +45,8 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 
 ## Current Status
 
-**Date of last update:** 2026-06-27  
-**Phase:** US-09-06 Built — 61/84 stories 🔵 Built (240/320 SP, 75%)
+**Date of last update:** 2026-06-28  
+**Phase:** US-07-10 Built — 62/84 stories 🔵 Built (242/320 SP, 76%)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,24 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 31 (2026-06-28, Part 31)
+
+**About & Diagnostics Panel — US-07-10 → 🔵 Built:**
+
+**New files:**
+- `Chum.App/Views/AboutWindow.xaml` — Dark-themed dialog (420×360). Shows: app version (from Assembly), LLM provider + model, Whisper model, segment count, STT latency p50/p90/p99. "Copy diagnostics" button copies a plain-text summary (including OS version and WorkingSet MB) to the clipboard. Accessible from a new "About & Diagnostics" button in `SettingsWindow`.
+- `Chum.App/Views/AboutWindow.xaml.cs` — Reads `app.Settings.Current` for provider/model info; calls `app.Orchestrator?.GetLatencyStats()` for live STT timing data. Gracefully shows "—" when the orchestrator hasn't started or hasn't recorded any segments yet. `CopyDiag_Click` writes the formatted diagnostics string to `System.Windows.Clipboard`.
+
+**Modified files:**
+- `Chum.App/Services/MeetingOrchestrator.cs` — Added `GetLatencyStats()` public method returning `(int Segments, double P50Ms, double P90Ms, double P99Ms)`.
+- `Chum.App/App.xaml.cs` — Added `public MeetingOrchestrator? Orchestrator => _orchestrator;` property so `AboutWindow` can access the live tracker without coupling to `App` internals.
+- `Chum.App/Views/SettingsWindow.xaml` — Added "About & Diagnostics" button to the left side of the button row at the bottom.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — Added `About_Click` handler that opens `AboutWindow` as a modal dialog.
+
+**Build:** 0 errors (0 new warnings).
 
 ---
 
@@ -616,16 +634,18 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-07-10 — About & Diagnostics Panel (P2, 2 SP):**
+**US-02-02 — Cloud STT Fallback (P2, 5 SP):**
 
-Surface `PipelineLatencyTracker.GetPercentiles()` (p50/p90/p99) and basic app info in a lightweight About dialog. Accessible from the ⚙ Settings window or a tray menu item.
+When local Whisper transcription fails or the model is unavailable, fall back to a cloud provider (OpenAI Whisper API). Allows the app to degrade gracefully on low-end hardware.
 
 Implementation plan:
-1. Add an "About & Diagnostics" button to `SettingsWindow.xaml`.
-2. Create `AboutWindow.xaml` — shows: app version, build date, `PipelineLatencyTracker.SegmentsRecorded`, p50/p90/p99 STT latency, active LLM provider + model, overlay window handle, and a "Copy diagnostics" button.
-3. `App.xaml.cs` must expose `_orchestrator` (or a `GetDiagnostics()` method) so `AboutWindow` can read the tracker.
+1. Add `ICloudSttProvider` interface with `Task<string> TranscribeAsync(ReadOnlyMemory<float> pcm16kHz, CancellationToken ct)`.
+2. Implement `OpenAiSttProvider.cs` — POST float32 PCM → WAV bytes → `https://api.openai.com/v1/audio/transcriptions` with `model=whisper-1`. Return the `text` field from JSON response.
+3. In `WhisperSttEngine.cs`: if model load fails (or throws on first `TranscribeAsync`), retry via cloud provider.
+4. `AppSettings.CloudSttFallback` (bool, default false) + `CloudSttModel` (default `"whisper-1"`).
+5. Settings checkbox + API key wiring (reuse OpenAI key from US-03-02).
 
-Alternative: **US-02-02 — Cloud STT Fallback (P2, 5 SP)** — Whisper Cloud / OpenAI Whisper API as fallback when local model is slow or unavailable.
+Alternative: **US-02-05 — Language Detection (P2, 3 SP)** — detect transcript language via Whisper's `language` output field and inject it into the LLM prompt for better cross-language meeting support.
 
 ---
 

@@ -203,4 +203,10 @@ public partial class SettingsWindow : Window
         AnthropicKeyStatus.Foreground = System.Windows.Media.Brushes.OrangeRed;
         AnthropicKeyStatus.Visibility = Visibility.Visible;
     }
+
+    private void About_Click(object sender, RoutedEventArgs e)
+    {
+        var win = new AboutWindow { Owner = this };
+        win.ShowDialog();
+    }
 }

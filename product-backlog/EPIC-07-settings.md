@@ -13,7 +13,7 @@
 | US-07-07 | Startup & Run Behavior | P2 — Medium | 🔵 Built | 2 |
 | US-07-08 | Data Retention & Privacy Settings | P1 — High | 🔵 Built | 2 |
 | US-07-09 | Settings Import & Export | P3 — Low | 🔴 Yet to Start | 2 |
-| US-07-10 | About & Diagnostics Panel | P2 — Medium | 🔴 Yet to Start | 2 |
+| US-07-10 | About & Diagnostics Panel | P2 — Medium | 🔵 Built | 2 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

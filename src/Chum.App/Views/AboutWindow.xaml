@@ -1,0 +1,91 @@
+<Window x:Class="Chum.App.Views.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="About Chum"
+        Width="420" Height="360"
+        Background="#1E1E1E"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <Style TargetType="TextBlock" x:Key="Label">
+            <Setter Property="Foreground" Value="#AAAAAA"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="0,6,0,0"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="Value">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="Chum" Foreground="White" FontSize="22" FontWeight="Bold"/>
+            <TextBlock x:Name="VersionLabel" Foreground="#666" FontSize="13"
+                       VerticalAlignment="Bottom" Margin="8,0,0,2"/>
+        </StackPanel>
+
+        <!-- Diagnostics grid -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="180"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Label}" Text="LLM provider"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="ProviderLabel" Style="{StaticResource Value}"/>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource Label}" Text="LLM model"/>
+            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ModelLabel" Style="{StaticResource Value}"/>
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource Label}" Text="Whisper model"/>
+            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="WhisperModelLabel" Style="{StaticResource Value}"/>
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource Label}" Text="Segments transcribed"/>
+            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="SegmentsLabel" Style="{StaticResource Value}"/>
+
+            <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource Label}" Text="STT latency p50"/>
+            <TextBlock Grid.Row="4" Grid.Column="1" x:Name="P50Label" Style="{StaticResource Value}"/>
+
+            <TextBlock Grid.Row="5" Grid.Column="0" Style="{StaticResource Label}" Text="STT latency p90"/>
+            <TextBlock Grid.Row="5" Grid.Column="1" x:Name="P90Label" Style="{StaticResource Value}"/>
+
+            <TextBlock Grid.Row="6" Grid.Column="0" Style="{StaticResource Label}" Text="STT latency p99"/>
+            <TextBlock Grid.Row="6" Grid.Column="1" x:Name="P99Label" Style="{StaticResource Value}"/>
+        </Grid>
+
+        <!-- Log path note -->
+        <TextBlock Grid.Row="2" x:Name="LogPathLabel"
+                   Foreground="#444" FontSize="10" VerticalAlignment="Bottom"
+                   TextWrapping="Wrap"/>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="CopyDiagBtn" Content="Copy diagnostics" Padding="12,6" Margin="0,0,8,0"
+                    Background="#2D2D2D" Foreground="White" BorderThickness="0"
+                    Click="CopyDiag_Click" Cursor="Hand"/>
+            <Button Content="Close" Padding="12,6"
+                    Background="#2D2D2D" Foreground="White" BorderThickness="0"
+                    IsDefault="True" IsCancel="True" Cursor="Hand"/>
+        </StackPanel>
+    </Grid>
+</Window>

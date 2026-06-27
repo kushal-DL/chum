@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 61 | 240 SP | 75% |
+| 🔵 Built | 62 | 242 SP | 76% |
 | 🟡 Scaffolded | 1 | 5 SP | 2% |
-| 🔴 Yet to Start | 22 | 75 SP | 23% |
+| 🔴 Yet to Start | 21 | 73 SP | 22% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -34,11 +34,11 @@
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 7 (26 SP) | — | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 9 (42 SP) | — | — |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
-| 07 · Settings & Configuration | 10 | 27 SP | — | 8 (23 SP) | — | 2 (4 SP) |
+| 07 · Settings & Configuration | 10 | 27 SP | — | 9 (25 SP) | — | 1 (2 SP) |
 | 08 · Privacy & Security | 11 | 36 SP | — | 9 (29 SP) | 1 (5 SP) | 1 (2 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 4 (18 SP) | — | 6 (22 SP) |
-| **Total** | **84** | **320 SP** | **0** | **60 (238 SP)** | **1 (5 SP)** | **23 (77 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **62 (242 SP)** | **1 (5 SP)** | **21 (73 SP)** |
 
 ---
 
@@ -51,10 +51,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 7 (30 SP) | — | 1 (2 SP) |
 | Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 6 (26 SP) | — | 3 (10 SP) |
 | Chum.Llm | Epic 03 | 8 | 30 SP | 5 (21 SP) | — | 3 (9 SP) |
-| Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/02/04/05 | 43 | 158 SP | 38 (143 SP) | — | 5 (15 SP) |
+| Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/02/04/05 | 43 | 158 SP | 39 (145 SP) | — | 4 (13 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 2 (10 SP) | — | 12 (44 SP) |
-| **Total** | | **84** | **320 SP** | **61 (240 SP)** | **1 (5 SP)** | **22 (75 SP)** |
+| **Total** | | **84** | **320 SP** | **62 (242 SP)** | **1 (5 SP)** | **21 (73 SP)** |
 
 ---
 
@@ -64,9 +64,9 @@ Each story is attributed to the project where its primary implementation lives.
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
 | P1 — High | 34 | 125 SP | 33 (120 SP) | 1 (5 SP) | — |
-| P2 — Medium | 27 | 91 SP | 12 (39 SP) | — | 15 (52 SP) |
+| P2 — Medium | 27 | 91 SP | 13 (41 SP) | — | 14 (50 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **59 (234 SP)** | **1 (5 SP)** | **24 (81 SP)** |
+| **Total** | **84** | **320 SP** | **62 (242 SP)** | **1 (5 SP)** | **21 (73 SP)** |
 
 ---
 
@@ -190,7 +190,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-07-07 | Startup & Run Behavior | P2 | 🔵 Built | 2 | StartWithWindows/StartCapturing checkboxes + App.xaml.cs logic |
 | US-07-08 | Data Retention & Privacy Settings | P1 | 🔵 Built | 2 | PRIVACY section in SettingsWindow: retention slider (1–120 min, snaps to 5), live label, saved on "Save Settings" |
 | US-07-09 | Settings Import & Export | P3 | 🔴 Yet to Start | 2 | |
-| US-07-10 | About & Diagnostics Panel | P2 | 🔴 Yet to Start | 2 | |
+| US-07-10 | About & Diagnostics Panel | P2 | 🔵 Built | 2 | |
 
 **Epic 07 Total:** 27 SP · 0 Done · 23 Built · 0 Scaffolded · 4 Yet to Start
 

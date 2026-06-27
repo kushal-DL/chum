@@ -189,10 +189,14 @@
                        Foreground="#555" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
 
             <!-- ── Buttons ── -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-                <Button Content="Cancel" Background="#444" Click="Cancel_Click" Margin="0,0,8,0"/>
-                <Button Content="Save Settings" Click="SaveSettings_Click"/>
-            </StackPanel>
+            <Grid Margin="0,20,0,0">
+                <Button Content="About &amp; Diagnostics" HorizontalAlignment="Left"
+                        Background="#2D2D2D" Click="About_Click"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Cancel" Background="#444" Click="Cancel_Click" Margin="0,0,8,0"/>
+                    <Button Content="Save Settings" Click="SaveSettings_Click"/>
+                </StackPanel>
+            </Grid>
 
         </StackPanel>
     </ScrollViewer>

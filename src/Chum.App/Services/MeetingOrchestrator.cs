@@ -337,6 +337,12 @@ public sealed class MeetingOrchestrator : IDisposable
         }
     }
 
+    public (int Segments, double P50Ms, double P90Ms, double P99Ms) GetLatencyStats()
+    {
+        var (p50, p90, p99) = _latencyTracker.GetPercentiles();
+        return (_latencyTracker.SegmentsRecorded, p50, p90, p99);
+    }
+
     public string GetTranscriptExportText()
     {
         var segments = _transcript.GetAll();

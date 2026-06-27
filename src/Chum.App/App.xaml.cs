@@ -21,6 +21,7 @@ public partial class App : System.Windows.Application
     // Publicly accessible services (used by SettingsWindow)
     public SettingsService Settings { get; } = new();
     public CredentialService Credentials { get; } = new();
+    public MeetingOrchestrator? Orchestrator => _orchestrator;
 
     private HotkeyService? _hotkeys;
     private MeetingOrchestrator? _orchestrator;
