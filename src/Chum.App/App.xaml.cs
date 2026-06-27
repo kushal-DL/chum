@@ -496,13 +496,32 @@ public partial class App : System.Windows.Application
         var ex = (Exception)e.ExceptionObject;
         Log.Fatal(ex, "Unhandled exception — terminating={Terminating}", e.IsTerminating);
         var transcriptPath = ExportEmergencyTranscript();
+
+        string? crashReportPath = null;
+        if (Settings.Current.EnableCrashReporting)
+        {
+            var transcriptSummary = transcriptPath is not null ? $"Emergency transcript at: {transcriptPath}" : null;
+            crashReportPath = CrashReporter.TryWriteReport(ex, transcriptSummary);
+        }
+
         if (!e.IsTerminating) return;
-        var detail = transcriptPath is not null
-            ? $"Transcript saved to:\n{transcriptPath}\n\n"
-            : string.Empty;
-        System.Windows.MessageBox.Show(
-            $"Chum encountered an unexpected error and must close.\n\n{detail}Error: {ex.Message}",
-            "Chum — Unexpected Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+        var parts = new System.Text.StringBuilder();
+        parts.Append("Chum encountered an unexpected error and must close.\n\n");
+        if (transcriptPath is not null)
+            parts.Append($"Transcript saved to:\n{transcriptPath}\n\n");
+        if (crashReportPath is not null)
+            parts.Append($"Crash report saved to:\n{crashReportPath}\n\n");
+        parts.Append($"Error: {ex.Message}");
+
+        var result = System.Windows.MessageBox.Show(
+            parts.ToString() + (crashReportPath is not null ? "\n\nOpen crash report folder?" : string.Empty),
+            "Chum — Unexpected Error",
+            crashReportPath is not null ? MessageBoxButton.YesNo : MessageBoxButton.OK,
+            MessageBoxImage.Error);
+
+        if (crashReportPath is not null && result == MessageBoxResult.Yes)
+            Process.Start("explorer.exe", $"/select,\"{crashReportPath}\"");
     }
 
     private void OnDispatcherUnhandledException(object sender,

@@ -85,4 +85,10 @@ public sealed class AppSettings
     public bool CheckForUpdates { get; set; } = true;
     // UTC timestamp of the last successful version check (persisted so we respect the daily limit).
     public DateTimeOffset LastUpdateCheckUtc { get; set; } = DateTimeOffset.MinValue;
+
+    // --- Crash reporting (US-10-08) ---
+    // When true: on unhandled exception, write a structured crash report to
+    // %LOCALAPPDATA%\Chum\CrashReports\ and show a dialog offering the user to
+    // open the folder so they can share the file with support. Default: off (opt-in).
+    public bool EnableCrashReporting { get; set; } = false;
 }

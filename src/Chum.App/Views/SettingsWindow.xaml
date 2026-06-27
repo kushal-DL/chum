@@ -245,6 +245,12 @@
                       Foreground="#AAAAAA" Margin="0,8,0,0"/>
             <TextBlock Text="Reminds you to inform meeting participants that AI assistance is active."
                        Foreground="#555" FontSize="10" Margin="16,2,0,0" TextWrapping="Wrap"/>
+            <CheckBox x:Name="CrashReportingBox"
+                      Content="Enable crash reporting (saves local report file on crash)"
+                      Foreground="#AAAAAA" Margin="0,8,0,0"
+                      ToolTip="When enabled, Chum writes a structured JSON crash report to %LOCALAPPDATA%\Chum\CrashReports\ on unexpected errors. No data is sent automatically — you can review and share the file with support. Default: off."/>
+            <TextBlock Text="Reports are saved locally in %LOCALAPPDATA%\Chum\CrashReports\ and never uploaded automatically."
+                       Foreground="#555" FontSize="10" Margin="16,2,0,0" TextWrapping="Wrap"/>
 
             <!-- ── Backup / Restore ── -->
             <Label Content="BACKUP &amp; RESTORE" Style="{StaticResource SectionHeader}"/>

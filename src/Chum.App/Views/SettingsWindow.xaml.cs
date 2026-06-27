@@ -62,6 +62,7 @@ public partial class SettingsWindow : Window
         UseTeamsCaptionsBox.IsChecked = s.UseTeamsCaptions;
         SpendThresholdBox.Text = s.SpendThresholdDollars.ToString("G");
         DisclosureReminderBox.IsChecked = s.ShowDisclosureReminder;
+        CrashReportingBox.IsChecked = s.EnableCrashReporting;
 
         // Populate template combo
         if (_templateService is not null)
@@ -177,6 +178,7 @@ public partial class SettingsWindow : Window
             if (decimal.TryParse(SpendThresholdBox.Text, out var thresh) && thresh >= 0)
                 s.SpendThresholdDollars = thresh;
             s.ShowDisclosureReminder = DisclosureReminderBox.IsChecked == true;
+            s.EnableCrashReporting = CrashReportingBox.IsChecked == true;
             if (ActiveTemplateCombo.SelectedItem is string tName)
                 s.ActiveTemplateName = tName;
             s.CloudSttFallback = CloudSttFallbackBox.IsChecked == true;

@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 81 | 311 SP | 97% |
+| 🔵 Built | 82 | 314 SP | 98% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
-| 🔴 Yet to Start | 3 | 9 SP | 3% |
+| 🔴 Yet to Start | 2 | 6 SP | 2% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -38,8 +38,8 @@
 | 07 · Settings & Configuration | 10 | 27 SP | — | 10 (27 SP) | — | — |
 | 08 · Privacy & Security | 11 | 36 SP | — | 11 (36 SP) | — | — |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 7 (27 SP) | — | — |
-| 10 · Performance & Reliability | 10 | 40 SP | — | 8 (34 SP) | — | 2 (6 SP) |
-| **Total** | **84** | **320 SP** | **0** | **81 (311 SP)** | **0** | **3 (9 SP)** |
+| 10 · Performance & Reliability | 10 | 40 SP | — | 9 (37 SP) | — | 1 (3 SP) |
+| **Total** | **84** | **320 SP** | **0** | **82 (314 SP)** | **0** | **2 (6 SP)** |
 
 ---
 
@@ -66,8 +66,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
 | P1 — High | 34 | 125 SP | 34 (125 SP) | — | — |
 | P2 — Medium | 27 | 91 SP | 20 (68 SP) | — | 7 (23 SP) |
-| P3 — Low | 7 | 20 SP | 6 (13 SP) | — | 1 (7 SP) |
-| **Total** | **84** | **320 SP** | **76 (290 SP)** | **0** | **8 (30 SP)** |
+| P3 — Low | 7 | 20 SP | 7 (16 SP) | — | 0 (4 SP) |
+| **Total** | **84** | **320 SP** | **77 (293 SP)** | **0** | **7 (27 SP)** |
 
 ---
 
@@ -247,7 +247,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-10-05 | Graceful Error Recovery | P1 | 🔵 Built | 5 | Global exception handlers (AppDomain/Dispatcher/UnobservedTask); LLM retry with backoff (1s/2s/4s, 3 attempts); transcription loop auto-restart; emergency transcript export on crash |
 | US-10-06 | End-to-End Latency Benchmark | P2 | 🔵 Built | 3 | LLM first-token latency tracking |
 | US-10-07 | App Startup Performance | P2 | 🔵 Built | 3 | Stopwatch from OnStartup; overlay shown early; VAD ONNX loads parallelised |
-| US-10-08 | Crash Reporting (Opt-in) | P3 | 🔴 Yet to Start | 3 | |
+| US-10-08 | Crash Reporting (Opt-in) | P3 | 🔵 Built | 3 | CrashReporter.cs — local JSON dump, opt-in toggle in settings |
 | US-10-09 | Auto-Update Mechanism | P2 | 🔵 Built | 5 | UpdateChecker.cs — GitHub Releases API + SHA256 + tray balloon |
 | US-10-10 | Low-Power Mode | P3 | 🔴 Yet to Start | 3 | |
 

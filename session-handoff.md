@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-09-04 Built — 81/84 stories 🔵 Built (311/320 SP, 97%) — 3 stories remain (Epic 10: 3)
+**Phase:** US-10-08 Built — 82/84 stories 🔵 Built (314/320 SP, 98%) — 2 stories remain (US-10-10, US-09-07)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,32 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 50 (2026-06-28, Part 50)
+
+**Crash Reporting Opt-in — US-10-08 → 🔵 Built:**
+
+**New files:**
+- `Chum.App/Services/CrashReporter.cs` — Static helper. `TryWriteReport(Exception, string? transcriptSummary)`: creates `%LOCALAPPDATA%\Chum\CrashReports\` if needed, serialises a `CrashReport` record (SessionId GUID, Timestamp UTC, ChumVersion, OsVersion, DotNetVersion, WorkingSetMb, ExceptionType, ExceptionMessage, StackTrace, InnerException summary, TranscriptLineSummary) to indented JSON. Returns the file path or null on failure (never throws). `GetRecentReports(max)` lists existing reports sorted newest-first. `CrashReportDirectory` property for opening in Explorer.
+
+**Modified files:**
+- `Chum.App/Models/AppSettings.cs` — Added `EnableCrashReporting` (bool, default false). Off by default — explicit opt-in.
+- `Chum.App/App.xaml.cs` — `OnUnhandledException`: when `EnableCrashReporting=true`, calls `CrashReporter.TryWriteReport(ex, transcriptPath)` after logging and emergency transcript export. Dialog now uses `MessageBoxButton.YesNo` asking "Open crash report folder?" when a report was written; launches `explorer.exe /select,<path>` on Yes.
+- `Chum.App/Views/SettingsWindow.xaml` — Added `CrashReportingBox` checkbox in PRIVACY section with explanatory text about local-only storage.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — Load/save `EnableCrashReporting` from/to checkbox.
+
+**Decisions:**
+- Never upload automatically — local file only. User copies and shares manually. This keeps the feature useful even in air-gapped or corporate environments where outbound HTTP to external hosts may be blocked.
+- `TryWriteReport` never throws — it's called from exception handlers where any secondary exception would be fatal. Exceptions in the reporter itself are caught and logged.
+- Dialog shows "Open crash report folder?" only when a report was actually written — avoids confusing button in non-reporting mode.
+
+**Build:** 0 errors, 8 warnings (unchanged).
+
+**Immediate Next Step:**
+- **US-10-10 — Low-Power Mode (P3, 3 SP)**: Reduce polling rates and processing fidelity when on battery or CPU load is high. Throttle VAD polling to 500ms (from 20-100ms), increase STT chunk minimum to 30s (from 15s), skip intermediate transcription for chunks <3s. Add `LowPowerMode` toggle in settings. Auto-enable when `SystemPowerStatus.BatteryLifePercent < 20`.
+- **US-09-07 — Platform Compatibility Testing Matrix (P3, 3 SP)**: Write a markdown test matrix doc.
 
 ---
 
