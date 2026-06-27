@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Threading.Channels;
 using Chum.App.ViewModels;
 using Chum.Audio.Models;
@@ -230,6 +231,59 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             _overlay.ShowError($"Error: {ex.Message}");
             Serilog.Log.Error(ex, "Error in action items query");
+        }
+    }
+
+    public async Task HandleDroppedImageQueryAsync(string filePath)
+    {
+        _overlay.SetStatus(OverlayStatus.Thinking, "Loading dropped image...");
+        _overlay.StartNewResponse();
+
+        string? imageBase64;
+        try
+        {
+            imageBase64 = await Task.Run(() =>
+            {
+                using var bmp = new Bitmap(filePath);
+                return ImagePreprocessor.ToJpegBase64(bmp);
+            });
+        }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Could not load the dropped image — is it a valid image file?");
+            Serilog.Log.Error(ex, "Failed to load dropped image: {FilePath}", filePath);
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+
+        _overlay.SetStatus(OverlayStatus.Thinking, "Analysing image...");
+
+        try
+        {
+            var contextText = _context.BuildContext(DateTimeOffset.UtcNow, _settings.Current.MaxResponseTokens);
+            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName);
+            var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
+            var request = new LlmRequest(system, user,
+                ImageBase64: imageBase64,
+                ImageMediaType: "image/jpeg",
+                MaxTokens: _settings.Current.MaxResponseTokens);
+
+            await foreach (var token in _llm.StreamResponseAsync(request, _cts.Token))
+                _overlay.AppendResponseToken(token);
+
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (LlmException ex)
+        {
+            _overlay.ShowError($"AI error: {ex.Message}");
+            Serilog.Log.Error(ex, "LLM error during dropped image query");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Unexpected error — check logs");
+            Serilog.Log.Error(ex, "Unexpected error in dropped image query");
         }
     }
 

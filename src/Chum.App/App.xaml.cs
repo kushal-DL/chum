@@ -100,6 +100,9 @@ public partial class App : System.Windows.Application
             audioPipeline, stt, transcriptBuffer, contextExtractor,
             llm, _hotkeys, _overlayVm, Settings, _screenCapture, _clipboardMonitor);
 
+        _overlayWindow.ImageFileDropped += (_, path) =>
+            _ = _orchestrator.HandleDroppedImageQueryAsync(path);
+
         // Opacity binding
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
         Settings.SettingsChanged += (_, _) =>

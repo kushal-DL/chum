@@ -9,7 +9,10 @@
         ShowInTaskbar="False"
         ResizeMode="CanResizeWithGrip"
         Width="420" Height="320"
-        MinWidth="280" MinHeight="160">
+        MinWidth="280" MinHeight="160"
+        AllowDrop="True"
+        DragOver="Window_DragOver"
+        Drop="Window_Drop">
 
     <Window.Resources>
         <Style x:Key="ChumButton" TargetType="Button">

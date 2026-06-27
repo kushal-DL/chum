@@ -1,8 +1,12 @@
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using Chum.App.ViewModels;
 using Application = System.Windows.Application;
+using DataFormats = System.Windows.DataFormats;
+using DragDropEffects = System.Windows.DragDropEffects;
+using DragEventArgs = System.Windows.DragEventArgs;
 
 namespace Chum.App.Views;
 
@@ -16,6 +20,33 @@ public partial class OverlayWindow : Window
     private const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
 
     public new int FontSize => (DataContext as OverlayViewModel) is not null ? 13 : 13;
+
+    // Fires on the UI thread with the validated file path of an image dropped onto the overlay.
+    public event EventHandler<string>? ImageFileDropped;
+
+    private static readonly HashSet<string> ImageExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".webp" };
+
+    private void Window_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = GetDroppedImagePath(e) is not null ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void Window_Drop(object sender, DragEventArgs e)
+    {
+        var path = GetDroppedImagePath(e);
+        if (path is not null)
+            ImageFileDropped?.Invoke(this, path);
+    }
+
+    private static string? GetDroppedImagePath(DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return null;
+        var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+        var first = files?.FirstOrDefault(f => ImageExtensions.Contains(Path.GetExtension(f)));
+        return first;
+    }
 
     public OverlayWindow(OverlayViewModel viewModel)
     {

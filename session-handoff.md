@@ -194,6 +194,24 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 10 (2026-06-27, Part 10)
+
+**Image File Drop Target — US-06-03 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/Views/OverlayWindow.xaml` — added `AllowDrop="True"`, `DragOver="Window_DragOver"`, `Drop="Window_Drop"` to the `<Window>` element.
+- `Chum.App/Views/OverlayWindow.xaml.cs` — added `ImageFileDropped` event; `Window_DragOver` validates that dragged data contains a file with a recognised image extension (.jpg/.jpeg/.png/.bmp/.gif/.tiff/.tif/.webp) and sets `DragDropEffects.Copy`; `Window_Drop` extracts the first valid path and fires `ImageFileDropped`. Added `using` aliases for `DataFormats`, `DragDropEffects`, `DragEventArgs` (all WPF variants, needed because `UseWindowsForms=true` introduces the same names from WinForms).
+- `Chum.App/Services/MeetingOrchestrator.cs` — added `HandleDroppedImageQueryAsync(string filePath)`: loads image via `System.Drawing.Bitmap` on `Task.Run` background thread, encodes via `ImagePreprocessor.ToJpegBase64`, sends to LLM with `hasImage: true` via the same vision path as clipboard/DXGI.
+- `Chum.App/App.xaml.cs` — wired `_overlayWindow.ImageFileDropped` to `_orchestrator.HandleDroppedImageQueryAsync`.
+
+**Decisions made:**
+- Used `System.Drawing.Bitmap` (GDI+) for file loading — already in scope from DxgiScreenCapture, no new packages needed. Runs on Task.Run since file I/O is not STA-sensitive.
+- File validation happens at the drag-over stage (only files with image extensions trigger `DragDropEffects.Copy`), so the `Drop` handler only fires with a valid path.
+- `GetDroppedImagePath` picks the first file matching the image extension list from the drop data; multi-file drops silently use only the first recognised image.
+- Build: 0 errors, 6 pre-existing warnings (unchanged).
+
+---
+
 ### What Was Done Session 9 (2026-06-27, Part 9)
 
 **Image Preprocessing Pipeline — US-06-06 → 🔵 Built:**
@@ -214,11 +232,15 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ## Immediate Next Step
 
-**US-06-03 — Image File Drop Target (P2, 3 SP)** — next in Epic 06
+**Sweep Scaffolded P1 stories** — Epic 04 has 5 scaffolded P1 stories, Epic 08 has 1, Epic 07 has 2.
 
-`AllowDrop="True"` on the overlay; handle `Drop` event; validate that the dropped file is an image; load via `BitmapImage`, call `ImagePreprocessor.ToJpegBase64`, send to LLM via `HandleScreenCaptureQueryAsync` (same path as clipboard).
+Recommended order (lowest-risk, highest impact first):
+1. **US-08-05 — Privacy Pause Mode visual indicator** (P1, 3 SP) — `AudioPipeline.Pause()/Resume()` is already wired; just need to update the overlay to show a clear "PAUSED" state (distinct colour, status text)
+2. **US-04-06 — Visual & Audio Feedback for Hotkey State** (P1, 3 SP) — pulsing indicator exists; add audio beep via `System.Media.SystemSounds` or `Console.Beep` on hold start/release
+3. **US-04-03 — Privacy Pause Hotkey** (P1, 2 SP) — hotkey is registered; verify `Pause()`/`Resume()` in orchestrator is correct and working
+4. **US-04-02 — Screen Capture Hotkey** (P1, 3 SP) — registered; `HandleScreenCaptureQueryAsync` is implemented; verify wiring is correct
 
-**After that:** US-09-01 — Meeting Platform Auto-Detection (P1, 5 SP) or sweep the Scaffolded P1 hotkey/settings stories (US-04-06 audio beep, US-08-05 privacy pause indicator).
+After Scaffolded P1s are swept: **US-09-01 — Meeting Platform Auto-Detection (P1, 5 SP)**
 
 ---
 
@@ -249,10 +271,10 @@ Build is clean. All 16 P0 MVP stories are 🔵 Built. Next steps in priority ord
 4. Right-click tray icon → Start Capture → audio pipeline starts
 5. Speak → transcription should appear in overlay
 
-### Step 2 — US-06-03: Image File Drop Target (P2, 3 SP) ← Next story
-`AllowDrop="True"` on overlay; `Drop` event handler; validate image file; send to LLM.
+### Step 2 — US-08-05: Privacy Pause Mode visual indicator (P1, 3 SP) ← Next story
+`Pause()`/`Resume()` wiring exists. Add a distinct "PAUSED" overlay state (amber/red colour).
 
-### Step 4 — P1 Scaffolded → Built sweep
+### Step 3 — P1 Scaffolded → Built sweep
 Several hotkey and settings stories are Scaffolded (handler stubs exist). Complete the logic:
 - US-04-06: Audio feedback (beep on hotkey press)
 - US-08-05: Privacy Pause visual indicator in overlay
