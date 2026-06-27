@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-10-05 Built — 55/84 stories 🔵 Built (219/320 SP, 68%); next: US-10-01 (Audio Latency Profiling, P1) or US-10-04 (Memory Management, P1)
+**Phase:** US-10-04 Built — 56/84 stories 🔵 Built (224/320 SP, 70%); only 1 P1 remaining (US-10-01, 3 SP); next: US-10-01 (Audio Latency Profiling)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,23 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 25 (2026-06-27, Part 25)
+
+**Memory Management for Long Meetings — US-10-04 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/ViewModels/OverlayViewModel.cs` — `MaxHistoryItems` reduced from 20 → 10. Ring buffer already auto-evicts (`while count > max, RemoveAt(0)`). Smaller cap reduces peak memory for users who make many queries in a single session.
+- `Chum.App/Services/MeetingOrchestrator.cs` — Added `_gcTimer` field. In `StartAsync()`: starts a `System.Threading.Timer` with 10-minute interval calling `GC.Collect(2, GCCollectionMode.Optimized, blocking: false)` + logs WorkingSet MB at `Debug` level. In `StopAsync()`: disposes timer. In `Dispose()`: disposes timer.
+
+**Verified already-bounded resources:**
+- `TranscriptBuffer`: time-based eviction on every `Add()` call — already bounded by retention window (default 10 min, configurable 1–120 min)
+- `AudioPipeline` output Channel: bounded with `DropOldest` (set at construction from sample rate × window)
+- `OverlayViewModel.TranscriptLines`: capped at 5 lines (already implemented)
+
+**Build:** 0 errors (unchanged 6 warnings).
 
 ---
 
@@ -496,13 +513,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-10-04 — Memory Management for Long Meetings (P1, 5 SP):**
+**US-10-01 — Audio Pipeline Latency Profiling (P1, 3 SP):**
 
-- Periodic `GC.Collect()` every 10 min after heavy transcription burst (timer in MeetingOrchestrator)
-- Verify TranscriptBuffer eviction works correctly for long meetings
-- Tighten response history ring buffer from 20 → 10 in OverlayViewModel
+Tag each audio pipeline stage with timestamps: Captured → VAD → Queued → TranscriptionStart → TranscriptionEnd. Add `PipelineLatencyTracker` that computes p50/p90/p99 latency per stage across last 1000 segments. Log latency summary every 5 min. Alert in overlay if transcription latency >15s for >3 consecutive segments.
 
-After that: **US-10-01** (Audio Latency Profiling, P1, 3 SP), then **US-10-02** (CPU Optimisation, P1, 5 SP).
+After that: all P1 stories will be Built. Move to P2 stories.
 
 ---
 

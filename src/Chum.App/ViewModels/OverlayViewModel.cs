@@ -76,7 +76,7 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
 
     // ── Response history ──────────────────────────────────────────────────
 
-    private const int MaxHistoryItems = 20;
+    private const int MaxHistoryItems = 10;
     private readonly List<string> _history = [];
     private int _historyIndex = -1; // -1 = live; 0..N-1 = viewing past response
 

@@ -34,6 +34,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private readonly MeetingPlatformDetector _platformDetector;
     private bool _captureConfirming;
     private Timer? _captureConfirmTimer;
+    private Timer? _gcTimer;
     private CancellationTokenSource _cts = new();
 
     /// <summary>Fires when a capture device unexpectedly disconnects. App should rebuild the audio pipeline.</summary>
@@ -137,11 +138,23 @@ public sealed class MeetingOrchestrator : IDisposable
         _transcriptionLoop = RunTranscriptionLoopAsync(_cts.Token);
         _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         Serilog.Log.Information("MeetingOrchestrator started");
+
+        // Periodic Gen2 GC every 10 min to reclaim memory after transcription bursts
+        var interval = TimeSpan.FromMinutes(10);
+        _gcTimer = new Timer(_ =>
+        {
+            GC.Collect(2, GCCollectionMode.Optimized, blocking: false);
+            Serilog.Log.Debug("Periodic GC pass — WorkingSet={MB}MB",
+                Environment.WorkingSet / 1_048_576);
+        }, null, interval, interval);
+
         await Task.CompletedTask;
     }
 
     public async Task StopAsync()
     {
+        _gcTimer?.Dispose();
+        _gcTimer = null;
         _audio.Stop();
         await _cts.CancelAsync();
         if (_transcriptionLoop is not null)
@@ -505,6 +518,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _cts.Cancel();
         _cts.Dispose();
         _captureConfirmTimer?.Dispose();
+        _gcTimer?.Dispose();
         _audio.Dispose();
         _stt.Dispose();
         _hotkeys.Dispose();
