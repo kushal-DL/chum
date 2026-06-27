@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-10-02 Built — 58/84 stories 🔵 Built (232/320 SP, 73%); next: US-05-08 (Multi-monitor) or US-05-09 (Response Copy/Share) — P2 overlay stories
+**Phase:** US-05-09 Built — 59/84 stories 🔵 Built (234/320 SP, 73%); next: US-05-08 (Multi-monitor) or US-09-06 (Meeting lifecycle)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,20 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 28 (2026-06-27, Part 28)
+
+**Response Copy & Share — US-05-09 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/Views/OverlayWindow.xaml` — Added "⧉" (U+29C9, two overlapping squares) button to the header StackPanel (between the pulsing indicator and the ⚙ Settings button). Uses the existing `ChumButton` style. ToolTip: "Copy response to clipboard".
+- `Chum.App/Views/OverlayWindow.xaml.cs` — Added `CopyResponse_Click`: casts `DataContext` to `OverlayViewModel`, copies `vm.ResponseText` to `System.Windows.Clipboard` if non-empty. No-op if response is empty (button click when no response yet loaded).
+
+Also synced `EPIC-05-overlay-ui.md` "Stories at a Glance" table to match actual status (was showing all 🔴 since initial creation).
+
+**Build:** 0 errors (unchanged 6 warnings).
 
 ---
 
@@ -556,9 +570,14 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-05-09 — Response Copy & Share (P2, 2 SP):**
+**US-05-08 — Multi-monitor Support (P2, 3 SP):**
 
-Add a "Copy" button to the overlay that copies `OverlayViewModel.ResponseText` to the clipboard. Then consider **US-05-08** (Multi-monitor support) and **US-09-06** (Meeting start/end lifecycle auto-start).
+Currently `PositionInBottomRight()` uses `Screen.PrimaryScreen` only. Need to:
+- Add a setting or auto-detection to position on the screen where the active meeting app window is
+- Or: let the user drag the overlay anywhere (already drag-enabled via DragMove), and remember last position in settings
+- Simplest viable: remember last window position in settings (Left/Top) and restore on next launch
+
+After that: **US-09-06** (Meeting start/end lifecycle), **US-07-10** (About & Diagnostics panel).
 
 ---
 

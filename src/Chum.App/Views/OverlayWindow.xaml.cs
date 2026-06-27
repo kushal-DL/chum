@@ -116,4 +116,11 @@ public partial class OverlayWindow : Window
 
     private void HistoryNext_Click(object sender, RoutedEventArgs e)
         => ((OverlayViewModel)DataContext).NavigateForward();
+
+    private void CopyResponse_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = (OverlayViewModel)DataContext;
+        if (!string.IsNullOrEmpty(vm.ResponseText))
+            System.Windows.Clipboard.SetText(vm.ResponseText);
+    }
 }
