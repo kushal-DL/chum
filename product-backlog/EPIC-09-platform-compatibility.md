@@ -4,7 +4,7 @@
 
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
-| US-09-01 | Meeting Platform Auto-Detection | P1 — High | 🔴 Yet to Start | 5 |
+| US-09-01 | Meeting Platform Auto-Detection | P1 — High | 🔵 Built | 5 |
 | US-09-02 | Teams-Specific Audio Device Handling | P2 — Medium | 🔴 Yet to Start | 3 |
 | US-09-03 | Zoom Audio Device Handling | P2 — Medium | 🔴 Yet to Start | 3 |
 | US-09-04 | Screen Share Detection per Platform | P3 — Low | 🔴 Yet to Start | 5 |

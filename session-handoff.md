@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-03-06 Built — 46/84 stories 🔵 Built (186/320 SP, 58%); next: US-08-01 (Local-only Processing Mode) or US-09-01 (Meeting Platform Auto-Detection)
+**Phase:** US-09-01 Built — 47/84 stories 🔵 Built (191/320 SP, 60%); next: US-08-01 (Local-only Processing Mode)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -194,6 +194,27 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 17 (2026-06-27, Part 17)
+
+**Meeting Platform Auto-Detection — US-09-01 → 🔵 Built:**
+
+**New files:**
+- `Chum.App/Services/MeetingPlatformDetector.cs` — `MeetingPlatform` enum (Unknown, Teams, GoogleMeet, Zoom, WebEx). Polls `Process.GetProcesses()` every 5s on a `System.Threading.Timer`. Teams detected via `ms-teams`/`teams`/`teams2` process names; Zoom via `zoom`/`zoom.us`; WebEx via `CiscoWebexStart`/`ptoneclk`/`webex`; Google Meet via `chrome`/`msedge` (imprecise — browser tab detection only; a more accurate approach requires UIA or URL inspection). Fires `PlatformChanged` event when platform changes. `FriendlyName()` static helper returns display strings for system prompt injection.
+
+**Modified files:**
+- `Chum.Llm/PromptBuilder.cs` — `BuildSystemPrompt(string? userName, string? platform)` now accepts an optional platform string; injects `" on {platform}"` into the context line when non-empty.
+- `Chum.App/Services/MeetingOrchestrator.cs` — Added `_platformDetector` field (instantiated in constructor); `Start()` calls `_platformDetector.Start()`; `Dispose()` disposes it; all 4 `BuildSystemPrompt` calls updated to pass `MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform)`.
+- `product-backlog/BACKLOG-STATUS.md` — US-09-01 → 🔵 Built; By Epic 09 row updated (`1 (5 SP)` Built); Overall table updated (`47 Built, 191 SP`); By Priority P1 + Total rows updated.
+- `product-backlog/EPIC-09-platform-compatibility.md` — US-09-01 → 🔵 Built.
+
+**Decisions:**
+- Google Meet detection is intentionally imprecise (browser process, not URL). Logged as a best-effort hint. US-06-05 (UIA-based URL inspection) would improve this.
+- `catch { }` in poll loop is intentional — process enumeration can throw on access-denied processes; we never want the 5s poll to crash.
+
+**Build:** 0 errors (unchanged).
+
+---
+
 ### What Was Done Session 16 (2026-06-27, Part 16)
 
 **Response History — US-03-06 → 🔵 Built:**
@@ -324,16 +345,17 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ## Immediate Next Step
 
-**US-09-01 — Meeting Platform Auto-Detection (P1, 5 SP):**
+**US-08-01 — Local-only Processing Mode (P1, 5 SP):**
 
-Detects which meeting app is running so Chum can set context in the system prompt and lifecycle events.
+Toggle that routes all LLM calls through Ollama running locally, so no meeting content leaves the machine.
 
 What to build:
-- `MeetingPlatformDetector.cs` in `Chum.App/Services/` — polls running processes every 5s; maps process names to `MeetingPlatform` enum (Teams, GoogleMeet, Zoom, WebEx, Generic); fires `PlatformChanged` event.
-- Wire into `MeetingOrchestrator` — update `PromptBuilder` to include platform name in system prompt ("The user is on a Microsoft Teams call").
-- Wire into `App.xaml.cs` — start detector alongside `ScreenShareDetector`.
+- `Chum.Llm/OllamaLlmProvider.cs` — HTTP POST to `http://localhost:11434/api/chat` with `stream: true`; parse `message.content` chunks from NDJSON response; implements `ILlmProvider`; throws `LlmException` if Ollama is not reachable.
+- `App.xaml.cs` — extend `BuildLlmProvider()` to check `AppSettings.LocalOnlyMode`; if true, probe `http://localhost:11434` and return `OllamaLlmProvider`; if Ollama unreachable, show error in overlay.
+- `SettingsWindow.xaml` — add "Local-only mode (Ollama)" checkbox; text field for model name (default `llama3.1:8b`).
+- `AppSettings.cs` — add `LocalOnlyMode` (bool) and `OllamaModel` (string, default `"llama3.1:8b"`).
 
-After that: **US-08-01 — Local-only Processing Mode (P1, 5 SP)** — toggle that uses Ollama for LLM (add `OllamaLlmProvider`), disabling cloud calls.
+After that: **US-04-07 — Action Items Hotkey** (Scaffolded → Built, 3 SP) — handler stub exists in MeetingOrchestrator, needs full implementation.
 
 ---
 

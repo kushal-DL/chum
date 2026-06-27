@@ -30,6 +30,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private readonly ClipboardMonitor? _clipboardMonitor;
 
     private readonly ScreenShareDetector _shareDetector;
+    private readonly MeetingPlatformDetector _platformDetector;
     private CancellationTokenSource _cts = new();
     private Task? _transcriptionLoop;
     private bool _disposed;
@@ -76,6 +77,9 @@ public sealed class MeetingOrchestrator : IDisposable
             else _overlay.Show();
         };
 
+        // Detect meeting platform for prompt context
+        _platformDetector = new MeetingPlatformDetector();
+
         // Wire hotkeys
         _hotkeys.HoldStarted += (_, e) =>
         {
@@ -115,6 +119,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _cts = new CancellationTokenSource();
         _audio.Start();
         _shareDetector.Start();
+        _platformDetector.Start();
         _transcriptionLoop = RunTranscriptionLoopAsync(_cts.Token);
         _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         Serilog.Log.Information("MeetingOrchestrator started");
@@ -188,7 +193,8 @@ public sealed class MeetingOrchestrator : IDisposable
         try
         {
             var contextText = _context.BuildContext(holdEnd, _settings.Current.MaxResponseTokens);
-            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName);
+            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
+                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform));
             var user = PromptBuilder.BuildUserMessage(contextText);
             var request = new LlmRequest(system, user,
                 MaxTokens: _settings.Current.MaxResponseTokens,
@@ -232,7 +238,8 @@ public sealed class MeetingOrchestrator : IDisposable
             foreach (var seg in allSegments)
                 sb.AppendLine($"[{seg.Timestamp:HH:mm:ss}] {seg.SpeakerLabel}: \"{seg.Text}\"");
 
-            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName);
+            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
+                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform));
             var user = $"Extract all action items, decisions, and owners from this meeting transcript. Format as a bulleted list with owner names where identifiable.\n\n{sb}";
             var request = new LlmRequest(system, user, MaxTokens: 1024);
 
@@ -275,7 +282,8 @@ public sealed class MeetingOrchestrator : IDisposable
         try
         {
             var contextText = _context.BuildContext(DateTimeOffset.UtcNow, _settings.Current.MaxResponseTokens);
-            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName);
+            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
+                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform));
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
             var request = new LlmRequest(system, user,
                 ImageBase64: imageBase64,
@@ -352,7 +360,8 @@ public sealed class MeetingOrchestrator : IDisposable
         try
         {
             var contextText = _context.BuildContext(DateTimeOffset.UtcNow, _settings.Current.MaxResponseTokens);
-            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName);
+            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
+                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform));
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
             var request = new LlmRequest(system, user,
                 ImageBase64: imageBase64,
@@ -388,5 +397,6 @@ public sealed class MeetingOrchestrator : IDisposable
         _stt.Dispose();
         _hotkeys.Dispose();
         _shareDetector.Dispose();
+        _platformDetector.Dispose();
     }
 }

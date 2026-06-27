@@ -3,13 +3,16 @@ namespace Chum.Llm;
 /// <summary>Builds the system and user prompts for meeting-context LLM queries.</summary>
 public static class PromptBuilder
 {
-    public static string BuildSystemPrompt(string? userName = null)
+    public static string BuildSystemPrompt(string? userName = null, string? platform = null)
     {
         var name = string.IsNullOrWhiteSpace(userName) ? "the user" : userName;
+        var platformNote = string.IsNullOrWhiteSpace(platform)
+            ? string.Empty
+            : $" on {platform}";
         return $"""
             You are Chum, a real-time AI assistant for professional meetings.
 
-            Context: Today is {DateTime.Now:dddd, MMMM d, yyyy}. You are assisting {name} during a live meeting.
+            Context: Today is {DateTime.Now:dddd, MMMM d, yyyy}. You are assisting {name} during a live meeting{platformNote}.
 
             You will receive a rolling transcript of the meeting with speaker labels:
             - "Me" = {name} speaking
