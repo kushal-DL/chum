@@ -156,6 +156,10 @@
                       Content="Auto-start capture when Teams, Zoom, or Google Meet is detected"
                       Margin="0,4"
                       ToolTip="Chum checks for running meeting apps every 5 seconds. Capture starts automatically when one is found and stops when it closes. Overrides the 'Start capturing on launch' setting during that session."/>
+            <CheckBox x:Name="UseTeamsCaptionsBox"
+                      Content="Read Teams live captions via accessibility API (supplementary transcript)"
+                      Margin="0,4"
+                      ToolTip="When enabled and Teams is detected, Chum reads Teams' own live captions via Windows UI Automation and merges them with the audio transcript. Requires Teams auto-captions to be enabled in the meeting. Off by default."/>
             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                 <Label Content="Spend alert threshold (USD):" Foreground="#AAAAAA" FontSize="11" Padding="0" VerticalAlignment="Center"/>
                 <TextBox x:Name="SpendThresholdBox" Width="60" Margin="8,0,0,0"

@@ -73,4 +73,10 @@ public sealed class AppSettings
     // Show a reminder banner when capture starts to inform participants of AI assistance.
     // After the user dismisses it the first time, this is set to false automatically.
     public bool ShowDisclosureReminder { get; set; } = true;
+
+    // --- Teams captions (US-06-05 / US-09-05) ---
+    // When enabled, Chum reads Teams' own live caption text via Windows UI Automation
+    // and merges it into the transcript buffer as a supplementary source.
+    // Off by default: requires Teams auto-captions to be enabled by the organiser.
+    public bool UseTeamsCaptions { get; set; } = false;
 }

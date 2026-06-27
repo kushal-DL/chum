@@ -37,6 +37,7 @@ public sealed class MeetingOrchestrator : IDisposable
 
     private readonly ScreenShareDetector _shareDetector;
     private readonly MeetingPlatformDetector _platformDetector;
+    private readonly TeamsCaptionsReader _captionsReader = new();
     private bool _captureConfirming;
     private Timer? _captureConfirmTimer;
     private Timer? _gcTimer;
@@ -97,6 +98,15 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             _transcript.Add(seg);
             _overlay.AddTranscriptLine($"[{seg.Timestamp:HH:mm:ss}] {seg.SpeakerLabel}: {seg.Text}");
+        };
+
+        // Feed Teams caption lines into the transcript buffer as supplementary segments
+        _captionsReader.CaptionLineReceived += (_, text) =>
+        {
+            var seg = new Chum.Transcription.Models.TranscriptSegment(
+                DateTimeOffset.UtcNow, AudioSource.Loopback, $"[Teams caption] {text}");
+            _transcript.Add(seg);
+            _overlay.AddTranscriptLine($"[{seg.Timestamp:HH:mm:ss}] Caption: {seg.Text}");
         };
 
         // Wire screen-share auto-hide
@@ -188,6 +198,12 @@ public sealed class MeetingOrchestrator : IDisposable
         if (!wasInMeeting && isInMeeting &&
             (platform == MeetingPlatform.Teams || platform == MeetingPlatform.Zoom))
             _ = Task.Run(() => CheckPlatformAudioDevice(platform));
+
+        // Start/stop Teams caption reader when the platform changes to/from Teams
+        if (platform == MeetingPlatform.Teams && _settings.Current.UseTeamsCaptions)
+            _captionsReader.Start();
+        else if (_lastPlatform == MeetingPlatform.Teams || platform != MeetingPlatform.Teams)
+            _captionsReader.Stop();
 
         if (!_settings.Current.AutoStartCapture) return;
 
@@ -861,5 +877,6 @@ public sealed class MeetingOrchestrator : IDisposable
         _hotkeys.Dispose();
         _shareDetector.Dispose();
         _platformDetector.Dispose();
+        _captionsReader.Dispose();
     }
 }

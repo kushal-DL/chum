@@ -59,6 +59,7 @@ public partial class SettingsWindow : Window
         ExcludeFromCaptureBox.IsChecked = s.ExcludeFromScreenCapture;
         ConfirmScreenCaptureBox.IsChecked = s.ConfirmScreenCapture;
         AutoStartCaptureBox.IsChecked = s.AutoStartCapture;
+        UseTeamsCaptionsBox.IsChecked = s.UseTeamsCaptions;
         SpendThresholdBox.Text = s.SpendThresholdDollars.ToString("G");
         DisclosureReminderBox.IsChecked = s.ShowDisclosureReminder;
 
@@ -172,6 +173,7 @@ public partial class SettingsWindow : Window
             s.ExcludeFromScreenCapture = ExcludeFromCaptureBox.IsChecked == true;
             s.ConfirmScreenCapture = ConfirmScreenCaptureBox.IsChecked == true;
             s.AutoStartCapture = AutoStartCaptureBox.IsChecked == true;
+            s.UseTeamsCaptions = UseTeamsCaptionsBox.IsChecked == true;
             if (decimal.TryParse(SpendThresholdBox.Text, out var thresh) && thresh >= 0)
                 s.SpendThresholdDollars = thresh;
             s.ShowDisclosureReminder = DisclosureReminderBox.IsChecked == true;

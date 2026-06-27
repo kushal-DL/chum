@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-06-04 Built — 77/84 stories 🔵 Built (291/320 SP, 91%) — 7 stories remain (Epic 06: 1, Epic 09: 3, Epic 10: 3)
+**Phase:** US-06-05+US-09-05 Built — 79/84 stories 🔵 Built (301/320 SP, 94%) — 5 stories remain (Epic 09: 1, Epic 10: 4)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,31 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 47 (2026-06-28, Part 47)
+
+**Teams Captions UIA + Integration — US-06-05 + US-09-05 → 🔵 Built:**
+
+These two stories cover the same infrastructure (UIA reader) and its wiring, built together.
+
+**New files:**
+- `Chum.App/Services/TeamsCaptionsReader.cs` — Background poller at 500ms using `System.Windows.Automation`. Finds Teams process (ms-teams, Teams, teams2) with a `MainWindowHandle`, creates `AutomationElement.FromHandle`. Three search strategies: (1) `WalkForCaption` — depth-limited tree walk (maxDepth=8) using `TreeWalker.ContentViewWalker`, checks if element's AutomationId or ClassName contains "caption" (case-insensitive), collects `Name` and `ValuePattern.Current.Value`; (2) same walk for ClassName; (3) `FindFirst` by Name=="Captions". Fires `CaptionLineReceived` event with new text only when text changes. `ElementNotAvailableException` silently suppressed (Teams minimised/busy). `Start()`/`Stop()`/`Dispose()` lifecycle.
+
+**Modified files:**
+- `Chum.App/Models/AppSettings.cs` — Added `public bool UseTeamsCaptions { get; set; } = false;`
+- `Chum.App/Views/SettingsWindow.xaml` — Added `UseTeamsCaptionsBox` checkbox after `AutoStartCaptureBox`.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — Load and save `UseTeamsCaptions` from the checkbox.
+- `Chum.App/Services/MeetingOrchestrator.cs`:
+  - Added `private readonly TeamsCaptionsReader _captionsReader = new();`
+  - Constructor: wires `_captionsReader.CaptionLineReceived` → adds `TranscriptSegment` with "[Teams caption]" prefix to the transcript buffer, adds to transcript strip in overlay.
+  - `OnPlatformChanged`: if platform becomes Teams and `UseTeamsCaptions` is on → `_captionsReader.Start()`; otherwise → `_captionsReader.Stop()`.
+  - `Dispose()`: disposes `_captionsReader`.
+
+**Build:** 0 errors, 6 pre-existing warnings (unchanged).
+
+**Note:** Real Teams UIA tree exploration (needed to tune AutomationId targets per Teams version) requires a live Teams call. Infrastructure is in place with best-effort patterns; expected to work with minor adjustments on a live system.
 
 ---
 
@@ -978,11 +1003,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-06-05 — UIA Text Extraction / Teams Captions (P2, 5 SP):**
+**US-10-09 — Auto-Update Mechanism (P2, 5 SP):**
 
-Read Teams auto-caption text via Windows UI Automation (`IUIAutomation`) without needing audio capture. When Teams captions are active, poll `CaptionLabel` elements every 100ms and feed text into the transcript buffer as a supplementary source. Requires `System.Windows.Automation` reference (built-in .NET). The Teams window handle comes from `Process.GetProcessesByName("ms-teams")` + `MainWindowHandle`. Main challenge: navigating the UIA tree to find the caption panel (requires exploration with inspect.exe on a real Teams call).
+Check GitHub Releases API (`GET https://api.github.com/repos/kushal-DL/chum/releases/latest`), compare version against app's assembly version, show tray balloon notification if newer. Download installer in background (with SHA256 verification if release asset checksum is published), run with `/S` flag for silent install. Must be blocked while a meeting capture is in progress. See EPIC-10-performance.md for full spec.
 
-Other P2 candidates: US-09-05 (Teams Auto-Captions Integration, 5 SP — similar concept but specifically for Teams built-in auto-captions flowing into Chum's transcript), US-10-09 (Auto-Update, 5 SP).
+Other remaining stories: US-09-04 (Screen Share Detection per Platform, P3, 5 SP), US-09-07 (Platform Testing Matrix, P3, 3 SP), US-10-08 (Crash Reporting Opt-in, P3, 3 SP), US-10-10 (Low-Power Mode, P3, 3 SP).
 
 ---
 
