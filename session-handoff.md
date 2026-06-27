@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-09-01 Built — 47/84 stories 🔵 Built (191/320 SP, 60%); next: US-08-01 (Local-only Processing Mode)
+**Phase:** US-08-01 Built — 48/84 stories 🔵 Built (196/320 SP, 61%); next: US-04-07 (Action Items Hotkey, Scaffolded → Built)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,28 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 18 (2026-06-27, Part 18)
+
+**Local-only Processing Mode — US-08-01 → 🔵 Built:**
+
+**New files:**
+- `Chum.Llm/OllamaLlmProvider.cs` — HTTP POST to `{baseUrl}/api/chat` with `stream: true`. Parses NDJSON response: one JSON object per line; reads `message.content`; stops on `done: true`. Vision support via `images: [base64]` array in the user message (requires a multimodal Ollama model such as `llava`). Throws `LlmException` with actionable message if Ollama is unreachable or returns non-200. CA2024 warning on `reader.EndOfStream` is same pre-existing pattern as Anthropic/OpenAI providers — benign.
+
+**Modified files:**
+- `Chum.App/Models/AppSettings.cs` — Added `LocalOnlyMode` (bool, default false), `OllamaModel` (string, default `"llama3.1:8b"`), `OllamaBaseUrl` (string, default `"http://localhost:11434"`).
+- `Chum.App/App.xaml.cs` — `BuildLlmProvider()` now checks `LocalOnlyMode` first; if true, returns `OllamaLlmProvider`. `OnStartup` key-presence check now short-circuits when `LocalOnlyMode` is true (no cloud API key needed in local mode).
+- `Chum.App/Views/SettingsWindow.xaml` — Added "LOCAL PROCESSING (OLLAMA)" section (checkbox + Ollama model name textbox + base URL textbox). Window height 620 → 720.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — `LoadCurrentSettings` reads `LocalOnlyMode`, `OllamaModel`, `OllamaBaseUrl`; `SaveSettings_Click` writes them back.
+
+**Decisions:**
+- `OllamaLlmProvider` accepts a `baseUrl` parameter so power users can point at a remote Ollama instance (e.g., on a home server). Default is localhost.
+- No startup Ollama reachability probe — provider fails with a clear `LlmException` on the first actual LLM call. Avoids blocking startup for a fast reachability check.
+- Vision in local mode requires the user to choose a multimodal model; standard LLM models will return an error from Ollama, which surfaces via `LlmException` in the overlay.
+
+**Build:** 0 errors, 8 warnings (same set as before — CA2024 added one for OllamaLlmProvider, same benign pattern).
 
 ---
 
@@ -345,17 +367,14 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ## Immediate Next Step
 
-**US-08-01 — Local-only Processing Mode (P1, 5 SP):**
+**US-04-07 — Action Items Hotkey (P1, 3 SP) — Scaffolded → Built:**
 
-Toggle that routes all LLM calls through Ollama running locally, so no meeting content leaves the machine.
+Handler stub exists in `MeetingOrchestrator.HandleActionItemsQueryAsync()`. The logic is actually complete there. The story needs:
+- Verify the `HandleActionItemsQueryAsync` implementation is correct end-to-end (it already formats transcript + sends to LLM with "extract action items" prompt).
+- Ensure the hotkey (`Ctrl+Alt+A`) is wired and registered properly in `HotkeyService`.
+- Update status to 🔵 Built.
 
-What to build:
-- `Chum.Llm/OllamaLlmProvider.cs` — HTTP POST to `http://localhost:11434/api/chat` with `stream: true`; parse `message.content` chunks from NDJSON response; implements `ILlmProvider`; throws `LlmException` if Ollama is not reachable.
-- `App.xaml.cs` — extend `BuildLlmProvider()` to check `AppSettings.LocalOnlyMode`; if true, probe `http://localhost:11434` and return `OllamaLlmProvider`; if Ollama unreachable, show error in overlay.
-- `SettingsWindow.xaml` — add "Local-only mode (Ollama)" checkbox; text field for model name (default `llama3.1:8b`).
-- `AppSettings.cs` — add `LocalOnlyMode` (bool) and `OllamaModel` (string, default `"llama3.1:8b"`).
-
-After that: **US-04-07 — Action Items Hotkey** (Scaffolded → Built, 3 SP) — handler stub exists in MeetingOrchestrator, needs full implementation.
+After that: **US-08-07 — Screen Capture Privacy Safeguards (P1, 2 SP)** — not started; add a user-configurable sensitive-region blur or per-window exclusion.
 
 ---
 

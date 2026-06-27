@@ -40,15 +40,21 @@ public partial class App : System.Windows.Application
 
         Settings.Load();
 
-        // Show settings immediately if no API key configured (either provider)
-        bool hasKey = Credentials.GetAnthropicKey() is not null
+        // Local-only mode bypasses cloud API key requirement
+        bool localMode = Settings.Current.LocalOnlyMode;
+
+        // Show settings immediately if no API key configured (either provider) and not in local mode
+        bool hasKey = localMode
+                   || Credentials.GetAnthropicKey() is not null
                    || Credentials.GetOpenAiKey() is not null;
         if (!hasKey)
         {
             Log.Information("No API key found — showing settings on first run");
             var setup = new SettingsWindow();
             setup.ShowDialog();
-            hasKey = Credentials.GetAnthropicKey() is not null
+            localMode = Settings.Current.LocalOnlyMode;
+            hasKey = localMode
+                  || Credentials.GetAnthropicKey() is not null
                   || Credentials.GetOpenAiKey() is not null;
             if (!hasKey)
             {
@@ -184,7 +190,15 @@ public partial class App : System.Windows.Application
 
     private ILlmProvider BuildLlmProvider()
     {
-        var model = Settings.Current.LlmModel;
+        var s = Settings.Current;
+
+        if (s.LocalOnlyMode)
+        {
+            Log.Information("Local-only mode — using Ollama: {Model} at {Url}", s.OllamaModel, s.OllamaBaseUrl);
+            return new OllamaLlmProvider(s.OllamaModel, s.OllamaBaseUrl);
+        }
+
+        var model = s.LlmModel;
         bool isOpenAi = model.StartsWith("gpt", StringComparison.OrdinalIgnoreCase);
 
         if (isOpenAi)

@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 47 | 191 SP | 60% |
+| 🔵 Built | 48 | 196 SP | 61% |
 | 🟡 Scaffolded | 3 | 10 SP | 3% |
-| 🔴 Yet to Start | 34 | 119 SP | 37% |
+| 🔴 Yet to Start | 33 | 114 SP | 36% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -35,10 +35,10 @@
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 7 (37 SP) | — | 2 (5 SP) |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
 | 07 · Settings & Configuration | 10 | 27 SP | — | 8 (23 SP) | — | 2 (4 SP) |
-| 08 · Privacy & Security | 11 | 36 SP | — | 6 (19 SP) | 1 (5 SP) | 4 (12 SP) |
+| 08 · Privacy & Security | 11 | 36 SP | — | 7 (24 SP) | 1 (5 SP) | 3 (7 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 1 (5 SP) | — | 6 (22 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | — | — | 10 (40 SP) |
-| **Total** | **84** | **320 SP** | **0** | **47 (191 SP)** | **3 (10 SP)** | **34 (119 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **48 (196 SP)** | **3 (10 SP)** | **33 (114 SP)** |
 
 ---
 
@@ -53,8 +53,8 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.Llm | Epic 03 | 8 | 30 SP | 4 (16 SP) | — | 4 (14 SP) |
 | Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 29 (112 SP) | 1 (3 SP) | 8 (23 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
-| Cross-cutting | US-08-01 + Epics 09–10 | 18 | 72 SP | 1 (5 SP) | — | 17 (67 SP) |
-| **Total** | | **84** | **320 SP** | **47 (191 SP)** | **3 (10 SP)** | **34 (119 SP)** |
+| Cross-cutting | US-08-01 + Epics 09–10 | 18 | 72 SP | 2 (10 SP) | — | 16 (62 SP) |
+| **Total** | | **84** | **320 SP** | **48 (196 SP)** | **3 (10 SP)** | **33 (114 SP)** |
 
 ---
 
@@ -63,10 +63,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 34 | 125 SP | 26 (95 SP) | 2 (7 SP) | 6 (23 SP) |
+| P1 — High | 34 | 125 SP | 27 (100 SP) | 2 (7 SP) | 5 (18 SP) |
 | P2 — Medium | 27 | 91 SP | 5 (15 SP) | 1 (3 SP) | 21 (73 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **47 (191 SP)** | **3 (10 SP)** | **34 (119 SP)** |
+| **Total** | **84** | **320 SP** | **48 (196 SP)** | **3 (10 SP)** | **33 (114 SP)** |
 
 ---
 
@@ -201,7 +201,7 @@ Each story is attributed to the project where its primary implementation lives.
 
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
-| US-08-01 | Local-only Processing Mode | P1 | 🔴 Yet to Start | 5 | |
+| US-08-01 | Local-only Processing Mode | P1 | 🔵 Built | 5 | OllamaLlmProvider.cs (NDJSON streaming); LocalOnlyMode setting; bypasses cloud key check |
 | US-08-02 | Audio Buffer Auto-Purge | P0 | 🔵 Built | 3 | Array.Clear() in AudioPipeline.FlushSegment() + WhisperSttEngine |
 | US-08-03 | Transcript Retention Controls | P1 | 🔵 Built | 3 | TranscriptBuffer auto-eviction by retention window |
 | US-08-04 | Meeting Participant Disclosure Reminder | P2 | 🔴 Yet to Start | 2 | |

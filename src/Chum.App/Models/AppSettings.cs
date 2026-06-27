@@ -44,4 +44,9 @@ public sealed class AppSettings
     // captures, recordings, and screen-share streams while still showing on your physical display.
     // Requires Windows 10 2004+. Default: on — most users want this.
     public bool ExcludeFromScreenCapture { get; set; } = true;
+
+    // --- Local-only mode (Ollama) ---
+    public bool LocalOnlyMode { get; set; } = false;
+    public string OllamaModel { get; set; } = "llama3.1:8b";
+    public string OllamaBaseUrl { get; set; } = "http://localhost:11434";
 }

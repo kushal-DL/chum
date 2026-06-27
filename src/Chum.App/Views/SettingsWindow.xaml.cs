@@ -46,6 +46,9 @@ public partial class SettingsWindow : Window
         OpacitySlider.Value = s.OverlayOpacity;
         RetentionSlider.Value = s.TranscriptRetentionMinutes;
         RetentionLabel.Text = $"{s.TranscriptRetentionMinutes} min";
+        LocalOnlyModeBox.IsChecked = s.LocalOnlyMode;
+        OllamaModelBox.Text = s.OllamaModel;
+        OllamaUrlBox.Text = s.OllamaBaseUrl;
         StartWithWindowsBox.IsChecked = s.StartWithWindows;
         StartCapturingBox.IsChecked = s.StartCapturingOnLaunch;
         AutoHideShareBox.IsChecked = s.AutoHideOnScreenShare;
@@ -136,6 +139,9 @@ public partial class SettingsWindow : Window
             s.PrivacyPauseHotkey = PrivacyPauseBox.Text.Trim();
             s.OverlayOpacity = OpacitySlider.Value;
             s.TranscriptRetentionMinutes = (int)RetentionSlider.Value;
+            s.LocalOnlyMode = LocalOnlyModeBox.IsChecked == true;
+            s.OllamaModel = OllamaModelBox.Text.Trim();
+            s.OllamaBaseUrl = OllamaUrlBox.Text.Trim();
             s.StartWithWindows = StartWithWindowsBox.IsChecked == true;
             s.StartCapturingOnLaunch = StartCapturingBox.IsChecked == true;
             s.AutoHideOnScreenShare = AutoHideShareBox.IsChecked == true;
