@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 62 | 242 SP | 76% |
+| 🔵 Built | 63 | 247 SP | 77% |
 | 🟡 Scaffolded | 1 | 5 SP | 2% |
-| 🔴 Yet to Start | 21 | 73 SP | 22% |
+| 🔴 Yet to Start | 20 | 68 SP | 21% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -29,7 +29,7 @@
 | Epic | Stories | Total SP | ✅ Done | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |------|---------|----------|---------|----------|--------------|-----------------|
 | 01 · Core Audio Engine | 7 | 29 SP | — | 6 (27 SP) | — | 1 (2 SP) |
-| 02 · Transcription & Context | 8 | 33 SP | — | 5 (23 SP) | — | 3 (10 SP) |
+| 02 · Transcription & Context | 8 | 33 SP | — | 6 (28 SP) | — | 2 (5 SP) |
 | 03 · LLM Integration | 8 | 30 SP | — | 6 (24 SP) | — | 2 (6 SP) |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 7 (26 SP) | — | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 9 (42 SP) | — | — |
@@ -38,7 +38,7 @@
 | 08 · Privacy & Security | 11 | 36 SP | — | 9 (29 SP) | 1 (5 SP) | 1 (2 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 4 (18 SP) | — | 6 (22 SP) |
-| **Total** | **84** | **320 SP** | **0** | **62 (242 SP)** | **1 (5 SP)** | **21 (73 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **63 (247 SP)** | **1 (5 SP)** | **20 (68 SP)** |
 
 ---
 
@@ -54,7 +54,7 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/02/04/05 | 43 | 158 SP | 39 (145 SP) | — | 4 (13 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 2 (10 SP) | — | 12 (44 SP) |
-| **Total** | | **84** | **320 SP** | **62 (242 SP)** | **1 (5 SP)** | **21 (73 SP)** |
+| **Total** | | **84** | **320 SP** | **63 (247 SP)** | **1 (5 SP)** | **20 (68 SP)** |
 
 ---
 
@@ -64,9 +64,9 @@ Each story is attributed to the project where its primary implementation lives.
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
 | P1 — High | 34 | 125 SP | 33 (120 SP) | 1 (5 SP) | — |
-| P2 — Medium | 27 | 91 SP | 13 (41 SP) | — | 14 (50 SP) |
+| P2 — Medium | 27 | 91 SP | 14 (46 SP) | — | 13 (45 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **62 (242 SP)** | **1 (5 SP)** | **21 (73 SP)** |
+| **Total** | **84** | **320 SP** | **63 (247 SP)** | **1 (5 SP)** | **20 (68 SP)** |
 
 ---
 
@@ -93,7 +93,7 @@ Each story is attributed to the project where its primary implementation lives.
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
 | US-02-01 | Local Whisper Transcription | P0 | 🔵 Built | 8 | WhisperSttEngine.cs (Whisper.net, model auto-download) |
-| US-02-02 | Cloud STT Fallback (Azure) | P2 | 🔴 Yet to Start | 5 | |
+| US-02-02 | Cloud STT Fallback (Azure) | P2 | 🔵 Built | 5 | OpenAI Whisper API |
 | US-02-03 | Rolling Transcript Buffer | P0 | 🔵 Built | 5 | TranscriptBuffer.cs (LinkedList + retention window) |
 | US-02-04 | Speaker Label Assignment (Me/Remote) | P1 | 🔵 Built | 3 | TranscriptSegment.SpeakerLabel (Mic→"Me", Loopback→"Remote") |
 | US-02-05 | Language Detection & Multi-language | P2 | 🔴 Yet to Start | 3 | |

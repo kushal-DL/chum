@@ -109,9 +109,19 @@ public partial class App : System.Windows.Application
         DxgiScreenCapture.TryCreate(out _screenCapture);
         _clipboardMonitor = new ClipboardMonitor();
 
+        OpenAiSttProvider? cloudStt = null;
+        if (Settings.Current.CloudSttFallback)
+        {
+            var openAiKey = Credentials.GetOpenAiKey();
+            if (openAiKey is not null)
+                cloudStt = new OpenAiSttProvider(openAiKey, Settings.Current.CloudSttModel);
+            else
+                Serilog.Log.Warning("CloudSttFallback enabled but no OpenAI API key stored — fallback disabled");
+        }
+
         _orchestrator = new MeetingOrchestrator(
             audioPipeline, stt, transcriptBuffer, contextExtractor,
-            llm, _hotkeys, _overlayVm, Settings, _screenCapture, _clipboardMonitor);
+            llm, _hotkeys, _overlayVm, Settings, _screenCapture, _clipboardMonitor, cloudStt);
 
         _overlayWindow.ImageFileDropped += (_, path) =>
             _ = _orchestrator.HandleDroppedImageQueryAsync(path);

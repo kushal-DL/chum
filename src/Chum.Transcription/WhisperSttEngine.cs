@@ -106,8 +106,8 @@ public sealed class WhisperSttEngine : IDisposable
         return false;
     }
 
-    /// <summary>Wraps float[] PCM into a minimal WAV MemoryStream for Whisper.net.</summary>
-    private static MemoryStream BuildWavStream(float[] samples)
+    /// <summary>Wraps float[] PCM (16 kHz mono) into a minimal WAV MemoryStream.</summary>
+    internal static MemoryStream BuildWavStream(float[] samples)
     {
         const int sampleRate = 16_000;
         const short channels = 1;

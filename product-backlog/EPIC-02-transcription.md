@@ -5,7 +5,7 @@
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
 | US-02-01 | Local Whisper Transcription | P0 — MVP | 🔴 Yet to Start | 8 |
-| US-02-02 | Cloud STT Fallback | P2 — Medium | 🔴 Yet to Start | 5 |
+| US-02-02 | Cloud STT Fallback | P2 — Medium | 🔵 Built | 5 |
 | US-02-03 | Rolling Transcript Buffer | P0 — MVP | 🔴 Yet to Start | 5 |
 | US-02-04 | Speaker Label Assignment | P1 — High | 🔴 Yet to Start | 3 |
 | US-02-05 | Language Detection & Multi-language | P2 — Medium | 🔴 Yet to Start | 3 |

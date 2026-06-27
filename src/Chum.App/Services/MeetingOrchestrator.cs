@@ -22,6 +22,7 @@ public sealed class MeetingOrchestrator : IDisposable
 {
     private AudioPipeline _audio;
     private readonly WhisperSttEngine _stt;
+    private readonly OpenAiSttProvider? _cloudStt;
     private readonly TranscriptBuffer _transcript;
     private readonly ContextExtractor _context;
     private readonly ILlmProvider _llm;
@@ -62,10 +63,12 @@ public sealed class MeetingOrchestrator : IDisposable
         OverlayViewModel overlay,
         SettingsService settings,
         DxgiScreenCapture? screenCapture = null,
-        ClipboardMonitor? clipboardMonitor = null)
+        ClipboardMonitor? clipboardMonitor = null,
+        OpenAiSttProvider? cloudStt = null)
     {
         _audio = audio;
         _stt = stt;
+        _cloudStt = cloudStt;
         _transcript = transcript;
         _context = context;
         _llm = llm;
@@ -287,7 +290,15 @@ public sealed class MeetingOrchestrator : IDisposable
         if (!_stt.IsReady)
         {
             _overlay.SetStatus(OverlayStatus.Initialising, "Loading Whisper model...");
-            await _stt.InitializeAsync(ct: ct);
+            try
+            {
+                await _stt.InitializeAsync(ct: ct);
+            }
+            catch (Exception ex) when (_cloudStt != null)
+            {
+                Serilog.Log.Warning(ex, "Local Whisper init failed — running on cloud STT fallback");
+                _overlay.ShowError("Local Whisper unavailable — using cloud STT (OpenAI Whisper)");
+            }
         }
 
         _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
@@ -297,7 +308,7 @@ public sealed class MeetingOrchestrator : IDisposable
             try
             {
                 var sw = Stopwatch.StartNew();
-                await _stt.TranscribeAsync(chunk.Samples, chunk.Source, ct);
+                await TranscribeWithFallbackAsync(chunk.Samples, chunk.Source, ct);
                 sw.Stop();
                 _latencyTracker.Record(sw.Elapsed);
                 Serilog.Log.Verbose("STT segment: {Duration:F1}s  e2e: {E2E:F1}s",
@@ -310,6 +321,28 @@ public sealed class MeetingOrchestrator : IDisposable
                 Serilog.Log.Error(ex, "Transcription error — skipping segment");
             }
         }
+    }
+
+    private async Task TranscribeWithFallbackAsync(float[] samples, AudioSource source, CancellationToken ct)
+    {
+        if (_stt.IsReady)
+        {
+            try
+            {
+                await _stt.TranscribeAsync(samples, source, ct);
+                return;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) when (_cloudStt != null)
+            {
+                Serilog.Log.Warning(ex, "Local STT failed — retrying via cloud fallback");
+            }
+        }
+
+        if (_cloudStt != null)
+            await _cloudStt.TranscribeAsync(samples, source, ct);
+        else
+            await _stt.TranscribeAsync(samples, source, ct); // will throw with clear message
     }
 
     // Streams with exponential-backoff retry on LlmException (max 3 attempts: 1s, 2s, 4s gaps).
@@ -585,6 +618,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _latencyLogTimer?.Dispose();
         _audio.Dispose();
         _stt.Dispose();
+        _cloudStt?.Dispose();
         _hotkeys.Dispose();
         _shareDetector.Dispose();
         _platformDetector.Dispose();

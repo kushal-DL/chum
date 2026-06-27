@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-07-10 Built — 62/84 stories 🔵 Built (242/320 SP, 76%)
+**Phase:** US-02-02 Built — 63/84 stories 🔵 Built (247/320 SP, 77%)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,32 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 32 (2026-06-28, Part 32)
+
+**Cloud STT Fallback — US-02-02 → 🔵 Built:**
+
+**New files:**
+- `Chum.Transcription/OpenAiSttProvider.cs` — HTTP client posting WAV bytes to `https://api.openai.com/v1/audio/transcriptions` as `multipart/form-data`. Returns the `text` field from the JSON response. Reuses `WhisperSttEngine.BuildWavStream` (now `internal static`). Fires `SegmentTranscribed` event matching `WhisperSttEngine`'s contract. Calls `Array.Clear(samples)` after transcription (privacy). Throws `SttException` on non-2xx responses.
+
+**Modified files:**
+- `Chum.Transcription/WhisperSttEngine.cs` — `BuildWavStream` changed from `private static` to `internal static` so `OpenAiSttProvider` can reuse it.
+- `Chum.App/Models/AppSettings.cs` — Added `CloudSttFallback` (bool, default false) and `CloudSttModel` (string, default "whisper-1").
+- `Chum.App/Services/MeetingOrchestrator.cs`:
+  - Added `OpenAiSttProvider? _cloudStt` field.
+  - Constructor: accepts optional `cloudStt` parameter.
+  - `Dispose()`: added `_cloudStt?.Dispose()`.
+  - `RunTranscriptionCycleAsync`: catches `WhisperSttEngine.InitializeAsync` exceptions when `_cloudStt != null` and continues (shows overlay warning).
+  - Extracted `TranscribeWithFallbackAsync`: tries local first (if `IsReady`); if local fails and cloud is available, retries via `_cloudStt.TranscribeAsync`; if cloud unavailable, re-throws from local.
+- `Chum.App/App.xaml.cs` — Constructs `OpenAiSttProvider` (using stored OpenAI key) when `CloudSttFallback` is enabled; passes to orchestrator.
+- `Chum.App/Views/SettingsWindow.xaml` — Added "CLOUD STT FALLBACK" section with checkbox and model name textbox.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — Load/save `CloudSttFallback` and `CloudSttModel`.
+
+**Note:** Implementation uses OpenAI Whisper API rather than Azure (the backlog story says "Azure" but no Azure-specific requirement exists — OpenAI Whisper API is the de-facto standard). Updated the BACKLOG-STATUS.md note column to reflect this.
+
+**Build:** 0 errors.
 
 ---
 
@@ -634,18 +660,17 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-02-02 — Cloud STT Fallback (P2, 5 SP):**
+**US-02-05 — Language Detection (P2, 3 SP):**
 
-When local Whisper transcription fails or the model is unavailable, fall back to a cloud provider (OpenAI Whisper API). Allows the app to degrade gracefully on low-end hardware.
+Detect the spoken language from Whisper's output and inject it into the LLM system prompt. Whisper.net already returns language confidence per segment — need to extract it.
 
 Implementation plan:
-1. Add `ICloudSttProvider` interface with `Task<string> TranscribeAsync(ReadOnlyMemory<float> pcm16kHz, CancellationToken ct)`.
-2. Implement `OpenAiSttProvider.cs` — POST float32 PCM → WAV bytes → `https://api.openai.com/v1/audio/transcriptions` with `model=whisper-1`. Return the `text` field from JSON response.
-3. In `WhisperSttEngine.cs`: if model load fails (or throws on first `TranscribeAsync`), retry via cloud provider.
-4. `AppSettings.CloudSttFallback` (bool, default false) + `CloudSttModel` (default `"whisper-1"`).
-5. Settings checkbox + API key wiring (reuse OpenAI key from US-03-02).
+1. In `WhisperSttEngine.TranscribeAsync`: track the `Language` property from `WhisperProcessor.ProcessAsync` result segments. Store the most common language detected across the segment.
+2. Add `DetectedLanguage` property to `WhisperSttEngine` (e.g., "English", "Spanish").
+3. In `MeetingOrchestrator`: pass `_stt.DetectedLanguage` to `PromptBuilder.BuildSystemPrompt`.
+4. In `PromptBuilder`: add language line to system prompt when non-English is detected.
 
-Alternative: **US-02-05 — Language Detection (P2, 3 SP)** — detect transcript language via Whisper's `language` output field and inject it into the LLM prompt for better cross-language meeting support.
+Alternative: **US-02-08 — Confidence Threshold Filtering (P2, 3 SP)** — filter out low-confidence Whisper segments using the `Probability` field on segments.
 
 ---
 

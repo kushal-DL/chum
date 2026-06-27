@@ -52,6 +52,11 @@ public sealed class AppSettings
     // Prevents accidental screen captures that send sensitive content to the cloud LLM.
     public bool ConfirmScreenCapture { get; set; } = false;
 
+    // --- Cloud STT fallback (OpenAI Whisper API) ---
+    // When true: if local Whisper is not ready or throws, fall back to the cloud provider.
+    public bool CloudSttFallback { get; set; } = false;
+    public string CloudSttModel { get; set; } = "whisper-1";
+
     // --- Local-only mode (Ollama) ---
     public bool LocalOnlyMode { get; set; } = false;
     public string OllamaModel { get; set; } = "llama3.1:8b";

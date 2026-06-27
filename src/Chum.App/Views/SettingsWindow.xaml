@@ -157,6 +157,15 @@
                       Margin="0,4"
                       ToolTip="Chum checks for running meeting apps every 5 seconds. Capture starts automatically when one is found and stops when it closes. Overrides the 'Start capturing on launch' setting during that session."/>
 
+            <!-- ── Cloud STT Fallback ── -->
+            <Label Content="CLOUD STT FALLBACK (OPENAI WHISPER)" Style="{StaticResource SectionHeader}"/>
+            <CheckBox x:Name="CloudSttFallbackBox"
+                      Content="Fall back to OpenAI Whisper API when local STT fails or is unavailable"
+                      Margin="0,4"
+                      ToolTip="Uses your OpenAI API key. Falls back automatically if local Whisper cannot initialize (e.g., model not downloaded, insufficient RAM). Billed per minute of audio."/>
+            <TextBlock Text="Cloud STT model" Foreground="#999" FontSize="11" Margin="0,8,0,2"/>
+            <TextBox x:Name="CloudSttModelBox" Text="whisper-1"/>
+
             <!-- ── Local Processing ── -->
             <Label Content="LOCAL PROCESSING (OLLAMA)" Style="{StaticResource SectionHeader}"/>
             <CheckBox x:Name="LocalOnlyModeBox"

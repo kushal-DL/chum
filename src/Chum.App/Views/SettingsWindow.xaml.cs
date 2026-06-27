@@ -55,6 +55,8 @@ public partial class SettingsWindow : Window
         ExcludeFromCaptureBox.IsChecked = s.ExcludeFromScreenCapture;
         ConfirmScreenCaptureBox.IsChecked = s.ConfirmScreenCapture;
         AutoStartCaptureBox.IsChecked = s.AutoStartCapture;
+        CloudSttFallbackBox.IsChecked = s.CloudSttFallback;
+        CloudSttModelBox.Text = s.CloudSttModel;
 
         // Show masked key indicator if key is stored
         if (_credentials.GetAnthropicKey() is not null)
@@ -150,6 +152,9 @@ public partial class SettingsWindow : Window
             s.ExcludeFromScreenCapture = ExcludeFromCaptureBox.IsChecked == true;
             s.ConfirmScreenCapture = ConfirmScreenCaptureBox.IsChecked == true;
             s.AutoStartCapture = AutoStartCaptureBox.IsChecked == true;
+            s.CloudSttFallback = CloudSttFallbackBox.IsChecked == true;
+            s.CloudSttModel = CloudSttModelBox.Text.Trim().Length > 0
+                ? CloudSttModelBox.Text.Trim() : "whisper-1";
         });
 
         ((App)Application.Current).ReapplyHotkeys();
