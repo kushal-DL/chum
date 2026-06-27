@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-02-02 Built — 63/84 stories 🔵 Built (247/320 SP, 77%)
+**Phase:** US-02-05 Built — 64/84 stories 🔵 Built (250/320 SP, 78%)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,27 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 33 (2026-06-28, Part 33)
+
+**Language Detection — US-02-05 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.Transcription/WhisperSttEngine.cs`:
+  - Added `public string? DetectedLanguage { get; private set; }` property.
+  - In `TranscribeAsync`: reads `segment.Language` (Whisper.net 1.7.0 `SegmentData` property) for each processed segment and updates `DetectedLanguage`. The last segment with a non-null language wins.
+- `Chum.Llm/PromptBuilder.cs`:
+  - `BuildSystemPrompt` now accepts an optional `detectedLanguageCode` parameter (ISO-639-1, e.g., "es", "fr").
+  - When non-English language is detected: injects `"\nMeeting language detected: {language}. Respond in {language} unless the user asks otherwise."` into the system prompt.
+  - `GetLanguageName(string code)` switch maps common ISO codes to readable names (20 languages).
+- `Chum.App/Services/MeetingOrchestrator.cs`:
+  - All four `PromptBuilder.BuildSystemPrompt(...)` call sites updated to pass `_stt.DetectedLanguage` as the third argument.
+
+**Note:** Language detection is passive — Whisper auto-detects per segment when using `WithLanguage("auto")`. No additional API calls or setup required. Detected language updates dynamically as segments come in, so a meeting that switches languages mid-session will adapt.
+
+**Build:** 0 errors.
 
 ---
 
@@ -660,17 +681,18 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-02-05 — Language Detection (P2, 3 SP):**
+**US-03-07 — Structured Response Templates (P2, 5 SP):**
 
-Detect the spoken language from Whisper's output and inject it into the LLM system prompt. Whisper.net already returns language confidence per segment — need to extract it.
+Allow the user to select a response template (e.g., "Action Items", "SWOT Analysis", "Risk Register") that shapes the LLM prompt. Templates are predefined JSON in a settings file.
 
 Implementation plan:
-1. In `WhisperSttEngine.TranscribeAsync`: track the `Language` property from `WhisperProcessor.ProcessAsync` result segments. Store the most common language detected across the segment.
-2. Add `DetectedLanguage` property to `WhisperSttEngine` (e.g., "English", "Spanish").
-3. In `MeetingOrchestrator`: pass `_stt.DetectedLanguage` to `PromptBuilder.BuildSystemPrompt`.
-4. In `PromptBuilder`: add language line to system prompt when non-English is detected.
+1. Add `ResponseTemplate` record: `{ string Name, string SystemPromptSuffix, string UserMessagePrefix }`.
+2. Create `templates.json` in `%APPDATA%\Chum\` with 5–6 built-in templates (Meeting Summary, Action Items, SWOT, Decision Log, Risk Register, Executive Summary).
+3. Add `AppSettings.ActiveTemplateName` (string, default "Default").
+4. `PromptBuilder.BuildSystemPrompt` accepts a `ResponseTemplate?` and appends `SystemPromptSuffix`.
+5. Settings window: dropdown to select template.
 
-Alternative: **US-02-08 — Confidence Threshold Filtering (P2, 3 SP)** — filter out low-confidence Whisper segments using the `Probability` field on segments.
+Alternative next story: **US-10-06 — End-to-End Latency Benchmark (P2, 3 SP)** — log the full pipeline latency (audio capture → transcription → LLM first token) and surface it in the About dialog.
 
 ---
 

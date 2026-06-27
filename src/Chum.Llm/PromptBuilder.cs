@@ -3,16 +3,26 @@ namespace Chum.Llm;
 /// <summary>Builds the system and user prompts for meeting-context LLM queries.</summary>
 public static class PromptBuilder
 {
-    public static string BuildSystemPrompt(string? userName = null, string? platform = null)
+    public static string BuildSystemPrompt(string? userName = null, string? platform = null, string? detectedLanguageCode = null)
     {
         var name = string.IsNullOrWhiteSpace(userName) ? "the user" : userName;
         var platformNote = string.IsNullOrWhiteSpace(platform)
             ? string.Empty
             : $" on {platform}";
+
+        // Inject language hint for non-English meetings so the LLM responds in the right language
+        var langNote = string.Empty;
+        if (!string.IsNullOrWhiteSpace(detectedLanguageCode) &&
+            !detectedLanguageCode.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+        {
+            var langName = GetLanguageName(detectedLanguageCode);
+            langNote = $"\n            Meeting language detected: {langName}. Respond in {langName} unless the user asks otherwise.";
+        }
+
         return $"""
             You are Chum, a real-time AI assistant for professional meetings.
 
-            Context: Today is {DateTime.Now:dddd, MMMM d, yyyy}. You are assisting {name} during a live meeting{platformNote}.
+            Context: Today is {DateTime.Now:dddd, MMMM d, yyyy}. You are assisting {name} during a live meeting{platformNote}.{langNote}
 
             You will receive a rolling transcript of the meeting with speaker labels:
             - "Me" = {name} speaking
@@ -31,6 +41,16 @@ public static class PromptBuilder
             - For visual queries (image attached): analyse the image first, then answer in context of the transcript.
             """;
     }
+
+    private static string GetLanguageName(string code) => code.ToLowerInvariant() switch
+    {
+        "es" => "Spanish", "fr" => "French", "de" => "German", "it" => "Italian",
+        "pt" => "Portuguese", "nl" => "Dutch", "pl" => "Polish", "ru" => "Russian",
+        "zh" => "Chinese", "ja" => "Japanese", "ko" => "Korean", "ar" => "Arabic",
+        "hi" => "Hindi", "sv" => "Swedish", "da" => "Danish", "no" => "Norwegian",
+        "fi" => "Finnish", "cs" => "Czech", "hu" => "Hungarian", "tr" => "Turkish",
+        _ => code.ToUpperInvariant()
+    };
 
     public static string BuildUserMessage(string transcriptContext, bool hasImage = false)
     {

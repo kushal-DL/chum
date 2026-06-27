@@ -398,7 +398,8 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             var contextText = _context.BuildContext(holdEnd, _settings.Current.MaxResponseTokens);
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
-                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform));
+                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
+                _stt.DetectedLanguage);
             var user = PromptBuilder.BuildUserMessage(contextText);
             var request = new LlmRequest(system, user,
                 MaxTokens: _settings.Current.MaxResponseTokens,
@@ -445,7 +446,8 @@ public sealed class MeetingOrchestrator : IDisposable
                 sb.AppendLine($"[{seg.Timestamp:HH:mm:ss}] {seg.SpeakerLabel}: \"{seg.Text}\"");
 
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
-                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform));
+                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
+                _stt.DetectedLanguage);
             var user = $"Extract all action items, decisions, and owners from this meeting transcript. Format as a bulleted list with owner names where identifiable.\n\n{sb}";
             var request = new LlmRequest(system, user, MaxTokens: 1024);
 
@@ -499,7 +501,8 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             var contextText = _context.BuildContext(DateTimeOffset.UtcNow, _settings.Current.MaxResponseTokens);
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
-                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform));
+                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
+                _stt.DetectedLanguage);
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
             var request = new LlmRequest(system, user,
                 ImageBase64: imageBase64,
@@ -579,7 +582,8 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             var contextText = _context.BuildContext(DateTimeOffset.UtcNow, _settings.Current.MaxResponseTokens);
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
-                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform));
+                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
+                _stt.DetectedLanguage);
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
             var request = new LlmRequest(system, user,
                 ImageBase64: imageBase64,

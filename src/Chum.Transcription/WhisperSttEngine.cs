@@ -23,6 +23,9 @@ public sealed class WhisperSttEngine : IDisposable
 
     public bool IsReady => _initialized;
 
+    /// <summary>ISO language code detected by Whisper (e.g. "en", "es"). Null until first segment transcribed.</summary>
+    public string? DetectedLanguage { get; private set; }
+
     public WhisperSttEngine(string modelDirectory, GgmlType modelType = GgmlType.Small)
     {
         _modelType = modelType;
@@ -66,6 +69,10 @@ public sealed class WhisperSttEngine : IDisposable
 
         await foreach (var segment in _processor.ProcessAsync(wavStream, ct))
         {
+            // Update language detection from Whisper's per-segment output
+            if (segment.Language is not null)
+                DetectedLanguage = segment.Language;
+
             var text = segment.Text?.Trim() ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(text) && !IsHallucination(text))
                 sb.Append(text).Append(' ');
