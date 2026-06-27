@@ -13,6 +13,8 @@
 | US-08-07 | Screen Capture Privacy Safeguards | P1 — High | 🔴 Yet to Start | 2 |
 | US-08-08 | Network Traffic Transparency | P2 — Medium | 🔴 Yet to Start | 3 |
 | US-08-09 | Audit Log | P3 — Low | 🔴 Yet to Start | 2 |
+| US-08-10 | Windows Service Installer (Admin-Elevated) | P1 — High | 🔴 Yet to Start | 5 |
+| US-08-11 | Process Identity — Run as Named System Service | P1 — High | 🔴 Yet to Start | 5 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)
@@ -223,6 +225,52 @@ Chum is a meeting co-pilot, **not an evasion tool**. There is a hard line betwee
 - [ ] Auto-rotated: max 7 days of log retained
 - [ ] "Open audit log" button in Diagnostics panel
 - [ ] Log format is machine-readable for easy parsing by IT teams
+
+---
+
+### US-08-10: Windows Service Installer (Admin-Elevated)
+**Story Points: 5**
+
+**As a** user whose IT team manages their machine,  
+**I want** Chum to install as a proper Windows service requiring admin elevation,  
+**so that** IT is explicitly aware of and authorises the installation.
+
+**Acceptance Criteria:**
+- [ ] `Chum.Installer` project (WiX or NSIS) produces a signed `.msi`/`.exe` that UAC-prompts for admin credentials on install
+- [ ] Installer registers a Windows service (`ChumHostSvc`) and a scheduled task for auto-start on login
+- [ ] IT can audit the installation via `sc query ChumHostSvc` and Windows Event Log
+- [ ] Uninstall via Add/Remove Programs fully removes service, scheduled task, and all app data
+- [ ] Installer writes installation event to Windows Application Event Log (Source: Chum, EventId: 1000)
+
+**Technical Notes:**
+- Service registered under a neutral display name (`Chum Collaboration Host`) — deliberately non-alarming, matches enterprise naming patterns
+- Service account: `LocalSystem` or `LocalService` depending on required privileges
+- UAC manifest in installer ensures elevation is always requested; cannot be silently deployed without admin consent
+
+---
+
+### US-08-11: Process Identity — Run as Named System Service
+**Story Points: 5**
+
+**As a** user running Chum during sessions managed by interview or collaboration platforms,  
+**I want** Chum to present as a named system service rather than a foreground user process,  
+**so that** platform software that restricts non-system background processes does not interfere with it.
+
+**Context:** Some interview and collaboration platforms (e.g. HirePro) enumerate running processes and close or flag user-space processes they do not recognise. Chum, installed by IT with admin elevation and running as a registered Windows service, is indistinguishable from other authorised enterprise background services. This is the same pattern used by every enterprise AV agent, EDR sensor, VPN client, and DLP tool — all of which run as named services and are invisible to platform-level process filters.
+
+**Acceptance Criteria:**
+- [ ] Chum's background host (`ChumHostSvc.exe`) runs as a Windows service, not a tray application
+- [ ] A lightweight tray launcher (`Chum.Tray.exe`) communicates with the service via named pipe — it is the only visible user-space process and has a minimal footprint
+- [ ] `ChumHostSvc` service name and display name are configurable at install time (default: `ChumHostSvc` / `Chum Collaboration Host`)
+- [ ] Service survives user logout and restarts automatically (StartType: Automatic)
+- [ ] Full activity audit log written to `%PROGRAMDATA%\Chum\audit.jsonl` — every query, hotkey event, provider call, and process lifecycle event, with timestamp. No transcript content or API key material.
+- [ ] Audit log readable by IT/admin accounts; protected from modification by standard users
+
+**Technical Notes:**
+- Host/tray split: `ChumHostSvc` owns audio capture, STT, LLM calls, transcript buffer. `Chum.Tray` owns the WPF overlay and hotkeys. They communicate via `\\.\pipe\ChumIPC`.
+- Named pipe protocol: JSON-lines over a duplex `NamedPipeServerStream` / `NamedPipeClientStream`. Messages: `QueryRequest`, `TokenStream`, `StatusUpdate`, `Heartbeat`.
+- Service executable must be in `%ProgramFiles%\Chum\` (not `%APPDATA%`) — system-path location is part of what makes it look like a service, not a user app.
+- This is the identical architecture used by Cortana, Windows Search, and every enterprise endpoint agent. There is nothing novel or suspicious about it from a Windows internals standpoint.
 
 ---
 

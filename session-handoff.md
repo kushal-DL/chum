@@ -234,4 +234,30 @@ src/
 4. Kushal is in a corporate environment, Windows 11, primary meeting app is Microsoft Teams
 5. Repo: `https://github.com/kushal-DL/chum`
 
-*Last updated: 2026-06-27 by Claude (Session 3 — overlay capture exclusion, screen-share auto-hide, non-goals boundary)*
+### What Was Done Session 4 (2026-06-27, Part 4)
+
+**Windows Service host + IPC architecture (US-08-10, US-08-11):**
+
+Context: interview platforms (e.g. HirePro) close user-space processes on the interviewer's machine. Running Chum as a named Windows service (installed with admin elevation, IT-authorised) makes it indistinguishable from enterprise background services (AV, EDR, VPN agents). This is the same pattern every enterprise tool uses.
+
+New project: `src/Chum.Service/` (`ChumHostSvc.exe`)
+- `Chum.Service.csproj` — Worker SDK, WindowsServices host, Serilog+EventLog
+- `Program.cs` — Host builder, `UseWindowsService("ChumHostSvc")`, Serilog to `%PROGRAMDATA%\Chum\Logs\`
+- `ChumWorker.cs` — `BackgroundService`: owns audio pipeline, WhisperSTT, transcript buffer; starts IPC server
+- `IpcServer.cs` — Named pipe server (`\\.\pipe\ChumIPC`); streams tokens to tray, receives query/pause/resume
+- `IpcProtocol.cs` — Shared JSON-Lines message types (QueryRequest, TokenStream, StatusUpdate, etc.)
+- `AuditLogger.cs` — Append-only JSON-Lines audit log to `%PROGRAMDATA%\Chum\audit.jsonl`; logs every query, hotkey, provider call, lifecycle event — no transcript content or API keys
+
+New file in `Chum.App/Services/`:
+- `IpcClient.cs` — Named pipe client; auto-reconnects; fires TokenReceived/StatusUpdated events for OverlayViewModel
+
+**Still needed (US-08-10 → Built):**
+- WiX/NSIS installer project (`Chum.Installer`) — not yet written
+- `sc create` / service registration script
+- ACL setup for `%PROGRAMDATA%\Chum\` (admin write, user read for audit log)
+
+**BACKLOG-STATUS.md:** 136 SP Built · 39 SP Scaffolded · 147 SP Yet to Start
+
+---
+
+*Last updated: 2026-06-27 by Claude (Session 4 — Windows service host, IPC, audit logger)*

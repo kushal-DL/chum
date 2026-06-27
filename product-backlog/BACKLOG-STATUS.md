@@ -147,9 +147,11 @@
 | US-08-06 | Secure API Key Storage | P0 | 🔵 Built | 3 | CredentialService via Windows Credential Manager (DPAPI) |
 | US-08-07 | Screen Capture Privacy Safeguards | P1 | 🔴 Yet to Start | 2 | |
 | US-08-08 | Network Traffic Transparency | P2 | 🔴 Yet to Start | 3 | |
-| US-08-09 | Audit Log (Enterprise) | P3 | 🔴 Yet to Start | 2 | |
+| US-08-09 | Audit Log (Enterprise) | P3 | 🔵 Built | 2 | AuditLogger.cs — JSON-Lines to %PROGRAMDATA%\Chum\audit.jsonl |
+| US-08-10 | Windows Service Installer (Admin-Elevated) | P1 | 🟡 Scaffolded | 5 | Chum.Service project created; installer (WiX/NSIS) not yet written |
+| US-08-11 | Process Identity — Run as Named System Service | P1 | 🔵 Built | 5 | ChumHostSvc worker + IPC server/client; tray↔service named pipe |
 
-**Epic 08 Total:** 26 SP · 0 Done · 9 Built · 3 Scaffolded · 14 Yet to Start
+**Epic 08 Total:** 38 SP · 0 Done · 21 Built · 8 Scaffolded · 9 Yet to Start
 
 ---
 
@@ -200,8 +202,8 @@
 | P2 Stories | 22 stories · 87 SP |
 | P3 Stories | 5 stories · 21 SP |
 | ✅ Done | 0 SP (0%) |
-| 🔵 Built | 124 SP (40%) |
-| 🟡 Scaffolded | 34 SP (11%) |
-| 🔴 Yet to Start | 152 SP (49%) |
+| 🔵 Built | 136 SP (41%) |
+| 🟡 Scaffolded | 39 SP (12%) |
+| 🔴 Yet to Start | 147 SP (47%) |
 
-*Last updated: 2026-06-27 — Session 2: MVP source + WDA_EXCLUDEFROMCAPTURE overlay capture exclusion + ScreenShareDetector auto-hide*
+*Last updated: 2026-06-27 — Session 4: Windows service host (ChumHostSvc), IPC protocol, audit logger, IpcClient*
