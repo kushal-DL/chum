@@ -110,4 +110,10 @@ public partial class OverlayWindow : Window
     {
         Hide(); // hide to tray, don't close
     }
+
+    private void HistoryPrev_Click(object sender, RoutedEventArgs e)
+        => ((OverlayViewModel)DataContext).NavigateBack();
+
+    private void HistoryNext_Click(object sender, RoutedEventArgs e)
+        => ((OverlayViewModel)DataContext).NavigateForward();
 }

@@ -47,7 +47,8 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>  <!-- Header / drag bar -->
                 <RowDefinition Height="*"/>      <!-- Response area -->
-                <RowDefinition Height="Auto"/>   <!-- Clipboard notification -->
+                <RowDefinition Height="Auto"/>   <!-- History navigation -->
+                <RowDefinition Height="Auto"/>   <!-- Notification banners -->
                 <RowDefinition Height="Auto"/>   <!-- Transcript strip (collapsible) -->
                 <RowDefinition Height="Auto"/>   <!-- Status bar -->
             </Grid.RowDefinitions>
@@ -144,8 +145,29 @@
                 </TextBlock.Triggers>
             </TextBlock>
 
+            <!-- ── History navigation ── -->
+            <Border Grid.Row="2" Background="#10FFFFFF" Padding="6,3"
+                    Visibility="{Binding HasHistory, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" Style="{StaticResource ChumButton}" Content="◀"
+                            IsEnabled="{Binding CanGoBack}"
+                            Click="HistoryPrev_Click" ToolTip="Previous response"/>
+                    <TextBlock Grid.Column="1" Text="{Binding HistoryLabel}"
+                               Foreground="#666" FontSize="10"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Button Grid.Column="2" Style="{StaticResource ChumButton}" Content="▶"
+                            IsEnabled="{Binding CanGoForward}"
+                            Click="HistoryNext_Click" ToolTip="Next response / back to live"/>
+                </Grid>
+            </Border>
+
             <!-- ── Notification banners (paused + clipboard) ── -->
-            <StackPanel Grid.Row="2">
+            <StackPanel Grid.Row="3">
                 <Border Background="#1FEF4444" BorderBrush="#EF4444"
                         BorderThickness="0,1,0,0" Padding="10,6"
                         Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -161,7 +183,7 @@
             </StackPanel>
 
             <!-- ── Transcript strip (collapsed by default) ── -->
-            <Expander Grid.Row="3" Header="Transcript" Foreground="#777"
+            <Expander Grid.Row="4" Header="Transcript" Foreground="#777"
                       FontSize="10" Margin="6,0" IsExpanded="False">
                 <ItemsControl ItemsSource="{Binding TranscriptLines}" Margin="4,4">
                     <ItemsControl.ItemTemplate>
@@ -174,7 +196,7 @@
             </Expander>
 
             <!-- ── Status bar ── -->
-            <Border Grid.Row="4" Background="#15FFFFFF" CornerRadius="0,0,10,10">
+            <Border Grid.Row="5" Background="#15FFFFFF" CornerRadius="0,0,10,10">
                 <Grid Margin="10,4">
                     <TextBlock Text="Chum v0.1" Foreground="#444" FontSize="10"
                                HorizontalAlignment="Left"/>

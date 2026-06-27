@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-03-02 Built — 45/84 stories 🔵 Built (183/320 SP, 57%); next: US-03-06 (Response History)
+**Phase:** US-03-06 Built — 46/84 stories 🔵 Built (186/320 SP, 58%); next: US-08-01 (Local-only Processing Mode) or US-09-01 (Meeting Platform Auto-Detection)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -194,6 +194,20 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 16 (2026-06-27, Part 16)
+
+**Response History — US-03-06 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/ViewModels/OverlayViewModel.cs` — Added `_liveText` (separate from `_responseText`) to track the streaming text independently of navigation state. `_history` ring buffer (max 20 strings). `_historyIndex` (-1 = live). `StartNewResponse` saves non-empty live text to history before clearing. `AppendResponseToken` only updates `ResponseText` when in live view (`_historyIndex == -1`); always updates `_liveText`. `NavigateBack()`/`NavigateForward()` move through history; navigating back to live restores `_liveText`. Properties: `HasHistory`, `HistoryLabel` ("Live (N saved)" or "1/5"), `CanGoBack`, `CanGoForward`.
+- `Chum.App/Views/OverlayWindow.xaml` — Added Row 2 (history navigation strip with ◀/▶ buttons and a label, visible only when `HasHistory`). Existing rows 2–4 shifted to 3–5.
+- `Chum.App/Views/OverlayWindow.xaml.cs` — Added `HistoryPrev_Click`/`HistoryNext_Click` delegating to ViewModel.
+- `product-backlog/EPIC-03-llm-integration.md` — Updated US-03-06 status to 🔵 Built.
+
+**Build:** 0 errors, 7 warnings (unchanged).
+
+---
+
 ### What Was Done Session 15 (2026-06-27, Part 15)
 
 **OpenAI API Integration — US-03-02 → 🔵 Built:**
@@ -310,16 +324,16 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ## Immediate Next Step
 
-**US-03-06 — Response History (P1, 3 SP):**
+**US-09-01 — Meeting Platform Auto-Detection (P1, 5 SP):**
 
-Store past LLM responses so the user can scroll back to earlier answers. Current overlay only shows the most recent response (overwritten on each new query).
+Detects which meeting app is running so Chum can set context in the system prompt and lifecycle events.
 
 What to build:
-- `ResponseHistoryService.cs` in `Chum.App/Services/` — `AddResponse(string text)`, `GetHistory()` returning a ring buffer of the last ~20 responses
-- `OverlayViewModel` — add `ResponseHistory` observable collection; "Previous" / "Next" navigation commands (or arrow buttons in the overlay)
-- `OverlayWindow.xaml` — add simple prev/next navigation UI (small arrows or "1/5" counter near the response panel)
+- `MeetingPlatformDetector.cs` in `Chum.App/Services/` — polls running processes every 5s; maps process names to `MeetingPlatform` enum (Teams, GoogleMeet, Zoom, WebEx, Generic); fires `PlatformChanged` event.
+- Wire into `MeetingOrchestrator` — update `PromptBuilder` to include platform name in system prompt ("The user is on a Microsoft Teams call").
+- Wire into `App.xaml.cs` — start detector alongside `ScreenShareDetector`.
 
-After that: **US-08-01 — Local-only Processing Mode (P1, 5 SP)** — toggle that disables all cloud calls (Whisper is already local; need to switch LLM to Ollama and disable OpenAI/Anthropic).
+After that: **US-08-01 — Local-only Processing Mode (P1, 5 SP)** — toggle that uses Ollama for LLM (add `OllamaLlmProvider`), disabling cloud calls.
 
 ---
 

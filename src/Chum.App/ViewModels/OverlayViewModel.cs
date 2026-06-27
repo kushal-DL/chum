@@ -19,6 +19,7 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
 
     // ── Response display ──────────────────────────────────────────────────
 
+    private string _liveText = string.Empty;   // accumulates current stream regardless of nav state
     private string _responseText = string.Empty;
     public string ResponseText
     {
@@ -37,24 +38,93 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
     {
         Invoke(() =>
         {
+            if (!string.IsNullOrWhiteSpace(_liveText))
+            {
+                _history.Add(_liveText);
+                while (_history.Count > MaxHistoryItems) _history.RemoveAt(0);
+            }
+            _liveText = string.Empty;
+            _historyIndex = -1;
             ResponseText = string.Empty;
             IsStreaming = true;
+            NotifyHistoryChanged();
         });
     }
 
     public void AppendResponseToken(string token)
     {
-        Invoke(() => ResponseText += token);
+        Invoke(() =>
+        {
+            _liveText += token;
+            if (_historyIndex == -1)
+                ResponseText += token;
+        });
     }
 
     public void ShowError(string message)
     {
         Invoke(() =>
         {
+            _liveText = string.Empty;
+            _historyIndex = -1;
             ResponseText = $"⚠ {message}";
             IsStreaming = false;
             SetStatus(OverlayStatus.Error, message);
+            NotifyHistoryChanged();
         });
+    }
+
+    // ── Response history ──────────────────────────────────────────────────
+
+    private const int MaxHistoryItems = 20;
+    private readonly List<string> _history = [];
+    private int _historyIndex = -1; // -1 = live; 0..N-1 = viewing past response
+
+    public bool HasHistory => _history.Count > 0;
+
+    public string HistoryLabel => _historyIndex == -1
+        ? $"Live  ({_history.Count} saved)"
+        : $"{_historyIndex + 1} / {_history.Count}";
+
+    public bool CanGoBack => _history.Count > 0 && (_historyIndex == -1 || _historyIndex > 0);
+    public bool CanGoForward => _historyIndex != -1;
+
+    public void NavigateBack()
+    {
+        Invoke(() =>
+        {
+            if (_history.Count == 0) return;
+            _historyIndex = _historyIndex == -1 ? _history.Count - 1 : _historyIndex - 1;
+            ResponseText = _history[_historyIndex];
+            NotifyHistoryChanged();
+        });
+    }
+
+    public void NavigateForward()
+    {
+        Invoke(() =>
+        {
+            if (_historyIndex == -1) return;
+            _historyIndex++;
+            if (_historyIndex >= _history.Count)
+            {
+                _historyIndex = -1;
+                ResponseText = _liveText;
+            }
+            else
+            {
+                ResponseText = _history[_historyIndex];
+            }
+            NotifyHistoryChanged();
+        });
+    }
+
+    private void NotifyHistoryChanged()
+    {
+        OnPropertyChanged(nameof(HasHistory));
+        OnPropertyChanged(nameof(HistoryLabel));
+        OnPropertyChanged(nameof(CanGoBack));
+        OnPropertyChanged(nameof(CanGoForward));
     }
 
     // ── Transcript strip ──────────────────────────────────────────────────
