@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-08-01 Built — 48/84 stories 🔵 Built (196/320 SP, 61%); next: US-04-07 (Action Items Hotkey, Scaffolded → Built)
+**Phase:** US-04-07 Built — 49/84 stories 🔵 Built (199/320 SP, 62%); next: US-08-07 (Screen Capture Privacy Safeguards)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,22 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 19 (2026-06-27, Part 19)
+
+**Action Items Hotkey — US-04-07 → 🔵 Built (status correction, no code changes):**
+
+On inspection, the implementation was already complete — the story was mislabelled as Scaffolded. The full handler `HandleActionItemsQueryAsync()` exists in `MeetingOrchestrator.cs` and was built as part of session 2/3 alongside the other hotkey handlers. It:
+- Gets all transcript segments from `TranscriptBuffer.GetAll()`
+- Shows an error in the overlay if no transcript is available yet
+- Sends the full transcript to the LLM with "extract action items, decisions, and owners" prompt
+- Streams the response back to the overlay
+
+The hotkey (`Ctrl+Alt+A`) is registered in `RegisterHotkeys()` and routed in `_hotkeys.HotkeyTapped` in the orchestrator.
+
+Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals updated.
 
 ---
 
@@ -367,14 +383,19 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ## Immediate Next Step
 
-**US-04-07 — Action Items Hotkey (P1, 3 SP) — Scaffolded → Built:**
+**US-08-07 — Screen Capture Privacy Safeguards (P1, 2 SP):**
 
-Handler stub exists in `MeetingOrchestrator.HandleActionItemsQueryAsync()`. The logic is actually complete there. The story needs:
-- Verify the `HandleActionItemsQueryAsync` implementation is correct end-to-end (it already formats transcript + sends to LLM with "extract action items" prompt).
-- Ensure the hotkey (`Ctrl+Alt+A`) is wired and registered properly in `HotkeyService`.
-- Update status to 🔵 Built.
+Not yet started. When the user triggers a screen capture, Chum should:
+- Warn in the overlay that a screenshot will be sent to the cloud (unless local mode is on).
+- Give the user a configurable "confirm before sending" option to prevent accidental data capture.
+- Optionally: allow user to configure a delay before capture so they can close sensitive windows.
 
-After that: **US-08-07 — Screen Capture Privacy Safeguards (P1, 2 SP)** — not started; add a user-configurable sensitive-region blur or per-window exclusion.
+What to build:
+- Add `ConfirmScreenCapture` bool to `AppSettings` (default false — user must opt in to confirmation).
+- In `HandleScreenCaptureQueryAsync()`: if `ConfirmScreenCapture` is true, show a notification banner ("Press again to confirm, or wait 3s to cancel") and only proceed after re-press or timeout.
+- Add setting to `SettingsWindow.xaml`.
+
+After that: **US-02-06 — Transcript Cleanup & Formatting (P1, 2 SP)** — Scaffolded; hallucination filter exists but no full cleanup pass.
 
 ---
 
