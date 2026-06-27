@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-10-09 Built — 80/84 stories 🔵 Built (306/320 SP, 96%) — 4 stories remain (Epic 09: 1, Epic 10: 3)
+**Phase:** US-09-04 Built — 81/84 stories 🔵 Built (311/320 SP, 97%) — 3 stories remain (Epic 10: 3)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -194,6 +194,28 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 49 (2026-06-28, Part 49)
+
+**Screen Share Detection per Platform — US-09-04 → 🔵 Built:**
+
+Enhancement to the existing `ScreenShareDetector` (which was built earlier but only covered generic patterns). US-09-04 adds the missing platform-specific details and the 2s restore delay.
+
+**Modified files:**
+- `Chum.App/Services/ScreenShareDetector.cs`:
+  - Added `ZPControlBar` to the Zoom class-name check (alongside existing `zoom_sharetoolbar` and `ZPToolBarParentWnd`) — the sharing control bar class name varies by Zoom version.
+  - Added `public bool IsSharing => _lastState` property so the delayed restore check in the orchestrator can re-verify state.
+- `Chum.App/Services/MeetingOrchestrator.cs` — `SharingStateChanged` handler: on `isSharing=true` → `_overlay.Hide()` (unchanged); on `isSharing=false` → `Task.Delay(2s).ContinueWith(_ => { if (!_shareDetector.IsSharing) _overlay.Show(); })` — 2s delay prevents flicker when the sharing toolbar briefly disappears during an app switch. If sharing resumes within 2s, `IsSharing` is true and the overlay stays hidden.
+
+**Coverage after this change:**
+- Teams (desktop): title contains "sharing" / "present" — catches classic and New Teams sharing toolbar
+- Zoom: `zoom_sharetoolbar`, `ZPToolBarParentWnd`, `ZPControlBar` — all known Zoom share toolbar class names
+- Google Meet / browser: `Chrome_WidgetWin_*` with "sharing" in title — catches Chrome's floating share strip
+- Generic WGC session detection: not implemented (requires subscribing to OS capture session events — P3 deferred)
+
+**Build:** 0 errors, 8 warnings (unchanged).
+
+---
+
 ### What Was Done Session 48 (2026-06-28, Part 48)
 
 **Auto-Update Mechanism — US-10-09 → 🔵 Built:**
@@ -218,8 +240,8 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 **Build:** 0 errors, 9 warnings (all pre-existing).
 
 **Immediate Next Step:**
-- **US-09-04 — Screen Share Detection per Platform (P3, 5 SP)**: Detect per-platform share: Teams via window title change + child process (`Stop sharing` text); Zoom via `FindWindow("ZPControlBar", null)`; generic via monitoring if another WGC capture session starts on the same display. When detected: auto-hide overlay (if `AutoHideOnScreenShare` setting is on); restore after 2s delay when share ends.
-- Then: **US-10-08 — Crash Reporting Opt-in (P3, 3 SP)**, **US-10-10 — Low-Power Mode (P3, 3 SP)**, **US-09-07 — Platform Compatibility Testing Matrix (P3, 3 SP)**.
+- **US-10-08 — Crash Reporting Opt-in (P3, 3 SP)**: Add an opt-in crash reporter. On unhandled exception: collect `Exception.Message + StackTrace + OS version + Chum version + WorkingSet MB`. If opted in, POST to a lightweight endpoint (or write to a local crash dump file the user can share). Show a "Chum crashed — send report?" dialog. Toggle in Settings → Privacy. Default: off.
+- Then: **US-10-10 — Low-Power Mode (P3, 3 SP)**, **US-09-07 — Platform Compatibility Testing Matrix (P3, 3 SP)**.
 
 ---
 

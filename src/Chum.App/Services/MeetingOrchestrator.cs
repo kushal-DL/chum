@@ -109,13 +109,24 @@ public sealed class MeetingOrchestrator : IDisposable
             _overlay.AddTranscriptLine($"[{seg.Timestamp:HH:mm:ss}] Caption: {seg.Text}");
         };
 
-        // Wire screen-share auto-hide
+        // Wire screen-share auto-hide; restore is delayed 2 s to prevent flicker if the
+        // sharing window briefly disappears during an application switch.
         _shareDetector = new ScreenShareDetector();
         _shareDetector.SharingStateChanged += (_, isSharing) =>
         {
             if (!_settings.Current.AutoHideOnScreenShare) return;
-            if (isSharing) _overlay.Hide();
-            else _overlay.Show();
+            if (isSharing)
+            {
+                _overlay.Hide();
+            }
+            else
+            {
+                _ = Task.Delay(TimeSpan.FromSeconds(2)).ContinueWith(_ =>
+                {
+                    if (!_shareDetector.IsSharing)
+                        _overlay.Show();
+                }, TaskScheduler.Default);
+            }
         };
 
         // Detect meeting platform for prompt context; fire lifecycle events for auto-start/stop

@@ -32,6 +32,8 @@ public sealed class ScreenShareDetector : IDisposable
     private bool _lastState;
     private bool _disposed;
 
+    public bool IsSharing => _lastState;
+
     public void Start()
     {
         _timer = new Timer(_ => Poll(), null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
@@ -89,9 +91,10 @@ public sealed class ScreenShareDetector : IDisposable
 
     private static bool IsZoomSharing(string cls)
     {
-        // Zoom's share toolbar has a distinctive class name
+        // Zoom's share toolbar windows — class names vary by Zoom version
         return cls.Equals("zoom_sharetoolbar", StringComparison.OrdinalIgnoreCase) ||
-               cls.Equals("ZPToolBarParentWnd", StringComparison.OrdinalIgnoreCase);
+               cls.Equals("ZPToolBarParentWnd", StringComparison.OrdinalIgnoreCase) ||
+               cls.Equals("ZPControlBar", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsBrowserSharingStrip(string title, string cls)
