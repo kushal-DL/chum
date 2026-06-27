@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** Solution builds clean — ready to build next story (US-06-02)
+**Phase:** US-06-02 Built — ready to build US-06-06 (Image Preprocessing Pipeline)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -114,6 +114,28 @@ Created the complete product backlog and project infrastructure:
 
 ---
 
+### What Was Done Session 8 (2026-06-27, Part 8)
+
+**Clipboard Image Monitoring — US-06-02 → 🔵 Built:**
+
+**New files:**
+- `Chum.App/Services/ClipboardMonitor.cs` — `WM_CLIPBOARDUPDATE` listener via `HwndSource` with `HWND_MESSAGE` parent (message-only window). `AddClipboardFormatListener`/`RemoveClipboardFormatListener` P/Invoke. `HasPendingImage` flag set/cleared on clipboard changes. `TryTakeImageAsJpegBase64()` encodes current clipboard bitmap via `JpegBitmapEncoder` (WPF-native, no extra packages), scales down if wider than 1280px.
+
+**Modified files:**
+- `Chum.App/ViewModels/OverlayViewModel.cs` — added `HasPendingClipboardImage` bool property + `SetClipboardPending(bool)` method (marshalled via Dispatcher).
+- `Chum.App/Views/OverlayWindow.xaml` — added Row 2 (amber notification banner, `Visibility` bound to `HasPendingClipboardImage`). Transcript strip → Row 3, status bar → Row 4.
+- `Chum.App/Services/MeetingOrchestrator.cs` — added optional `ClipboardMonitor?` parameter; wires `ImageAvailable` event → `SetClipboardPending(true)`; `HandleScreenCaptureQueryAsync` now checks clipboard first (clipboard image takes priority over DXGI; clipboard image is extracted on UI thread before any `await`), falls back to DXGI if none pending. DXGI error message updated to mention Win+Shift+S clipboard path.
+- `Chum.App/App.xaml.cs` — instantiates `ClipboardMonitor`, passes to orchestrator, disposes on exit.
+
+**Decisions made:**
+- Used `HWND_MESSAGE` parent window approach instead of hooking into `OverlayWindow` — cleaner separation, no dependency on overlay being visible to receive clipboard events.
+- `TryTakeImageAsJpegBase64()` must be called on UI thread (STA); called before first `await` in `HandleScreenCaptureQueryAsync` so we stay on UI thread for clipboard access.
+- No new NuGet packages needed — `JpegBitmapEncoder` is in WPF's `System.Windows.Media.Imaging`.
+
+**Build:** 0 errors, 6 pre-existing warnings (unchanged).
+
+---
+
 ### What Was Done Session 7 (2026-06-27, Part 7)
 
 **First successful build — 0 errors:**
@@ -174,15 +196,11 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ## Immediate Next Step
 
-**Build is verified — 0 errors.** Next story to build:
+**US-06-06 — Image Preprocessing Pipeline (P1, 3 SP)** — next in Epic 06
 
-**US-06-02 — Clipboard Image Monitoring (P1, 3 SP)**
-- Wire `WM_CLIPBOARDUPDATE` via `HwndSource` to detect when user copies an image
-- On image detected: show overlay prompt "Image in clipboard — press [hotkey] to analyse, dismiss otherwise"
-- On confirm: pass clipboard image to LLM same path as DXGI capture
-- This closes the Teams call window gap (user uses Win+Shift+S on a non-Teams area, or drags from phone)
+This is the pre-send image processing step: resize-to-fit (already done inline in ClipboardMonitor + DxgiScreenCapture), strip EXIF, convert to appropriate format. Consider whether this should be a shared helper used by both capture paths rather than separate inline code in each. May be a quick story since basic resizing + JPEG encoding is already in both ClipboardMonitor and DxgiScreenCapture — the main value is extracting it into a shared `ImagePreprocessor` so the logic lives in one place.
 
-**3. After that:** US-06-03 — Image File Drop Target (P2, 3 SP)
+**After that:** US-06-03 — Image File Drop Target (P2, 3 SP)
 - `AllowDrop="True"` on the overlay; handle `Drop` event; read file, compress, send to LLM
 
 ---
@@ -214,8 +232,8 @@ Build is clean. All 16 P0 MVP stories are 🔵 Built. Next steps in priority ord
 4. Right-click tray icon → Start Capture → audio pipeline starts
 5. Speak → transcription should appear in overlay
 
-### Step 2 — US-06-02: Clipboard Image Monitoring (P1, 3 SP) ← Next story
-Wire `WM_CLIPBOARDUPDATE` via `HwndSource` to detect clipboard images. Closes the Teams call window gap — user uses Win+Shift+S or Snipping Tool, image goes to clipboard, Chum detects it and sends to LLM.
+### Step 2 — US-06-06: Image Preprocessing Pipeline (P1, 3 SP) ← Next story
+Extract the inline resize/encode logic that's currently duplicated in `ClipboardMonitor.cs` and `DxgiScreenCapture.cs` into a shared `ImagePreprocessor` service. Ensures consistent output quality, adds EXIF strip, and keeps a single place to tune JPEG quality/max-width settings.
 
 ### Step 3 — US-06-03: Image File Drop Target (P2, 3 SP)
 `AllowDrop="True"` on overlay; `Drop` event handler; validate image file; send to LLM.

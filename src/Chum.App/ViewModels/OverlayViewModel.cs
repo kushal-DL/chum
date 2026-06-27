@@ -143,6 +143,20 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
     public void Hide() => Invoke(() => OverlayVisibility = Visibility.Collapsed);
     public void Show() => Invoke(() => OverlayVisibility = Visibility.Visible);
 
+    // ── Clipboard notification ────────────────────────────────────────────
+
+    private bool _hasPendingClipboardImage;
+    public bool HasPendingClipboardImage
+    {
+        get => _hasPendingClipboardImage;
+        private set { _hasPendingClipboardImage = value; OnPropertyChanged(); }
+    }
+
+    public void SetClipboardPending(bool pending)
+    {
+        Invoke(() => HasPendingClipboardImage = pending);
+    }
+
     // ── INotifyPropertyChanged ────────────────────────────────────────────
 
     public event PropertyChangedEventHandler? PropertyChanged;

@@ -26,6 +26,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private readonly OverlayViewModel _overlay;
     private readonly SettingsService _settings;
     private readonly DxgiScreenCapture? _screenCapture;
+    private readonly ClipboardMonitor? _clipboardMonitor;
 
     private readonly ScreenShareDetector _shareDetector;
     private CancellationTokenSource _cts = new();
@@ -41,7 +42,8 @@ public sealed class MeetingOrchestrator : IDisposable
         HotkeyService hotkeys,
         OverlayViewModel overlay,
         SettingsService settings,
-        DxgiScreenCapture? screenCapture = null)
+        DxgiScreenCapture? screenCapture = null,
+        ClipboardMonitor? clipboardMonitor = null)
     {
         _audio = audio;
         _stt = stt;
@@ -52,6 +54,10 @@ public sealed class MeetingOrchestrator : IDisposable
         _overlay = overlay;
         _settings = settings;
         _screenCapture = screenCapture;
+        _clipboardMonitor = clipboardMonitor;
+
+        if (_clipboardMonitor is not null)
+            _clipboardMonitor.ImageAvailable += (_, _) => _overlay.SetClipboardPending(true);
 
         // Wire transcript segments to buffer
         _stt.SegmentTranscribed += (_, seg) =>
@@ -229,34 +235,48 @@ public sealed class MeetingOrchestrator : IDisposable
 
     private async Task HandleScreenCaptureQueryAsync()
     {
-        if (_screenCapture is null)
-        {
-            _overlay.ShowError("Screen capture is not available on this system (VM, RDP, or unsupported GPU).");
-            return;
-        }
-
         _overlay.SetStatus(OverlayStatus.Thinking, "Capturing screen...");
         _overlay.StartNewResponse();
 
-        string? imageBase64;
-        try
+        // Clipboard image takes priority: user used Win+Shift+S or Snipping Tool.
+        // Must be extracted here (UI thread) before any awaits.
+        string? imageBase64 = null;
+        if (_clipboardMonitor?.HasPendingImage == true)
         {
-            imageBase64 = await Task.Run(() =>
-                _screenCapture.CaptureAsJpegBase64(maxWidthPx: 1280, jpegQuality: 85));
-        }
-        catch (Exception ex)
-        {
-            _overlay.ShowError("Screen capture failed — check logs");
-            Serilog.Log.Error(ex, "Screen capture exception");
-            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
-            return;
+            imageBase64 = _clipboardMonitor.TryTakeImageAsJpegBase64(maxWidthPx: 1280, jpegQuality: 85);
+            _overlay.SetClipboardPending(false);
+            Serilog.Log.Information("Using clipboard image for screen capture query");
         }
 
+        // Fall back to DXGI desktop duplication
         if (imageBase64 is null)
         {
-            _overlay.ShowError("Could not capture a frame. If Teams call content appears black, this is expected — try Win+Shift+S and drop the image onto the overlay instead.");
-            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
-            return;
+            if (_screenCapture is null)
+            {
+                _overlay.ShowError("Screen capture is not available on this system (VM, RDP, or unsupported GPU).");
+                _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+                return;
+            }
+
+            try
+            {
+                imageBase64 = await Task.Run(() =>
+                    _screenCapture.CaptureAsJpegBase64(maxWidthPx: 1280, jpegQuality: 85));
+            }
+            catch (Exception ex)
+            {
+                _overlay.ShowError("Screen capture failed — check logs");
+                Serilog.Log.Error(ex, "Screen capture exception");
+                _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+                return;
+            }
+
+            if (imageBase64 is null)
+            {
+                _overlay.ShowError("Could not capture a frame. If Teams call content appears black, use Win+Shift+S to snip and then press Ctrl+Alt+S to analyse the clipboard image.");
+                _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+                return;
+            }
         }
 
         _overlay.SetStatus(OverlayStatus.Thinking, "Analysing screen...");

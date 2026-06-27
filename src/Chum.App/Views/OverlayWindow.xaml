@@ -44,6 +44,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>  <!-- Header / drag bar -->
                 <RowDefinition Height="*"/>      <!-- Response area -->
+                <RowDefinition Height="Auto"/>   <!-- Clipboard notification -->
                 <RowDefinition Height="Auto"/>   <!-- Transcript strip (collapsible) -->
                 <RowDefinition Height="Auto"/>   <!-- Status bar -->
             </Grid.RowDefinitions>
@@ -140,8 +141,16 @@
                 </TextBlock.Triggers>
             </TextBlock>
 
+            <!-- ── Clipboard image notification ── -->
+            <Border Grid.Row="2" Background="#1FFBBF24" BorderBrush="#FBBF24"
+                    BorderThickness="0,1,0,0" Padding="10,5"
+                    Visibility="{Binding HasPendingClipboardImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="Image in clipboard — press Ctrl+Alt+S to analyse"
+                           Foreground="#FBBF24" FontSize="11"/>
+            </Border>
+
             <!-- ── Transcript strip (collapsed by default) ── -->
-            <Expander Grid.Row="2" Header="Transcript" Foreground="#777"
+            <Expander Grid.Row="3" Header="Transcript" Foreground="#777"
                       FontSize="10" Margin="6,0" IsExpanded="False">
                 <ItemsControl ItemsSource="{Binding TranscriptLines}" Margin="4,4">
                     <ItemsControl.ItemTemplate>
@@ -154,7 +163,7 @@
             </Expander>
 
             <!-- ── Status bar ── -->
-            <Border Grid.Row="3" Background="#15FFFFFF" CornerRadius="0,0,10,10">
+            <Border Grid.Row="4" Background="#15FFFFFF" CornerRadius="0,0,10,10">
                 <Grid Margin="10,4">
                     <TextBlock Text="Chum v0.1" Foreground="#444" FontSize="10"
                                HorizontalAlignment="Left"/>
