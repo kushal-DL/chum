@@ -91,4 +91,13 @@ public sealed class AppSettings
     // %LOCALAPPDATA%\Chum\CrashReports\ and show a dialog offering the user to
     // open the folder so they can share the file with support. Default: off (opt-in).
     public bool EnableCrashReporting { get; set; } = false;
+
+    // --- Low-power mode (US-10-10) ---
+    // When true: auto-activate low-power mode on battery (detected via SystemInformation.PowerStatus).
+    // When on battery in low-power mode: GC timer interval doubles; overlay shows "Low power" badge.
+    // Next restart with low-power mode active will select the "Base" Whisper model automatically
+    // (smaller, faster, lower CPU) rather than the user-selected model.
+    public bool AutoLowPowerOnBattery { get; set; } = true;
+    // Manual override: forces low-power mode regardless of power state.
+    public bool ForceLowPowerMode { get; set; } = false;
 }

@@ -31,6 +31,7 @@ public partial class App : System.Windows.Application
     private NotifyIcon? _trayIcon;
     private DxgiScreenCapture? _screenCapture;
     private ClipboardMonitor? _clipboardMonitor;
+    private PowerMonitor? _powerMonitor;
     private bool _started;
     private string? _pendingMeetingDeviceId;
     private UpdateInfo? _pendingUpdate;
@@ -186,6 +187,12 @@ public partial class App : System.Windows.Application
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
         Settings.SettingsChanged += (_, _) =>
             Dispatcher.InvokeAsync(() => _overlayWindow.Opacity = Settings.Current.OverlayOpacity);
+
+        // Start power monitoring; apply low-power mode immediately on startup if needed
+        _powerMonitor = new PowerMonitor();
+        _powerMonitor.OnBatteryChanged += (_, onBattery) => ApplyLowPowerMode(onBattery);
+        _powerMonitor.Start();
+        ApplyLowPowerMode(IsLowPowerModeActive());
     }
 
     public void ReapplyHotkeys()
@@ -416,6 +423,22 @@ public partial class App : System.Windows.Application
         Log.Information("Transcript exported: {Path}", dlg.FileName);
     }
 
+    public bool IsLowPowerModeActive()
+    {
+        var s = Settings.Current;
+        return s.ForceLowPowerMode || (s.AutoLowPowerOnBattery && (_powerMonitor?.IsOnBattery ?? false));
+    }
+
+    private void ApplyLowPowerMode(bool isLowPower)
+    {
+        if (_orchestrator is null) return;
+        _orchestrator.SetLowPowerMode(isLowPower);
+        if (isLowPower)
+            _overlayVm?.SetStatus(OverlayStatus.Listening, "⚡ Low power mode — listening...");
+        else if (_started)
+            _overlayVm?.SetStatus(OverlayStatus.Listening, "Listening...");
+    }
+
     private async Task CheckForUpdatesAsync()
     {
         var s = Settings.Current;
@@ -486,6 +509,7 @@ public partial class App : System.Windows.Application
         _orchestrator?.Dispose();
         _screenCapture?.Dispose();
         _clipboardMonitor?.Dispose();
+        _powerMonitor?.Dispose();
         Settings.Save(); // persist overlay position and runtime setting changes
         Log.CloseAndFlush();
         base.OnExit(e);

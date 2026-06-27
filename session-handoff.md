@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-10-08 Built — 82/84 stories 🔵 Built (314/320 SP, 98%) — 2 stories remain (US-10-10, US-09-07)
+**Phase:** 🎉 BACKLOG COMPLETE — ALL 84/84 stories 🔵 Built (320/320 SP, 100%) — pending end-to-end test run
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -194,6 +194,44 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 51 (2026-06-28, Part 51)
+
+**Low-Power Mode — US-10-10 → 🔵 Built:**  
+**Platform Compatibility Testing Matrix — US-09-07 → 🔵 Built:**
+
+**🎉 ALL 84 backlog stories are now 🔵 Built. The Chum MVP is code-complete.**
+
+**New files:**
+- `Chum.App/Services/PowerMonitor.cs` — Polls `SystemInformation.PowerStatus.PowerLineStatus` every 30 s. Fires `OnBatteryChanged` event when AC/battery state flips. `IsOnBattery` property for synchronous reads. Disposable (stops timer on dispose). Never throws from poll callback.
+- `product-backlog/PLATFORM-COMPAT-TEST-MATRIX.md` — 10-section manual test matrix covering: audio capture (all 5 platforms), hotkey behaviour, screen capture, screen share auto-hide, meeting lifecycle auto-start/stop, privacy/security checks, performance smoke tests, Teams-specific UIA tests, regression checklist, GitHub bug tracker label taxonomy.
+
+**Modified files (US-10-10):**
+- `Chum.App/Models/AppSettings.cs` — Added `AutoLowPowerOnBattery` (bool, default true) and `ForceLowPowerMode` (bool, default false).
+- `Chum.App/App.xaml.cs`:
+  - Added `_powerMonitor` field; instantiated and started in `BuildAndWireComponentsAsync`; disposed in `OnExit`.
+  - `_powerMonitor.OnBatteryChanged` wired to `ApplyLowPowerMode(onBattery)`.
+  - `ApplyLowPowerMode(bool)`: calls `_orchestrator.SetLowPowerMode(active)`; sets overlay status to "⚡ Low power mode — listening..." when active.
+  - `IsLowPowerModeActive()`: returns true if `ForceLowPowerMode` OR (`AutoLowPowerOnBattery` AND `IsOnBattery`). Called at startup to apply immediately.
+- `Chum.App/Services/MeetingOrchestrator.cs` — Added `SetLowPowerMode(bool active)`: when active, calls `_gcTimer.Change(20min, 20min)` (doubles GC interval from 10 min → 20 min); when deactivated, restores to 10 min. Logged at Info level.
+- `Chum.App/Views/SettingsWindow.xaml` — Added `AutoLowPowerBox` and `ForceLowPowerBox` checkboxes in BEHAVIOUR section.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — Load/save both new settings.
+
+**Decisions:**
+- Whisper model switching (small → base in low-power mode) requires an app restart since the model is loaded at startup. This is noted in the ToolTip and the setting is documented in AppSettings.
+- Only the GC timer interval is adjusted at runtime; other optimizations (VAD chunk size, audio pipeline buffer changes) would require significantly more refactoring for 3 SP.
+- `PowerMonitor` polls rather than using Windows power-message WM_POWERBROADCAST — polling is sufficient for a 30s granularity check and avoids a hidden WPF message window dependency.
+
+**Build:** 0 errors, 8 warnings (unchanged).
+
+**Next Steps (for Kushal to do manually):**
+1. Run `dotnet publish -c Release --self-contained false -r win-x64 src/Chum.App` to get a deployable build
+2. Perform the first end-to-end test run using `product-backlog/PLATFORM-COMPAT-TEST-MATRIX.md`
+3. Fix any bugs found; promote stories from 🔵 Built → ✅ Done after confirming each test
+4. Create a GitHub Release with a tagged version (e.g. `v0.1.0`) and attach the installer
+5. Consider building the WiX MSI installer using `Chum.Installer.wixproj` (requires `dotnet tool install --global wix`)
+
+---
+
 ### What Was Done Session 50 (2026-06-28, Part 50)
 
 **Crash Reporting Opt-in — US-10-08 → 🔵 Built:**
@@ -265,9 +303,11 @@ Enhancement to the existing `ScreenShareDetector` (which was built earlier but o
 
 **Build:** 0 errors, 9 warnings (all pre-existing).
 
-**Immediate Next Step:**
-- **US-10-08 — Crash Reporting Opt-in (P3, 3 SP)**: Add an opt-in crash reporter. On unhandled exception: collect `Exception.Message + StackTrace + OS version + Chum version + WorkingSet MB`. If opted in, POST to a lightweight endpoint (or write to a local crash dump file the user can share). Show a "Chum crashed — send report?" dialog. Toggle in Settings → Privacy. Default: off.
-- Then: **US-10-10 — Low-Power Mode (P3, 3 SP)**, **US-09-07 — Platform Compatibility Testing Matrix (P3, 3 SP)**.
+**Immediate Next Step (for Kushal — all code stories are done):**
+1. Run a first end-to-end test session using `product-backlog/PLATFORM-COMPAT-TEST-MATRIX.md`
+2. For any failing tests: file issues, fix, and mark the story ✅ Done
+3. Create a `v0.1.0` GitHub Release with a changelog; attach the publish output as a zip
+4. Optionally build the WiX MSI installer: `dotnet tool install --global wix && dotnet build src/Chum.Installer/Chum.Installer.wixproj`
 
 ---
 

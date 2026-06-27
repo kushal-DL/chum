@@ -562,6 +562,28 @@ public sealed class MeetingOrchestrator : IDisposable
 
     public string GetSttAccelerationMode() => _stt.AccelerationMode;
 
+    /// <summary>
+    /// Activates or deactivates low-power mode. In low-power mode, the periodic GC
+    /// interval doubles (less CPU overhead from GC). The overlay status indicates the
+    /// mode to the user. Model-level throttling requires an app restart to take effect
+    /// (Whisper model is loaded at startup; AppSettings.WhisperModel is saved on exit).
+    /// </summary>
+    public void SetLowPowerMode(bool active)
+    {
+        if (active)
+        {
+            // Slow down the GC timer to reduce CPU overhead (already running at 10 min;
+            // change to 20 min in low-power mode)
+            _gcTimer?.Change(TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20));
+            Serilog.Log.Information("Low-power mode activated — GC interval extended to 20 min");
+        }
+        else
+        {
+            _gcTimer?.Change(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10));
+            Serilog.Log.Information("Low-power mode deactivated — GC interval restored to 10 min");
+        }
+    }
+
     public string GetTranscriptExportText()
     {
         var segments = _transcript.GetAll();

@@ -60,6 +60,8 @@ public partial class SettingsWindow : Window
         ConfirmScreenCaptureBox.IsChecked = s.ConfirmScreenCapture;
         AutoStartCaptureBox.IsChecked = s.AutoStartCapture;
         UseTeamsCaptionsBox.IsChecked = s.UseTeamsCaptions;
+        AutoLowPowerBox.IsChecked = s.AutoLowPowerOnBattery;
+        ForceLowPowerBox.IsChecked = s.ForceLowPowerMode;
         SpendThresholdBox.Text = s.SpendThresholdDollars.ToString("G");
         DisclosureReminderBox.IsChecked = s.ShowDisclosureReminder;
         CrashReportingBox.IsChecked = s.EnableCrashReporting;
@@ -175,6 +177,8 @@ public partial class SettingsWindow : Window
             s.ConfirmScreenCapture = ConfirmScreenCaptureBox.IsChecked == true;
             s.AutoStartCapture = AutoStartCaptureBox.IsChecked == true;
             s.UseTeamsCaptions = UseTeamsCaptionsBox.IsChecked == true;
+            s.AutoLowPowerOnBattery = AutoLowPowerBox.IsChecked == true;
+            s.ForceLowPowerMode = ForceLowPowerBox.IsChecked == true;
             if (decimal.TryParse(SpendThresholdBox.Text, out var thresh) && thresh >= 0)
                 s.SpendThresholdDollars = thresh;
             s.ShowDisclosureReminder = DisclosureReminderBox.IsChecked == true;

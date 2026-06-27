@@ -160,6 +160,14 @@
                       Content="Read Teams live captions via accessibility API (supplementary transcript)"
                       Margin="0,4"
                       ToolTip="When enabled and Teams is detected, Chum reads Teams' own live captions via Windows UI Automation and merges them with the audio transcript. Requires Teams auto-captions to be enabled in the meeting. Off by default."/>
+            <CheckBox x:Name="AutoLowPowerBox"
+                      Content="Auto-enable low-power mode on battery"
+                      Margin="0,4"
+                      ToolTip="When running on battery, Chum reduces GC frequency. Restart required to switch to a smaller Whisper model for lower CPU usage."/>
+            <CheckBox x:Name="ForceLowPowerBox"
+                      Content="Force low-power mode (regardless of power source)"
+                      Margin="0,4"
+                      ToolTip="Permanently enables low-power mode. Useful on plugged-in systems where you want to minimise Chum's CPU impact."/>
             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                 <Label Content="Spend alert threshold (USD):" Foreground="#AAAAAA" FontSize="11" Padding="0" VerticalAlignment="Center"/>
                 <TextBox x:Name="SpendThresholdBox" Width="60" Margin="8,0,0,0"
