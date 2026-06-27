@@ -229,6 +229,12 @@ responseViewer.Document = doc;
 
 **Recommendation:** Implement Option A as baseline (simple, good enough), with Option C as a follow-up for Teams specifically.
 
+**Stronger guarantee — capture exclusion (recommended belt-and-suspenders):**
+- Apply `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)` to the overlay's HWND. This is the same Win32 API Teams uses to block screenshots of its call window. Applied to *Chum's own overlay*, the window renders normally on the physical display but is excluded from all standard frame captures (screenshots, screen recording, Teams/Meet/Zoom screen share).
+- Effect: even if auto-hide detection misses a share event, the overlay still does not appear in the shared/recorded frame.
+- Scope/limits (important): this only hides *Chum's own overlay UI* from captures. It does **not** hide the Chum process, window handle, or network activity from the OS or from any monitoring software — see EPIC-08 "Non-Goals". WDA is a per-window display flag, not a stealth/anti-detection mechanism.
+- Caveats: requires Windows 10 2004+ for `WDA_EXCLUDEFROMCAPTURE` (older builds only support `WDA_MONITOR`). May interact with `AllowsTransparency=true` + GPU compositing — test on target hardware. Provide a settings toggle in case a user *wants* the overlay visible in their own recordings (e.g., demos).
+
 ---
 
 ### US-05-08: Multi-Monitor Support

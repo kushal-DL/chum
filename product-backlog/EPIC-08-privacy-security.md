@@ -42,6 +42,24 @@ Users should be aware (and the app should remind them) of:
 
 ---
 
+## Non-Goals — Explicitly Out of Scope
+
+Chum is a meeting co-pilot, **not an evasion tool**. There is a hard line between *keeping the user's own overlay private in calls they control* (in scope) and *hiding the application from software whose job is to detect it* (out of scope). The following will **not** be built:
+
+- ❌ Hiding the Chum process from the OS, Task Manager, process/window enumeration, or endpoint security / EDR / DLP agents.
+- ❌ Defeating, disabling, or evading remote-proctoring, exam-lockdown, kiosk, or anti-cheat software (e.g., tools that lock down or monitor a candidate's machine during an assessment or interview).
+- ❌ Operating as a concealed background agent on a managed/corporate device to avoid compliance or monitoring software.
+- ❌ Any rootkit-like, process-injection, or anti-forensic technique whose purpose is to avoid detection by security software.
+
+**What IS in scope (and legitimate):**
+
+- ✅ **Overlay capture exclusion** — the user's *own* overlay window not appearing in the user's *own* screen shares / recordings, via `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` and/or auto-hide on screen-share detection ([US-05-07](EPIC-05-overlay-ui.md)). This protects the user's private UI in meetings they host. It does **not** hide the app from the OS or from any monitoring software — Chum still appears in Task Manager, still makes visible network calls, and is fully inspectable.
+- ✅ Running quietly minimized to the system tray with a low CPU/RAM footprint.
+
+**Rationale:** Chum's value depends on being a *trustworthy* assistant. Building it to defeat integrity or monitoring controls would (a) typically violate the terms of service or rules of the platforms involved, (b) reframe a productivity tool as a cheating/circumvention tool, and (c) start an arms race against security vendors that is unwinnable and off-mission. The privacy posture here is about **minimizing data retention and keeping the user's own UI private** — never about evading legitimate oversight.
+
+---
+
 ## Stories
 
 ### US-08-01: Local-Only Processing Mode

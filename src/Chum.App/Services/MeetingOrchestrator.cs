@@ -26,6 +26,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private readonly OverlayViewModel _overlay;
     private readonly SettingsService _settings;
 
+    private readonly ScreenShareDetector _shareDetector;
     private CancellationTokenSource _cts = new();
     private Task? _transcriptionLoop;
     private bool _disposed;
@@ -56,6 +57,15 @@ public sealed class MeetingOrchestrator : IDisposable
             _overlay.AddTranscriptLine($"[{seg.Timestamp:HH:mm:ss}] {seg.SpeakerLabel}: {seg.Text}");
         };
 
+        // Wire screen-share auto-hide
+        _shareDetector = new ScreenShareDetector();
+        _shareDetector.SharingStateChanged += (_, isSharing) =>
+        {
+            if (!_settings.Current.AutoHideOnScreenShare) return;
+            if (isSharing) _overlay.Hide();
+            else _overlay.Show();
+        };
+
         // Wire hotkeys
         _hotkeys.HoldStarted += (_, e) =>
         {
@@ -84,6 +94,7 @@ public sealed class MeetingOrchestrator : IDisposable
     {
         _cts = new CancellationTokenSource();
         _audio.Start();
+        _shareDetector.Start();
         _transcriptionLoop = RunTranscriptionLoopAsync(_cts.Token);
         _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         Serilog.Log.Information("MeetingOrchestrator started");
@@ -220,5 +231,6 @@ public sealed class MeetingOrchestrator : IDisposable
         _audio.Dispose();
         _stt.Dispose();
         _hotkeys.Dispose();
+        _shareDetector.Dispose();
     }
 }

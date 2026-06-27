@@ -153,6 +153,16 @@ Replace `EnergyVad` with proper Silero ONNX model for much better VAD accuracy.
 
 ---
 
+## Non-Goals (Hard Boundary — do not build)
+
+Documented in full in `product-backlog/EPIC-08-privacy-security.md` → "Non-Goals". Summary:
+
+- **In scope:** overlay invisible in the *user's own* screen shares/recordings via `WDA_EXCLUDEFROMCAPTURE` + auto-hide (US-05-07); quiet tray operation; low footprint.
+- **Out of scope (will not build):** hiding the Chum process from the OS / Task Manager / EDR; defeating or evading proctoring, exam-lockdown, kiosk, or anti-cheat software; concealed background agents on managed devices; rootkit/injection/anti-forensic techniques.
+- Rationale: keeping the user's own UI private ≠ evading software designed to detect the app. The first is legitimate; the second is circumvention and off-mission.
+
+---
+
 ## File Map (Key Source Files)
 
 ```

@@ -121,6 +121,8 @@
             <CheckBox x:Name="StartWithWindowsBox" Content="Start with Windows" Margin="0,4"/>
             <CheckBox x:Name="StartCapturingBox" Content="Start capturing audio on launch" Margin="0,4" IsChecked="True"/>
             <CheckBox x:Name="AutoHideShareBox" Content="Auto-hide overlay when screen sharing" Margin="0,4" IsChecked="True"/>
+            <CheckBox x:Name="ExcludeFromCaptureBox" Content="Hide overlay from screen captures and recordings (recommended)"
+                      Margin="0,4" IsChecked="True" ToolTip="Uses Windows WDA_EXCLUDEFROMCAPTURE so the overlay is invisible in screen shares, OBS, Teams recordings, etc. Your physical screen is unaffected. Requires Windows 10 2004+."/>
 
             <!-- ── Buttons ── -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">

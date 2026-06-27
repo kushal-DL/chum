@@ -70,7 +70,11 @@ AppData/
 *.gguf
 *.pt
 *.onnx
-models/
+# Exclude downloaded model directories (case-sensitive; src/*/Models/ are source code, not data)
+**/[Ll]ocalappdata/Chum/Models/
+*[Mm]odels/*.gguf
+*[Mm]odels/*.bin
+*[Mm]odels/*.onnx
 
 # Credentials / secrets (never commit)
 .env

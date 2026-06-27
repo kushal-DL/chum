@@ -52,6 +52,7 @@ public partial class App : System.Windows.Application
         }
 
         BuildAndWireComponents(apiKey);
+        ApplyCaptureExclusionToOverlay();
         CreateTrayIcon();
 
         if (!Settings.Current.StartMinimisedToTray)
@@ -101,6 +102,11 @@ public partial class App : System.Windows.Application
     {
         if (_hotkeys is null) return;
         RegisterHotkeys();
+    }
+
+    public void ApplyCaptureExclusionToOverlay()
+    {
+        _overlayWindow?.SetCaptureExclusion(Settings.Current.ExcludeFromScreenCapture);
     }
 
     private void RegisterHotkeys()

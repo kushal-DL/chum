@@ -89,11 +89,11 @@
 | US-05-04 | Status Indicators | P1 | 🔵 Built | 3 | StatusDot with StatusColor binding; OverlayStatus enum |
 | US-05-05 | System Tray Integration | P1 | 🔵 Built | 5 | NotifyIcon in App.xaml.cs with context menu (Show/Settings/Start/Stop/Quit) |
 | US-05-06 | Overlay Theme & Opacity Config | P2 | 🔵 Built | 3 | Opacity slider in SettingsWindow; live-bound in App.xaml.cs |
-| US-05-07 | Auto-hide During Screen Share Detection | P1 | 🔴 Yet to Start | 8 | |
+| US-05-07 | Auto-hide During Screen Share Detection | P1 | 🔵 Built | 8 | WDA_EXCLUDEFROMCAPTURE on overlay HWND + ScreenShareDetector polling |
 | US-05-08 | Multi-monitor Support | P2 | 🔴 Yet to Start | 3 | |
 | US-05-09 | Response Copy & Share | P2 | 🔴 Yet to Start | 2 | |
 
-**Epic 05 Total:** 42 SP · 0 Done · 29 Built · 0 Scaffolded · 13 Yet to Start
+**Epic 05 Total:** 42 SP · 0 Done · 37 Built · 0 Scaffolded · 5 Yet to Start
 
 ---
 
@@ -200,8 +200,8 @@
 | P2 Stories | 22 stories · 87 SP |
 | P3 Stories | 5 stories · 21 SP |
 | ✅ Done | 0 SP (0%) |
-| 🔵 Built | 116 SP (37%) |
+| 🔵 Built | 124 SP (40%) |
 | 🟡 Scaffolded | 34 SP (11%) |
-| 🔴 Yet to Start | 160 SP (52%) |
+| 🔴 Yet to Start | 152 SP (49%) |
 
-*Last updated: 2026-06-27 — Session 2: Full MVP source code written (audio, transcription, LLM, hotkeys, overlay UI, settings, app orchestration)*
+*Last updated: 2026-06-27 — Session 2: MVP source + WDA_EXCLUDEFROMCAPTURE overlay capture exclusion + ScreenShareDetector auto-hide*

@@ -40,6 +40,7 @@ public partial class SettingsWindow : Window
         StartWithWindowsBox.IsChecked = s.StartWithWindows;
         StartCapturingBox.IsChecked = s.StartCapturingOnLaunch;
         AutoHideShareBox.IsChecked = s.AutoHideOnScreenShare;
+        ExcludeFromCaptureBox.IsChecked = s.ExcludeFromScreenCapture;
 
         // Show masked key indicator if key is stored
         if (_credentials.GetAnthropicKey() is not null)
@@ -104,10 +105,14 @@ public partial class SettingsWindow : Window
             s.StartWithWindows = StartWithWindowsBox.IsChecked == true;
             s.StartCapturingOnLaunch = StartCapturingBox.IsChecked == true;
             s.AutoHideOnScreenShare = AutoHideShareBox.IsChecked == true;
+            s.ExcludeFromScreenCapture = ExcludeFromCaptureBox.IsChecked == true;
         });
 
         // Re-register hotkeys immediately
         ((App)Application.Current).ReapplyHotkeys();
+
+        // Apply capture-exclusion change live — no restart needed
+        ((App)Application.Current).ApplyCaptureExclusionToOverlay();
 
         DialogResult = true;
         Close();
