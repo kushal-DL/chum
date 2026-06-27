@@ -242,6 +242,17 @@
             <TextBlock Text="Reminds you to inform meeting participants that AI assistance is active."
                        Foreground="#555" FontSize="10" Margin="16,2,0,0" TextWrapping="Wrap"/>
 
+            <!-- ── Backup / Restore ── -->
+            <Label Content="BACKUP &amp; RESTORE" Style="{StaticResource SectionHeader}"/>
+            <TextBlock Text="Export or import all settings and prompt templates as a JSON backup file."
+                       Foreground="#555" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Export Settings…" Padding="10,5" Background="#2D2D2D"
+                        Click="ExportSettings_Click" Margin="0,0,8,0"/>
+                <Button Content="Import Settings…" Padding="10,5" Background="#2D2D2D"
+                        Click="ImportSettings_Click"/>
+            </StackPanel>
+
             <!-- ── Buttons ── -->
             <Grid Margin="0,20,0,0">
                 <Button Content="About &amp; Diagnostics" HorizontalAlignment="Left"

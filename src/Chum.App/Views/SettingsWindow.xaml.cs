@@ -1,3 +1,5 @@
+using System.IO;
+using System.Text.Json;
 using System.Windows;
 using Chum.App.Services;
 using Chum.Audio.Capture;
@@ -211,6 +213,75 @@ public partial class SettingsWindow : Window
         }
 
         combo.SelectedItem = toSelect ?? defaultItem;
+    }
+
+    private void ExportSettings_Click(object sender, RoutedEventArgs e)
+    {
+        var chumDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Chum");
+        var settingsPath  = Path.Combine(chumDir, "settings.json");
+        var templatesPath = Path.Combine(chumDir, "templates.json");
+
+        var settingsJson  = File.Exists(settingsPath)  ? JsonDocument.Parse(File.ReadAllText(settingsPath)).RootElement  : (JsonElement?)null;
+        var templatesJson = File.Exists(templatesPath) ? JsonDocument.Parse(File.ReadAllText(templatesPath)).RootElement : (JsonElement?)null;
+
+        var backup = new
+        {
+            chumBackupVersion = 1,
+            exportedAt = DateTime.UtcNow.ToString("o"),
+            settings   = settingsJson,
+            templates  = templatesJson
+        };
+
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title      = "Export Chum Settings",
+            Filter     = "Chum backup (*.json)|*.json|All files (*.*)|*.*",
+            FileName   = $"chum_backup_{DateTime.Now:yyyyMMdd}.json",
+            DefaultExt = ".json"
+        };
+        if (dlg.ShowDialog() != true) return;
+
+        File.WriteAllText(dlg.FileName,
+            JsonSerializer.Serialize(backup, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private void ImportSettings_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title  = "Import Chum Settings",
+            Filter = "Chum backup (*.json)|*.json|All files (*.*)|*.*"
+        };
+        if (dlg.ShowDialog() != true) return;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(dlg.FileName));
+            var root = doc.RootElement;
+
+            var chumDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Chum");
+            Directory.CreateDirectory(chumDir);
+
+            if (root.TryGetProperty("settings", out var settingsEl) && settingsEl.ValueKind == JsonValueKind.Object)
+                File.WriteAllText(Path.Combine(chumDir, "settings.json"),
+                    JsonSerializer.Serialize(settingsEl, new JsonSerializerOptions { WriteIndented = true }));
+
+            if (root.TryGetProperty("templates", out var templatesEl) && templatesEl.ValueKind == JsonValueKind.Array)
+                File.WriteAllText(Path.Combine(chumDir, "templates.json"),
+                    JsonSerializer.Serialize(templatesEl, new JsonSerializerOptions { WriteIndented = true }));
+
+            // Reload settings into memory and refresh UI
+            _settings.Load();
+            LoadCurrentSettings();
+
+            System.Windows.MessageBox.Show("Settings imported. Some changes take effect on next launch.",
+                "Chum — Import Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show($"Could not read backup file:\n{ex.Message}",
+                "Chum — Import Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e)

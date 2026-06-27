@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-02-07 Built — 72/84 stories 🔵 Built (273/320 SP, 85%) — All P0+P1 stories built, Epic 02 now fully built
+**Phase:** US-07-09 Built — 73/84 stories 🔵 Built (275/320 SP, 86%) — All P0+P1 stories built; Epics 02, 07 now fully built
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,22 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 42 (2026-06-28, Part 42)
+
+**Settings Import/Export — US-07-09 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/Views/SettingsWindow.xaml` — Added "BACKUP & RESTORE" section above the bottom buttons row. Contains "Export Settings…" and "Import Settings…" buttons.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — Added `System.IO` and `System.Text.Json` usings. Added two handlers:
+  - `ExportSettings_Click`: reads `settings.json` and `templates.json` from `%APPDATA%\Chum\`, packages as `{ chumBackupVersion, exportedAt, settings, templates }`, saves via `SaveFileDialog` (default `chum_backup_{date}.json`).
+  - `ImportSettings_Click`: opens `OpenFileDialog`, parses the backup JSON, writes the `settings` and `templates` sub-objects back to `%APPDATA%\Chum\`, calls `_settings.Load()` + `LoadCurrentSettings()` to refresh the UI in place.
+
+**Note:** Epic 07 (Settings & Configuration) is now fully built — all 10 stories at 🔵 Built.
+
+**Build:** 0 errors, 6 pre-existing warnings (unchanged).
 
 ---
 
@@ -883,11 +899,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-07-09 — Settings Import/Export (P2, 2 SP):**
+**US-10-03 — GPU Acceleration for Whisper (P2, 5 SP):**
 
-Allow user to backup/restore their settings.json and prompt templates. Useful for onboarding a second machine. Implementation: "Export Settings…" and "Import Settings…" buttons in SettingsWindow; SaveFileDialog/OpenFileDialog; write/read settings.json + templates.json as a ZIP or two separate files.
+Accelerate Whisper STT via CUDA or DirectML so transcription keeps pace with speech on CPU-limited hardware. Whisper.net supports `WithGpuLayers()` and `WithCudaLayers()` builder methods. Implementation: detect CUDA/DirectML availability at startup, prefer GPU if found, fall back to CPU silently. Surface "GPU / CPU" status in the About & Diagnostics panel.
 
-Other P2 candidates: US-06-04 (Region Selection/Snip, 5 SP), US-10-03 (GPU Acceleration for Whisper, 5 SP), US-06-05 (UIA Teams Captions, 5 SP), US-09-02 (macOS audio, 3 SP).
+Other P2 candidates: US-06-04 (Region Selection/Snip, 5 SP), US-06-05 (UIA Teams Captions, 5 SP), US-09-02 (Platform Audio Handling, 3 SP).
 
 ---
 
