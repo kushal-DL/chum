@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-01-07 Built — 52/84 stories 🔵 Built (206/320 SP, 64%); next: US-08-08 (Network Traffic Transparency)
+**Phase:** US-08-08 Built — 53/84 stories 🔵 Built (209/320 SP, 65%); next: US-03-03 (mark Built — Ollama already done) then remaining P1 Yet-to-Start stories
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,22 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 23 (2026-06-27, Part 23)
+
+**Network Traffic Transparency — US-08-08 → 🔵 Built:**
+
+No new files. All changes in `MeetingOrchestrator.cs`:
+- `HandleAudioQueryAsync` — status `$"Asking {_llm.ProviderName}…"` + `Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=AudioQuery", _llm.ProviderName, _llm.ModelId)` before the stream loop.
+- `HandleActionItemsQueryAsync` — status `$"Extracting action items via {_llm.ProviderName}…"` + same Serilog log with `type=ActionItems`.
+- `HandleDroppedImageQueryAsync` — status updated to `$"Analysing image via {_llm.ProviderName}…"` + `type=ImageDrop` log.
+- `HandleScreenCaptureQueryAsync` — status `$"Analysing screen via {_llm.ProviderName}…"` + `type=ScreenCapture` log.
+
+`ILlmProvider.ProviderName` and `ModelId` were already on all three providers (Anthropic, OpenAI, Ollama). No interface changes needed.
+
+**Build:** 0 errors (unchanged).
 
 ---
 
@@ -449,20 +465,13 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-08-08 — Network Traffic Transparency (P2, 3 SP):**
+**US-03-03 — Local LLM via Ollama (P2, 5 SP) — mark Built, no new code needed:**
 
-When a cloud LLM call is made, the user should be able to see what's being sent. Specifically:
-- Show the model + provider in the overlay status bar during each query (e.g. "Asking Claude Haiku...")
-- Log all outbound LLM requests to the existing Serilog log (provider, model, token estimate) — no transcript content or keys in the log.
-- Optionally: add a "View last request details" tooltip or popup in the overlay.
+`OllamaLlmProvider.cs` was written as part of US-08-01. Read BACKLOG-STATUS.md to find the 3 remaining P1 Yet-to-Start stories (13 SP total) and build the highest-priority one. Candidates likely include:
+- **US-10-XX** Performance epic stories
+- **US-05-XX** Overlay UI stories still 🔴
 
-What to build:
-- `ILlmProvider.ProviderName` and `ModelId` are already on the interface — use them.
-- In `MeetingOrchestrator.HandleAudioQueryAsync()`: call `_overlay.SetStatus(OverlayStatus.Thinking, $"Asking {_llm.ProviderName} ({_llm.ModelId})...")` before the LLM call.
-- Same for `HandleActionItemsQueryAsync` and `HandleScreenCaptureQueryAsync`.
-- Log `Serilog.Log.Information("LLM request: provider={P} model={M} approxInputTokens={T}", ...)`.
-
-After that: pick the next P1 story from the remaining 3: **US-09-02** (Teams audio device handling), **US-09-03** (Zoom audio device handling), or remaining P2 stories.
+After clearing remaining P1 work, pick next P2 story: **US-09-02** (Teams audio device handling), **US-09-03** (Zoom audio device handling), **US-01-06** (audio level meters).
 
 ---
 
