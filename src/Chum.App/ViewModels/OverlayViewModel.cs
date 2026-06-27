@@ -235,6 +235,20 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
         Invoke(() => HasPendingClipboardImage = pending);
     }
 
+    // ── Screen capture confirmation banner ────────────────────────────────
+
+    private bool _hasPendingScreenCapture;
+    public bool HasPendingScreenCapture
+    {
+        get => _hasPendingScreenCapture;
+        private set { _hasPendingScreenCapture = value; OnPropertyChanged(); }
+    }
+
+    public void SetCapturePending(bool pending)
+    {
+        Invoke(() => HasPendingScreenCapture = pending);
+    }
+
     // ── INotifyPropertyChanged ────────────────────────────────────────────
 
     public event PropertyChangedEventHandler? PropertyChanged;

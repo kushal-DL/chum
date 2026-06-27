@@ -53,6 +53,7 @@ public partial class SettingsWindow : Window
         StartCapturingBox.IsChecked = s.StartCapturingOnLaunch;
         AutoHideShareBox.IsChecked = s.AutoHideOnScreenShare;
         ExcludeFromCaptureBox.IsChecked = s.ExcludeFromScreenCapture;
+        ConfirmScreenCaptureBox.IsChecked = s.ConfirmScreenCapture;
 
         // Show masked key indicator if key is stored
         if (_credentials.GetAnthropicKey() is not null)
@@ -146,6 +147,7 @@ public partial class SettingsWindow : Window
             s.StartCapturingOnLaunch = StartCapturingBox.IsChecked == true;
             s.AutoHideOnScreenShare = AutoHideShareBox.IsChecked == true;
             s.ExcludeFromScreenCapture = ExcludeFromCaptureBox.IsChecked == true;
+            s.ConfirmScreenCapture = ConfirmScreenCaptureBox.IsChecked == true;
         });
 
         ((App)Application.Current).ReapplyHotkeys();

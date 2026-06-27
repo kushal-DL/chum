@@ -180,6 +180,12 @@
                     <TextBlock Text="Image in clipboard — press Ctrl+Alt+S to analyse"
                                Foreground="#FBBF24" FontSize="11"/>
                 </Border>
+                <Border Background="#1F8B5CF6" BorderBrush="#8B5CF6"
+                        BorderThickness="0,1,0,0" Padding="10,5"
+                        Visibility="{Binding HasPendingScreenCapture, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="⚠  Screenshot pending — press Ctrl+Alt+S again to send (5s to cancel)"
+                               Foreground="#8B5CF6" FontSize="11" FontWeight="SemiBold"/>
+                </Border>
             </StackPanel>
 
             <!-- ── Transcript strip (collapsed by default) ── -->

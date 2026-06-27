@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Threading.Channels;
 using Chum.App.ViewModels;
+using Timer = System.Threading.Timer;
 using Chum.Audio.Models;
 using Chum.Audio.Pipeline;
 using Chum.Llm;
@@ -31,6 +32,8 @@ public sealed class MeetingOrchestrator : IDisposable
 
     private readonly ScreenShareDetector _shareDetector;
     private readonly MeetingPlatformDetector _platformDetector;
+    private bool _captureConfirming;
+    private Timer? _captureConfirmTimer;
     private CancellationTokenSource _cts = new();
     private Task? _transcriptionLoop;
     private bool _disposed;
@@ -106,7 +109,7 @@ public sealed class MeetingOrchestrator : IDisposable
             if (actionId == "ActionItems")
                 await HandleActionItemsQueryAsync();
             else if (actionId == "ScreenCapture")
-                await HandleScreenCaptureQueryAsync();
+                await TryHandleScreenCaptureAsync();
             else if (actionId == "PrivacyPause")
                 TogglePause();
             else if (actionId == "HideOverlay")
@@ -158,6 +161,31 @@ public sealed class MeetingOrchestrator : IDisposable
     {
         if (_overlay.CurrentStatus == OverlayStatus.Paused) Resume();
         else Pause();
+    }
+
+    private async Task TryHandleScreenCaptureAsync()
+    {
+        if (_settings.Current.ConfirmScreenCapture && !_captureConfirming)
+        {
+            // First press: show confirmation banner and start a 5s auto-cancel timer
+            _captureConfirming = true;
+            _overlay.SetCapturePending(true);
+            _captureConfirmTimer?.Dispose();
+            _captureConfirmTimer = new Timer(_ =>
+            {
+                _captureConfirming = false;
+                _overlay.SetCapturePending(false);
+                Serilog.Log.Information("Screen capture confirmation timed out — cancelled");
+            }, null, TimeSpan.FromSeconds(5), Timeout.InfiniteTimeSpan);
+            return;
+        }
+
+        // Either confirmation is disabled, or this is the confirming second press
+        _captureConfirming = false;
+        _captureConfirmTimer?.Dispose();
+        _captureConfirmTimer = null;
+        _overlay.SetCapturePending(false);
+        await HandleScreenCaptureQueryAsync();
     }
 
     private async Task RunTranscriptionLoopAsync(CancellationToken ct)
@@ -393,6 +421,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _disposed = true;
         _cts.Cancel();
         _cts.Dispose();
+        _captureConfirmTimer?.Dispose();
         _audio.Dispose();
         _stt.Dispose();
         _hotkeys.Dispose();

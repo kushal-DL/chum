@@ -45,6 +45,11 @@ public sealed class AppSettings
     // Requires Windows 10 2004+. Default: on — most users want this.
     public bool ExcludeFromScreenCapture { get; set; } = true;
 
+    // --- Screen capture privacy ---
+    // When true: first Ctrl+Alt+S shows a confirmation banner; second press within 5s actually captures.
+    // Prevents accidental screen captures that send sensitive content to the cloud LLM.
+    public bool ConfirmScreenCapture { get; set; } = false;
+
     // --- Local-only mode (Ollama) ---
     public bool LocalOnlyMode { get; set; } = false;
     public string OllamaModel { get; set; } = "llama3.1:8b";

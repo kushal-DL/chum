@@ -148,6 +148,10 @@
             <CheckBox x:Name="AutoHideShareBox" Content="Auto-hide overlay when screen sharing" Margin="0,4" IsChecked="True"/>
             <CheckBox x:Name="ExcludeFromCaptureBox" Content="Hide overlay from screen captures and recordings (recommended)"
                       Margin="0,4" IsChecked="True" ToolTip="Uses Windows WDA_EXCLUDEFROMCAPTURE so the overlay is invisible in screen shares, OBS, Teams recordings, etc. Your physical screen is unaffected. Requires Windows 10 2004+."/>
+            <CheckBox x:Name="ConfirmScreenCaptureBox"
+                      Content="Require confirmation before sending screenshot to AI"
+                      Margin="0,4"
+                      ToolTip="When enabled, the first Ctrl+Alt+S shows a banner. Press again within 5 seconds to actually send the screenshot. Prevents accidental capture of sensitive content."/>
 
             <!-- ── Local Processing ── -->
             <Label Content="LOCAL PROCESSING (OLLAMA)" Style="{StaticResource SectionHeader}"/>

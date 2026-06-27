@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-04-07 Built — 49/84 stories 🔵 Built (199/320 SP, 62%); next: US-08-07 (Screen Capture Privacy Safeguards)
+**Phase:** US-08-07 Built — 50/84 stories 🔵 Built (201/320 SP, 63%); next: US-02-06 (Transcript Cleanup, Scaffolded → Built)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,30 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 20 (2026-06-27, Part 20)
+
+**Screen Capture Privacy Safeguards — US-08-07 → 🔵 Built:**
+
+**New behaviour (two-press confirmation flow):**
+When `ConfirmScreenCapture` is enabled in settings:
+1. First `Ctrl+Alt+S` press shows a purple banner "⚠ Screenshot pending — press Ctrl+Alt+S again to send (5s to cancel)"
+2. A 5-second `System.Threading.Timer` is started; if it fires, the flag clears and the banner disappears — no capture is made.
+3. If `Ctrl+Alt+S` is pressed a second time within 5s, the flag clears, banner disappears, and `HandleScreenCaptureQueryAsync()` runs as normal.
+
+When `ConfirmScreenCapture` is false (default): behaviour is unchanged — single press captures immediately.
+
+**Modified files:**
+- `Chum.App/ViewModels/OverlayViewModel.cs` — Added `HasPendingScreenCapture` bool property + `SetCapturePending(bool)` method.
+- `Chum.App/Models/AppSettings.cs` — Added `ConfirmScreenCapture` bool (default false).
+- `Chum.App/Services/MeetingOrchestrator.cs` — Added `_captureConfirming` bool + `_captureConfirmTimer` Timer? fields. Hotkey handler now calls `TryHandleScreenCaptureAsync()` instead of `HandleScreenCaptureQueryAsync()` directly. New `TryHandleScreenCaptureAsync()` implements the two-press flow. Timer disposed in `Dispose()`.
+- `Chum.App/Views/OverlayWindow.xaml` — Added purple `HasPendingScreenCapture` banner (alongside the paused/clipboard banners in Row 3's StackPanel).
+- `Chum.App/Views/SettingsWindow.xaml` — Added "Require confirmation before sending screenshot to AI" checkbox.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — Load/save `ConfirmScreenCapture`.
+
+**Build:** 0 errors (unchanged).
 
 ---
 
@@ -383,19 +407,17 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-08-07 — Screen Capture Privacy Safeguards (P1, 2 SP):**
+**US-02-06 — Transcript Cleanup & Formatting (P1, 2 SP) — Scaffolded → Built:**
 
-Not yet started. When the user triggers a screen capture, Chum should:
-- Warn in the overlay that a screenshot will be sent to the cloud (unless local mode is on).
-- Give the user a configurable "confirm before sending" option to prevent accidental data capture.
-- Optionally: allow user to configure a delay before capture so they can close sensitive windows.
+The hallucination filter already exists in `WhisperSttEngine.cs` (filters single-word repetitions and Whisper artefacts). What's still missing for full cleanup:
+- Remove music/noise transcription artefacts (`[MUSIC]`, `[SOUND]`, `♪`, etc.)
+- Strip filler repetitions (e.g., "um um um um" → "um")
+- Normalise whitespace and punctuation spacing
+- Add the cleanup as a post-process step in `WhisperSttEngine.TranscribeAsync()` before the `SegmentTranscribed` event fires
 
-What to build:
-- Add `ConfirmScreenCapture` bool to `AppSettings` (default false — user must opt in to confirmation).
-- In `HandleScreenCaptureQueryAsync()`: if `ConfirmScreenCapture` is true, show a notification banner ("Press again to confirm, or wait 3s to cancel") and only proceed after re-press or timeout.
-- Add setting to `SettingsWindow.xaml`.
+The logic goes in `Chum.Transcription/WhisperSttEngine.cs` (or a new `TranscriptCleaner.cs` static helper).
 
-After that: **US-02-06 — Transcript Cleanup & Formatting (P1, 2 SP)** — Scaffolded; hallucination filter exists but no full cleanup pass.
+After that: **US-01-07 — Automatic Device Failover (P1, 3 SP)** — audio device disappears (e.g. headset unplugged); should detect and fall back to Windows default.
 
 ---
 
