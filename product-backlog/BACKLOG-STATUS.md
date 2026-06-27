@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 67 | 259 SP | 81% |
+| 🔵 Built | 68 | 262 SP | 82% |
 | 🟡 Scaffolded | 1 | 5 SP | 2% |
-| 🔴 Yet to Start | 16 | 56 SP | 17% |
+| 🔴 Yet to Start | 15 | 53 SP | 17% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -37,8 +37,8 @@
 | 07 · Settings & Configuration | 10 | 27 SP | — | 9 (25 SP) | — | 1 (2 SP) |
 | 08 · Privacy & Security | 11 | 36 SP | — | 9 (29 SP) | 1 (5 SP) | 1 (2 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
-| 10 · Performance & Reliability | 10 | 40 SP | — | 5 (21 SP) | — | 5 (19 SP) |
-| **Total** | **84** | **320 SP** | **0** | **67 (259 SP)** | **1 (5 SP)** | **16 (56 SP)** |
+| 10 · Performance & Reliability | 10 | 40 SP | — | 6 (24 SP) | — | 4 (16 SP) |
+| **Total** | **84** | **320 SP** | **0** | **68 (262 SP)** | **1 (5 SP)** | **15 (53 SP)** |
 
 ---
 
@@ -245,7 +245,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-10-04 | Memory Management for Long Meetings | P1 | 🔵 Built | 5 | Response history capped 20→10; periodic GC.Collect(Gen2) every 10 min in MeetingOrchestrator with WorkingSet logging; transcript/audio buffers already bounded |
 | US-10-05 | Graceful Error Recovery | P1 | 🔵 Built | 5 | Global exception handlers (AppDomain/Dispatcher/UnobservedTask); LLM retry with backoff (1s/2s/4s, 3 attempts); transcription loop auto-restart; emergency transcript export on crash |
 | US-10-06 | End-to-End Latency Benchmark | P2 | 🔵 Built | 3 | LLM first-token latency tracking |
-| US-10-07 | App Startup Performance | P2 | 🔴 Yet to Start | 3 | |
+| US-10-07 | App Startup Performance | P2 | 🔵 Built | 3 | Stopwatch from OnStartup; overlay shown early; VAD ONNX loads parallelised |
 | US-10-08 | Crash Reporting (Opt-in) | P3 | 🔴 Yet to Start | 3 | |
 | US-10-09 | Auto-Update Mechanism | P2 | 🔴 Yet to Start | 5 | |
 | US-10-10 | Low-Power Mode | P3 | 🔴 Yet to Start | 3 | |

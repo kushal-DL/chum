@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Windows;
@@ -34,6 +35,7 @@ public partial class App : System.Windows.Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        var startupSw = Stopwatch.StartNew();
         base.OnStartup(e);
 
         ConfigureLogging();
@@ -45,10 +47,11 @@ public partial class App : System.Windows.Application
 
         Settings.Load();
 
-        // Local-only mode bypasses cloud API key requirement
-        bool localMode = Settings.Current.LocalOnlyMode;
+        // Create overlay early so we can show startup status immediately
+        _overlayVm = new OverlayViewModel(Dispatcher);
+        _overlayWindow = new OverlayWindow(_overlayVm);
 
-        // Show settings immediately if no API key configured (either provider) and not in local mode
+        bool localMode = Settings.Current.LocalOnlyMode;
         bool hasKey = localMode
                    || Credentials.GetAnthropicKey() is not null
                    || Credentials.GetOpenAiKey() is not null;
@@ -69,39 +72,39 @@ public partial class App : System.Windows.Application
             }
         }
 
-        BuildAndWireComponents();
+        // Show overlay before component build so the user sees the app immediately
+        _overlayWindow.Show();
+        _overlayVm.SetStatus(OverlayStatus.Initialising, "Starting up…");
+
+        await BuildAndWireComponentsAsync();
         ApplyCaptureExclusionToOverlay();
         CreateTrayIcon();
 
-        if (!Settings.Current.StartMinimisedToTray)
-            _overlayWindow!.Show();
-        else
-            _overlayWindow!.Show(); // show briefly then hide -- user can toggle via tray
+        startupSw.Stop();
+        var startupMs = startupSw.Elapsed.TotalMilliseconds;
+        Log.Information("Startup complete in {Ms:F0} ms (target ≤3000 ms)", startupMs);
+        if (startupMs > 3000)
+            Log.Warning("Startup exceeded 3 s target by {Extra:F0} ms", startupMs - 3000);
+
+        _overlayVm.SetStatus(OverlayStatus.Idle, "Ready");
 
         if (Settings.Current.StartCapturingOnLaunch)
             await StartCaptureAsync();
     }
 
-    private void BuildAndWireComponents()
+    private async Task BuildAndWireComponentsAsync()
     {
-        _overlayVm = new OverlayViewModel(Dispatcher);
-        _overlayWindow = new OverlayWindow(_overlayVm);
-
-        var loopback = new LoopbackCapture(Settings.Current.LoopbackDeviceId);
-        var mic = new MicCapture(Settings.Current.MicDeviceId);
-        var audioPipeline = new AudioPipeline(loopback, mic, BuildVad(), BuildVad());
-
-        var modelType = Enum.TryParse<GgmlType>(Settings.Current.WhisperModel, out var gt) ? gt : GgmlType.Small;
-        var modelDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Chum", "Models");
-        var stt = new WhisperSttEngine(modelDir, modelType);
-
-        var retentionWindow = TimeSpan.FromMinutes(Settings.Current.TranscriptRetentionMinutes);
-        var transcriptBuffer = new TranscriptBuffer(retentionWindow);
-        var contextExtractor = new ContextExtractor(transcriptBuffer);
+        // Run the two VAD ONNX session loads and template file I/O in parallel — each can take
+        // hundreds of ms on cold storage; overlapping them cuts perceived startup time.
+        var vadTask1 = Task.Run(BuildVad);
+        var vadTask2 = Task.Run(BuildVad);
+        var templates = new TemplateService();
+        var templatesTask = Task.Run(templates.Load);
 
         ILlmProvider llm = BuildLlmProvider();
 
+        // HotkeyService.Install must run on the STA UI thread with a live message loop — do it here
+        // (before any awaits that would suspend) so the constraint is always satisfied.
         _hotkeys = new HotkeyService();
         RegisterHotkeys();
         _hotkeys.Install();
@@ -116,17 +119,29 @@ public partial class App : System.Windows.Application
             if (openAiKey is not null)
                 cloudStt = new OpenAiSttProvider(openAiKey, Settings.Current.CloudSttModel);
             else
-                Serilog.Log.Warning("CloudSttFallback enabled but no OpenAI API key stored — fallback disabled");
+                Log.Warning("CloudSttFallback enabled but no OpenAI API key stored — fallback disabled");
         }
 
-        var templates = new TemplateService();
-        templates.Load();
+        await Task.WhenAll(vadTask1, vadTask2, templatesTask);
+
+        var loopback = new LoopbackCapture(Settings.Current.LoopbackDeviceId);
+        var mic = new MicCapture(Settings.Current.MicDeviceId);
+        var audioPipeline = new AudioPipeline(loopback, mic, vadTask1.Result, vadTask2.Result);
+
+        var modelType = Enum.TryParse<GgmlType>(Settings.Current.WhisperModel, out var gt) ? gt : GgmlType.Small;
+        var modelDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Chum", "Models");
+        var stt = new WhisperSttEngine(modelDir, modelType);
+
+        var retentionWindow = TimeSpan.FromMinutes(Settings.Current.TranscriptRetentionMinutes);
+        var transcriptBuffer = new TranscriptBuffer(retentionWindow);
+        var contextExtractor = new ContextExtractor(transcriptBuffer);
 
         _orchestrator = new MeetingOrchestrator(
             audioPipeline, stt, transcriptBuffer, contextExtractor,
-            llm, _hotkeys, _overlayVm, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates);
+            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates);
 
-        _overlayWindow.ImageFileDropped += (_, path) =>
+        _overlayWindow!.ImageFileDropped += (_, path) =>
             _ = _orchestrator.HandleDroppedImageQueryAsync(path);
 
         _orchestrator.DeviceDisconnected += async (_, _) =>
@@ -143,7 +158,6 @@ public partial class App : System.Windows.Application
             await _orchestrator.StopAsync();
         };
 
-        // Opacity binding
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
         Settings.SettingsChanged += (_, _) =>
             Dispatcher.InvokeAsync(() => _overlayWindow.Opacity = Settings.Current.OverlayOpacity);

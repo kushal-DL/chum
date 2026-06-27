@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-03-08 Built — 67/84 stories 🔵 Built (259/320 SP, 81%) — Epic 03 (LLM) fully built
+**Phase:** US-10-07 Built — 68/84 stories 🔵 Built (262/320 SP, 82%)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,27 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 37 (2026-06-28, Part 37)
+
+**App Startup Performance — US-10-07 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/App.xaml.cs`:
+  - Added `using System.Diagnostics;`
+  - `OnStartup`: `Stopwatch startupSw = Stopwatch.StartNew()` at the very top (measures from process entry into managed startup).
+  - `_overlayVm` and `_overlayWindow` now created at the start of `OnStartup`, before the API key check — allows showing the overlay immediately without waiting for `BuildAndWireComponentsAsync`.
+  - Overlay is shown (`_overlayWindow.Show()`) immediately after the API key check, with status `OverlayStatus.Initialising "Starting up…"` visible to the user during the init phase.
+  - `BuildAndWireComponents()` replaced with `async Task BuildAndWireComponentsAsync()`: the two `BuildVad()` calls (each creates an ONNX InferenceSession from disk) now run in parallel via `Task.Run(BuildVad)` + `Task.WhenAll`. Template loading also parallelised via `Task.Run(templates.Load)`. The three tasks run concurrently while synchronous work (LLM provider construction, hotkey registration, device setup) runs on the UI thread.
+  - `HotkeyService.Install()` is called before the first `await Task.WhenAll(...)` so it always runs on the STA UI thread with an active message loop (satisfying the Win32 hook constraint).
+  - After init: logs total startup time at `Information` level; logs `Warning` if startup exceeds 3000 ms.
+  - Sets overlay status to `OverlayStatus.Idle "Ready"` once all init is done.
+
+**Parallelisation gain:** On machines where `silero_vad.onnx` exists, two `InferenceSession` loads + template JSON read now overlap each other and with other synchronous init — expected ~30–50% wall-clock reduction on the VAD-load dominated path.
+
+**Build:** 0 errors, 6 pre-existing warnings (unchanged).
 
 ---
 
@@ -762,17 +783,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-10-07 — App Startup Performance (P2, 3 SP):**
+**US-08-04 — Meeting Participant Disclosure Reminder (P2, 2 SP):**
 
-Time from process start to "overlay visible and hotkey active" ≤3s. Profile startup, parallelise init tasks (audio, model load, credential load), add Whisper warm-up deferral banner.
+When Chum starts capturing audio, show a one-time reminder that the user should disclose to meeting participants that AI assistance is in use. Small amber banner in the overlay with a "Got it" dismiss button.
 
-Implementation plan:
-1. `Stopwatch` from `OnStartup` to overlay `Show()` — log total startup time.
-2. Parallelise: `Task.WhenAll(initAudio, loadCredentials)` — Whisper model load is already deferred.
-3. If startup exceeds 2s, show splash/status "Starting up…" in overlay.
-4. Check if SileroVad download is blocking startup — ensure it's truly background.
-
-Other P2 candidates: US-08-04 (Meeting Participant Disclosure Reminder, 2 SP), US-01-06 (Real-time Audio Level Meters, 2 SP).
+Other P2 candidates: US-01-06 (Real-time Audio Level Meters, 2 SP), US-10-03 (GPU Acceleration for Whisper, 5 SP), US-10-09 (Auto-Update Mechanism, 5 SP).
 
 ---
 

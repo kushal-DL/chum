@@ -10,7 +10,7 @@
 | US-10-04 | Memory Management for Long Meetings | P1 — High | 🔵 Built | 5 |
 | US-10-05 | Graceful Error Recovery | P1 — High | 🔵 Built | 5 |
 | US-10-06 | End-to-End Latency Benchmark | P2 — Medium | 🔵 Built | 3 |
-| US-10-07 | App Startup Performance | P2 — Medium | 🔴 Yet to Start | 3 |
+| US-10-07 | App Startup Performance | P2 — Medium | 🔵 Built | 3 |
 | US-10-08 | Crash Reporting (Opt-in) | P3 — Low | 🔴 Yet to Start | 3 |
 | US-10-09 | Auto-Update Mechanism | P2 — Medium | 🔴 Yet to Start | 5 |
 | US-10-10 | Low-Power Mode | P3 — Low | 🔴 Yet to Start | 3 |
