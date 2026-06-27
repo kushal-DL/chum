@@ -1,5 +1,6 @@
 using System.Windows;
 using Chum.App.Services;
+using Application = System.Windows.Application;
 
 namespace Chum.App.Views;
 

@@ -1,3 +1,4 @@
+using System.Net;
 using AdysTech.CredentialManager;
 
 namespace Chum.App.Services;

@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using Timer = System.Threading.Timer;
 
 namespace Chum.App.Services;
 

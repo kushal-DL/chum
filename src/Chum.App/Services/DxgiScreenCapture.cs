@@ -1,11 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Runtime.InteropServices;
 using Serilog;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
+using D3D11MapFlags = Vortice.Direct3D11.MapFlags;
 
 namespace Chum.App.Services;
 
@@ -115,7 +117,7 @@ public sealed class DxgiScreenCapture : IDisposable
             });
 
             _context.CopyResource(staging, srcTex);
-            var mapped = _context.Map(staging, 0, MapMode.Read, MapFlags.None);
+            var mapped = _context.Map(staging, 0, MapMode.Read, D3D11MapFlags.None);
             try
             {
                 return EncodeAsJpeg(mapped.DataPointer, desc.Width, desc.Height,
@@ -143,7 +145,8 @@ public sealed class DxgiScreenCapture : IDisposable
     {
         using var dxgiDevice = device.QueryInterface<IDXGIDevice>();
         using var adapter = dxgiDevice.GetAdapter();
-        using var output = adapter.EnumOutputs(0);       // index 0 = primary monitor
+        adapter.EnumOutputs(0, out IDXGIOutput? primaryOutput).CheckError();
+        using var output = primaryOutput!;
         using var output1 = output.QueryInterface<IDXGIOutput1>();
         return output1.DuplicateOutput(device);
     }

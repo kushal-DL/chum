@@ -63,7 +63,7 @@ public sealed class IpcServer : IAsyncDisposable
 
     private async Task HandleClientAsync(NamedPipeServerStream pipe, CancellationToken ct)
     {
-        using var _ = pipe;
+        using var _pipe = pipe;
         using var reader = new StreamReader(pipe, Encoding.UTF8, leaveOpen: true);
         using var writer = new StreamWriter(pipe, Encoding.UTF8, leaveOpen: true) { AutoFlush = true };
 

@@ -31,7 +31,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 
 | Decision | Choice | Reason |
 |----------|--------|--------|
-| Language/Platform | C# .NET 8 + WPF | Best Windows native API access; NAudio ecosystem; WPF transparent windows |
+| Language/Platform | C# .NET 10 + WPF | Best Windows native API access; NAudio ecosystem; WPF transparent windows (originally .NET 8; retargeted to .NET 10 to match installed SDK) |
 | Audio capture | NAudio WASAPI | Loopback + mic in shared mode; device change events |
 | VAD | Energy-based RMS MVP (Silero ONNX planned v0.2) | Silero is better but EnergyVad unblocks MVP immediately |
 | STT | Whisper.NET (whisper.cpp) | Local by default; no cost; GPU-acceleratable |
@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** MVP source code complete — awaiting first build verification
+**Phase:** Solution builds clean — ready to build next story (US-06-02)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -114,6 +114,27 @@ Created the complete product backlog and project infrastructure:
 
 ---
 
+### What Was Done Session 7 (2026-06-27, Part 7)
+
+**First successful build — 0 errors:**
+
+The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fixing:
+
+- `Chum.Audio.csproj` — added `Serilog 4.1.0` (LoopbackCapture/MicCapture use `Log.Error`)
+- `IpcClient.cs` — added `using System.IO;` (StreamWriter); removed unused `using Microsoft.Extensions.Logging;`; `IpcProtocol` types linked via csproj `<Compile Include>` from `Chum.Service` (separate EXEs can't project-reference each other)
+- `SettingsService.cs`, `ModelDownloadService.cs`, `App.xaml.cs`, `DxgiScreenCapture.cs` — added `using System.IO;` (WPF+WinForms combo does not pull `System.IO` into implicit usings)
+- `App.xaml.cs` — added `using System.Net.Http;` (HttpClient for ModelDownloadService instantiation)
+- `SettingsWindow.xaml.cs`, `OverlayWindow.xaml.cs` — added `using Application = System.Windows.Application;` alias (UseWindowsForms=true adds global `System.Windows.Forms` bringing in its `Application` class)
+- `CredentialService.cs` — added `using System.Net;` (NetworkCredential)
+- `ScreenShareDetector.cs` — added `using Timer = System.Threading.Timer;` alias
+- `DxgiScreenCapture.cs` — added `using D3D11MapFlags = Vortice.Direct3D11.MapFlags;` alias; fixed `EnumOutputs()` call to Vortice 3.5 `out` parameter signature: `adapter.EnumOutputs(0, out IDXGIOutput? o).CheckError()`
+- `OverlayWindow.xaml.cs` — added `new` to `FontSize` property to suppress CS0108 warning
+- `IpcServer.cs` — renamed `using var _ = pipe` to `using var _pipe = pipe` to avoid conflict with `_ = StreamQueryAsync(...)` discard on line 89
+
+**Chum.Service** also builds (0 errors) but is NOT in `Chum.sln` — builds via its own csproj only.
+
+---
+
 ### What Was Done Session 6 (2026-06-27, Part 6)
 
 **DXGI Desktop Duplication screen capture — US-06-01 + US-06-07 → 🔵 Built:**
@@ -153,9 +174,9 @@ Created the complete product backlog and project infrastructure:
 
 ## Immediate Next Step
 
-**1. Verify the build** — .NET 8 SDK required; see below.
+**Build is verified — 0 errors.** Next story to build:
 
-**2. Next story to build:** US-06-02 — Clipboard Image Monitoring (P1, 3 SP)
+**US-06-02 — Clipboard Image Monitoring (P1, 3 SP)**
 - Wire `WM_CLIPBOARDUPDATE` via `HwndSource` to detect when user copies an image
 - On image detected: show overlay prompt "Image in clipboard — press [hotkey] to analyse, dismiss otherwise"
 - On confirm: pass clipboard image to LLM same path as DXGI capture
@@ -168,20 +189,17 @@ Created the complete product backlog and project infrastructure:
 
 ## Build Verification
 
-**Build Verification Notes**
+**Build is clean as of Session 7.**
 
-**The .NET 8 SDK is NOT installed on this machine.** Only the runtime exists at `C:\Program Files\dotnet\` — there is no `sdk/` subdirectory. `dotnet build` will fail until the SDK is installed.
-
-**Action required (user):** Install .NET 8 SDK from https://aka.ms/dotnet/download, then run:
 ```powershell
-cd c:\Users\kushal.f.sharma\repos\chum
 dotnet build src\Chum.sln
+# Build succeeded.  4 Warning(s)  0 Error(s)
 ```
 
-Expected first-run issues:
-1. NuGet restore (first run — needs internet access)
-2. Whisper.net.Runtime may need GPU-specific package configuration
-3. Possible WPF-specific warnings (harmless)
+Warnings are all benign:
+- `NU1603`/`NU1701` for `AdysTech.CredentialManager 1.1.0` (only 1.0.4 was requested; 1.1.0 resolved; package is .NET Framework but works at runtime for Credential Manager calls)
+
+**Environment:** .NET 10.0.301 SDK; all projects target `net10.0-windows`; nuget.org added as package source (corporate machine had empty NuGet.Config).
 
 ---
 

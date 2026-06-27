@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using Chum.App.ViewModels;
+using Application = System.Windows.Application;
 
 namespace Chum.App.Views;
 
@@ -14,7 +15,7 @@ public partial class OverlayWindow : Window
     private const uint WDA_NONE = 0x00000000;
     private const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
 
-    public int FontSize => (DataContext as OverlayViewModel) is not null ? 13 : 13;
+    public new int FontSize => (DataContext as OverlayViewModel) is not null ? 13 : 13;
 
     public OverlayWindow(OverlayViewModel viewModel)
     {
