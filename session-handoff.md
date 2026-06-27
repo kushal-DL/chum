@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-01-03 + US-07-02 Built — 44/84 stories 🔵 Built (180/320 SP, 56%); next: US-03-02 (OpenAI API Integration)
+**Phase:** US-03-02 Built — 45/84 stories 🔵 Built (183/320 SP, 57%); next: US-03-06 (Response History)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -194,6 +194,23 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 15 (2026-06-27, Part 15)
+
+**OpenAI API Integration — US-03-02 → 🔵 Built:**
+
+**New files:**
+- `Chum.Llm/OpenAiLlmProvider.cs` — SSE streaming from `https://api.openai.com/v1/chat/completions`. `Authorization: Bearer {key}`. Parses `choices[0].delta.content` tokens. Vision support via `content[{type: image_url, image_url: {url: "data:image/jpeg;base64,..."}}]` format. LlmException on non-2xx or network failure. CA2024 warning (`reader.EndOfStream` in async) is pre-existing pattern from AnthropicLlmProvider — benign.
+
+**Modified files:**
+- `Chum.App/App.xaml.cs` — added `BuildLlmProvider()` that picks provider by model name prefix: `gpt-*` → `OpenAiLlmProvider` (falls back to Anthropic if no OpenAI key stored); refactored startup key-check to accept either Anthropic OR OpenAI key. `BuildAndWireComponents()` no longer takes `apiKey` parameter.
+- `Chum.App/Views/SettingsWindow.xaml` — added OpenAI key PasswordBox + Save button; added GPT-4o-mini and GPT-4o to ModelCombo.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — `SaveOpenAiKey_Click` handler; show stored status for OpenAI key in `LoadCurrentSettings`.
+- `product-backlog/EPIC-03-llm-integration.md` — synced "Stories at a Glance" (was showing all 🔴 since session 2).
+
+**Build:** 0 errors, 7 warnings (same CA2024 as Anthropic — both use EndOfStream in async SSE reader, both benign).
+
+---
+
 ### What Was Done Session 14 (2026-06-27, Part 14)
 
 **Audio Device Selection — US-01-03 + US-07-02 → 🔵 Built:**
@@ -293,15 +310,16 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ## Immediate Next Step
 
-**US-03-02 — OpenAI API Integration (P1, 3 SP):**
+**US-03-06 — Response History (P1, 3 SP):**
 
-`ILlmProvider` is ready. Need `OpenAiLlmProvider.cs` in `Chum.Llm/`:
-- SSE streaming from `https://api.openai.com/v1/chat/completions` with `stream: true`
-- `LlmRequest.ImageBase64` → `content[{type: image_url}]` when present
-- `CredentialService.GetOpenAiKey()` to retrieve key (already stubbed in `CredentialService`)
-- Register in `App.xaml.cs` when `LlmProvider == "OpenAI"` setting
+Store past LLM responses so the user can scroll back to earlier answers. Current overlay only shows the most recent response (overwritten on each new query).
 
-After that: **US-03-06 — Response History (P1, 3 SP)** — store past LLM responses in-memory (ring buffer) so user can scroll back through earlier answers.
+What to build:
+- `ResponseHistoryService.cs` in `Chum.App/Services/` — `AddResponse(string text)`, `GetHistory()` returning a ring buffer of the last ~20 responses
+- `OverlayViewModel` — add `ResponseHistory` observable collection; "Previous" / "Next" navigation commands (or arrow buttons in the overlay)
+- `OverlayWindow.xaml` — add simple prev/next navigation UI (small arrows or "1/5" counter near the response panel)
+
+After that: **US-08-01 — Local-only Processing Mode (P1, 5 SP)** — toggle that disables all cloud calls (Whisper is already local; need to switch LLM to Ollama and disable OpenAI/Anthropic).
 
 ---
 

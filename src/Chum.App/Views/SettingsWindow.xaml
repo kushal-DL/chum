@@ -72,10 +72,24 @@
             <TextBlock x:Name="AnthropicKeyStatus" Foreground="#22C55E" FontSize="11"
                        Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
 
+            <TextBlock Text="OpenAI API Key" Foreground="#999" FontSize="11" Margin="0,8,0,2"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <PasswordBox x:Name="OpenAiKeyBox" Grid.Column="0"/>
+                <Button Grid.Column="1" Content="Save" Margin="6,0,0,0" Click="SaveOpenAiKey_Click"/>
+            </Grid>
+            <TextBlock x:Name="OpenAiKeyStatus" Foreground="#22C55E" FontSize="11"
+                       Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
+
             <TextBlock Text="Model" Foreground="#999" FontSize="11" Margin="0,8,0,2"/>
             <ComboBox x:Name="ModelCombo" SelectedValuePath="Tag">
                 <ComboBoxItem Content="Claude Haiku 4.5 — Fast, cheap (recommended)" Tag="claude-haiku-4-5-20251001" IsSelected="True"/>
                 <ComboBoxItem Content="Claude Sonnet 4.6 — Higher quality, vision" Tag="claude-sonnet-4-6"/>
+                <ComboBoxItem Content="GPT-4o Mini — Fast, cheap (OpenAI)" Tag="gpt-4o-mini"/>
+                <ComboBoxItem Content="GPT-4o — Higher quality, vision (OpenAI)" Tag="gpt-4o"/>
             </ComboBox>
 
             <!-- ── Audio Devices ── -->

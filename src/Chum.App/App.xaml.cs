@@ -40,15 +40,17 @@ public partial class App : System.Windows.Application
 
         Settings.Load();
 
-        // Show settings immediately if no API key configured
-        var apiKey = Credentials.GetAnthropicKey();
-        if (apiKey is null)
+        // Show settings immediately if no API key configured (either provider)
+        bool hasKey = Credentials.GetAnthropicKey() is not null
+                   || Credentials.GetOpenAiKey() is not null;
+        if (!hasKey)
         {
             Log.Information("No API key found — showing settings on first run");
             var setup = new SettingsWindow();
             setup.ShowDialog();
-            apiKey = Credentials.GetAnthropicKey();
-            if (apiKey is null)
+            hasKey = Credentials.GetAnthropicKey() is not null
+                  || Credentials.GetOpenAiKey() is not null;
+            if (!hasKey)
             {
                 Log.Warning("No API key provided — exiting");
                 Shutdown();
@@ -56,7 +58,7 @@ public partial class App : System.Windows.Application
             }
         }
 
-        BuildAndWireComponents(apiKey);
+        BuildAndWireComponents();
         ApplyCaptureExclusionToOverlay();
         CreateTrayIcon();
 
@@ -69,7 +71,7 @@ public partial class App : System.Windows.Application
             await StartCaptureAsync();
     }
 
-    private void BuildAndWireComponents(string apiKey)
+    private void BuildAndWireComponents()
     {
         _overlayVm = new OverlayViewModel(Dispatcher);
         _overlayWindow = new OverlayWindow(_overlayVm);
@@ -87,7 +89,7 @@ public partial class App : System.Windows.Application
         var transcriptBuffer = new TranscriptBuffer(retentionWindow);
         var contextExtractor = new ContextExtractor(transcriptBuffer);
 
-        ILlmProvider llm = new AnthropicLlmProvider(apiKey, Settings.Current.LlmModel);
+        ILlmProvider llm = BuildLlmProvider();
 
         _hotkeys = new HotkeyService();
         RegisterHotkeys();
@@ -178,6 +180,28 @@ public partial class App : System.Windows.Application
             }
         });
         return new EnergyVad();
+    }
+
+    private ILlmProvider BuildLlmProvider()
+    {
+        var model = Settings.Current.LlmModel;
+        bool isOpenAi = model.StartsWith("gpt", StringComparison.OrdinalIgnoreCase);
+
+        if (isOpenAi)
+        {
+            var key = Credentials.GetOpenAiKey();
+            if (key is not null)
+            {
+                Log.Information("Using OpenAI provider: {Model}", model);
+                return new OpenAiLlmProvider(key, model);
+            }
+            Log.Warning("OpenAI model selected but no key stored — falling back to Anthropic");
+        }
+
+        var anthropicKey = Credentials.GetAnthropicKey()
+            ?? throw new InvalidOperationException("No API key configured — cannot start LLM provider");
+        Log.Information("Using Anthropic provider: {Model}", model);
+        return new AnthropicLlmProvider(anthropicKey, model);
     }
 
     private async Task StartCaptureAsync()

@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 44 | 180 SP | 56% |
+| 🔵 Built | 45 | 183 SP | 57% |
 | 🟡 Scaffolded | 3 | 10 SP | 3% |
-| 🔴 Yet to Start | 37 | 130 SP | 41% |
+| 🔴 Yet to Start | 36 | 127 SP | 40% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -30,7 +30,7 @@
 |------|---------|----------|---------|----------|--------------|-----------------|
 | 01 · Core Audio Engine | 7 | 29 SP | — | 5 (24 SP) | — | 2 (5 SP) |
 | 02 · Transcription & Context | 8 | 33 SP | — | 4 (21 SP) | 1 (2 SP) | 3 (10 SP) |
-| 03 · LLM Integration | 8 | 30 SP | — | 3 (13 SP) | — | 5 (17 SP) |
+| 03 · LLM Integration | 8 | 30 SP | — | 4 (16 SP) | — | 4 (14 SP) |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 6 (23 SP) | 1 (3 SP) | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 7 (37 SP) | — | 2 (5 SP) |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
@@ -38,7 +38,7 @@
 | 08 · Privacy & Security | 11 | 36 SP | — | 6 (19 SP) | 1 (5 SP) | 4 (12 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | — | — | 7 (27 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | — | — | 10 (40 SP) |
-| **Total** | **84** | **320 SP** | **0** | **44 (180 SP)** | **3 (10 SP)** | **37 (130 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **45 (183 SP)** | **3 (10 SP)** | **36 (127 SP)** |
 
 ---
 
@@ -50,11 +50,11 @@ Each story is attributed to the project where its primary implementation lives.
 |---------|--------------|---------|----------|----------|--------------|-----------------|
 | Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 6 (27 SP) | — | 2 (5 SP) |
 | Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 5 (24 SP) | 1 (2 SP) | 3 (10 SP) |
-| Chum.Llm | Epic 03 | 8 | 30 SP | 3 (13 SP) | — | 5 (17 SP) |
+| Chum.Llm | Epic 03 | 8 | 30 SP | 4 (16 SP) | — | 4 (14 SP) |
 | Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 28 (109 SP) | 1 (3 SP) | 9 (26 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 | 18 | 72 SP | — | — | 18 (72 SP) |
-| **Total** | | **84** | **320 SP** | **44 (180 SP)** | **3 (10 SP)** | **37 (130 SP)** |
+| **Total** | | **84** | **320 SP** | **45 (183 SP)** | **3 (10 SP)** | **36 (127 SP)** |
 
 ---
 
@@ -63,10 +63,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 34 | 125 SP | 22 (79 SP) | 2 (7 SP) | 10 (39 SP) |
+| P1 — High | 34 | 125 SP | 23 (82 SP) | 2 (7 SP) | 9 (36 SP) |
 | P2 — Medium | 27 | 91 SP | 5 (15 SP) | 1 (3 SP) | 21 (73 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **44 (180 SP)** | **3 (10 SP)** | **37 (130 SP)** |
+| **Total** | **84** | **320 SP** | **45 (183 SP)** | **3 (10 SP)** | **36 (127 SP)** |
 
 ---
 
@@ -111,7 +111,7 @@ Each story is attributed to the project where its primary implementation lives.
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
 | US-03-01 | Anthropic Claude API Integration | P0 | 🔵 Built | 5 | AnthropicLlmProvider.cs (HttpClient + SSE streaming) |
-| US-03-02 | OpenAI API Integration | P1 | 🔴 Yet to Start | 3 | |
+| US-03-02 | OpenAI API Integration | P1 | 🔵 Built | 3 | OpenAiLlmProvider.cs (SSE streaming, vision via image_url); provider inferred from model name in App.BuildLlmProvider |
 | US-03-03 | Local LLM via Ollama | P2 | 🔴 Yet to Start | 5 | |
 | US-03-04 | Meeting-Optimised System Prompt | P0 | 🔵 Built | 5 | PromptBuilder.cs (≤150 word rule, no preamble) |
 | US-03-05 | Streaming Response Display | P0 | 🔵 Built | 3 | AppendResponseToken → OverlayViewModel → OverlayWindow |
@@ -119,7 +119,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-03-07 | Cost Estimation & Token Tracking | P2 | 🔴 Yet to Start | 3 | |
 | US-03-08 | Prompt Templates Library | P2 | 🔴 Yet to Start | 3 | |
 
-**Epic 03 Total:** 30 SP · 0 Done · 13 Built · 0 Scaffolded · 17 Yet to Start
+**Epic 03 Total:** 30 SP · 0 Done · 16 Built · 0 Scaffolded · 14 Yet to Start
 
 ---
 
@@ -265,8 +265,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P2 Stories | 27 stories · 91 SP |
 | P3 Stories | 7 stories · 20 SP |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 44 stories · 180 SP (56%) |
+| 🔵 Built | 45 stories · 183 SP (57%) |
 | 🟡 Scaffolded | 3 stories · 10 SP (3%) |
-| 🔴 Yet to Start | 37 stories · 130 SP (41%) |
+| 🔴 Yet to Start | 36 stories · 127 SP (40%) |
 
-*Last updated: 2026-06-27 — Session 13: US-01-03 + US-07-02 (Audio Device Configuration) built — device pickers in SettingsWindow with live pipeline swap*
+*Last updated: 2026-06-27 — Session 15: US-03-02 (OpenAI API Integration) built — OpenAiLlmProvider SSE streaming, model-based provider selection in App*

@@ -57,6 +57,12 @@ public partial class SettingsWindow : Window
             AnthropicKeyStatus.Text = "✓ API key stored";
             AnthropicKeyStatus.Visibility = Visibility.Visible;
         }
+
+        if (_credentials.GetOpenAiKey() is not null)
+        {
+            OpenAiKeyStatus.Text = "✓ API key stored";
+            OpenAiKeyStatus.Visibility = Visibility.Visible;
+        }
     }
 
     private void SaveAnthropicKey_Click(object sender, RoutedEventArgs e)
@@ -69,6 +75,18 @@ public partial class SettingsWindow : Window
         AnthropicKeyStatus.Text = "✓ Key saved securely";
         AnthropicKeyStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
         AnthropicKeyStatus.Visibility = Visibility.Visible;
+    }
+
+    private void SaveOpenAiKey_Click(object sender, RoutedEventArgs e)
+    {
+        var key = OpenAiKeyBox.Password.Trim();
+        if (string.IsNullOrWhiteSpace(key)) { ShowError("Key cannot be empty."); return; }
+
+        _credentials.SaveOpenAiKey(key);
+        OpenAiKeyBox.Clear();
+        OpenAiKeyStatus.Text = "✓ Key saved securely";
+        OpenAiKeyStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
+        OpenAiKeyStatus.Visibility = Visibility.Visible;
     }
 
     private async void TestAnthropicKey_Click(object sender, RoutedEventArgs e)
