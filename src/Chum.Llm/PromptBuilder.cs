@@ -3,7 +3,11 @@ namespace Chum.Llm;
 /// <summary>Builds the system and user prompts for meeting-context LLM queries.</summary>
 public static class PromptBuilder
 {
-    public static string BuildSystemPrompt(string? userName = null, string? platform = null, string? detectedLanguageCode = null)
+    public static string BuildSystemPrompt(
+        string? userName = null,
+        string? platform = null,
+        string? detectedLanguageCode = null,
+        PromptTemplate? template = null)
     {
         var name = string.IsNullOrWhiteSpace(userName) ? "the user" : userName;
         var platformNote = string.IsNullOrWhiteSpace(platform)
@@ -18,6 +22,8 @@ public static class PromptBuilder
             var langName = GetLanguageName(detectedLanguageCode);
             langNote = $"\n            Meeting language detected: {langName}. Respond in {langName} unless the user asks otherwise.";
         }
+
+        var templateSuffix = template?.SystemPromptSuffix ?? string.Empty;
 
         return $"""
             You are Chum, a real-time AI assistant for professional meetings.
@@ -39,7 +45,7 @@ public static class PromptBuilder
             - Do not repeat the transcript back.
             - For technical questions: prioritise accuracy. Include a code snippet if it helps.
             - For visual queries (image attached): analyse the image first, then answer in context of the transcript.
-            """;
+            """ + templateSuffix;
     }
 
     private static string GetLanguageName(string code) => code.ToLowerInvariant() switch

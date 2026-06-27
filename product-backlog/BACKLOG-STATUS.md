@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 66 | 256 SP | 80% |
+| 🔵 Built | 67 | 259 SP | 81% |
 | 🟡 Scaffolded | 1 | 5 SP | 2% |
-| 🔴 Yet to Start | 17 | 59 SP | 18% |
+| 🔴 Yet to Start | 16 | 56 SP | 17% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -30,7 +30,7 @@
 |------|---------|----------|---------|----------|--------------|-----------------|
 | 01 · Core Audio Engine | 7 | 29 SP | — | 6 (27 SP) | — | 1 (2 SP) |
 | 02 · Transcription & Context | 8 | 33 SP | — | 7 (31 SP) | — | 1 (2 SP) |
-| 03 · LLM Integration | 8 | 30 SP | — | 7 (27 SP) | — | 1 (3 SP) |
+| 03 · LLM Integration | 8 | 30 SP | — | 8 (30 SP) | — | — |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 7 (26 SP) | — | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 9 (42 SP) | — | — |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
@@ -38,7 +38,7 @@
 | 08 · Privacy & Security | 11 | 36 SP | — | 9 (29 SP) | 1 (5 SP) | 1 (2 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 5 (21 SP) | — | 5 (19 SP) |
-| **Total** | **84** | **320 SP** | **0** | **66 (256 SP)** | **1 (5 SP)** | **17 (59 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **67 (259 SP)** | **1 (5 SP)** | **16 (56 SP)** |
 
 ---
 
@@ -54,7 +54,7 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/02/04/05 | 43 | 158 SP | 39 (145 SP) | — | 4 (13 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 2 (10 SP) | — | 12 (44 SP) |
-| **Total** | | **84** | **320 SP** | **66 (256 SP)** | **1 (5 SP)** | **17 (59 SP)** |
+| **Total** | | **84** | **320 SP** | **67 (259 SP)** | **1 (5 SP)** | **16 (56 SP)** |
 
 ---
 
@@ -64,9 +64,9 @@ Each story is attributed to the project where its primary implementation lives.
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
 | P1 — High | 34 | 125 SP | 33 (120 SP) | 1 (5 SP) | — |
-| P2 — Medium | 27 | 91 SP | 17 (55 SP) | — | 10 (36 SP) |
+| P2 — Medium | 27 | 91 SP | 18 (58 SP) | — | 9 (33 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **66 (256 SP)** | **1 (5 SP)** | **17 (59 SP)** |
+| **Total** | **84** | **320 SP** | **67 (259 SP)** | **1 (5 SP)** | **16 (56 SP)** |
 
 ---
 
@@ -117,9 +117,9 @@ Each story is attributed to the project where its primary implementation lives.
 | US-03-05 | Streaming Response Display | P0 | 🔵 Built | 3 | AppendResponseToken → OverlayViewModel → OverlayWindow |
 | US-03-06 | Response History | P1 | 🔵 Built | 3 | OverlayViewModel: _history ring buffer (max 20), NavigateBack/Forward, HasHistory/CanGoBack/CanGoForward; OverlayWindow: ◀/▶ nav strip in Row 2 |
 | US-03-07 | Cost Estimation & Token Tracking | P2 | 🔵 Built | 3 | UsageRecorded event on ILlmProvider; SessionCostTracker; cost hint in overlay status bar + About dialog; spend threshold warning |
-| US-03-08 | Prompt Templates Library | P2 | 🔴 Yet to Start | 3 | |
+| US-03-08 | Prompt Templates Library | P2 | 🔵 Built | 3 | PromptTemplate record; TemplateService (JSON storage); 5 built-ins; Ctrl+Alt+1–5 hotkeys; settings CRUD; passed to BuildSystemPrompt |
 
-**Epic 03 Total:** 30 SP · 0 Done · 27 Built · 0 Scaffolded · 3 Yet to Start
+**Epic 03 Total:** 30 SP · 0 Done · 30 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -265,8 +265,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P2 Stories | 27 stories · 91 SP |
 | P3 Stories | 7 stories · 20 SP |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 66 stories · 256 SP (80%) |
+| 🔵 Built | 67 stories · 259 SP (81%) |
 | 🟡 Scaffolded | 1 story · 5 SP (2%) |
-| 🔴 Yet to Start | 17 stories · 59 SP (18%) |
+| 🔴 Yet to Start | 16 stories · 56 SP (17%) |
 
-*Last updated: 2026-06-28 — Session 35: US-03-07 (Cost Estimation & Token Tracking) built*
+*Last updated: 2026-06-28 — Session 36: US-03-08 (Prompt Templates Library) built — Epic 03 fully built*

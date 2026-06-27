@@ -65,4 +65,7 @@ public sealed class AppSettings
     // --- Cost tracking ---
     // Warn in overlay when session API spend exceeds this threshold. 0 = disabled.
     public decimal SpendThresholdDollars { get; set; } = 1.00m;
+
+    // --- Prompt templates ---
+    public string ActiveTemplateName { get; set; } = "Default";
 }

@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-03-07 Built — 66/84 stories 🔵 Built (256/320 SP, 80%)
+**Phase:** US-03-08 Built — 67/84 stories 🔵 Built (259/320 SP, 81%) — Epic 03 (LLM) fully built
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,28 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 36 (2026-06-28, Part 36)
+
+**Prompt Templates Library — US-03-08 → 🔵 Built:**
+
+**New files:**
+- `Chum.Llm/PromptTemplate.cs` — `PromptTemplate` record (Name, SystemPromptSuffix, MaxTokensOverride). `BuiltIns` static list: Default (empty), Quick Answer (≤50 words), Detailed Explanation (up to 500w), Action Items (numbered list by owner), Devil's Advocate (strongest objections).
+- `Chum.App/Services/TemplateService.cs` — Loads/saves `%APPDATA%\Chum\templates.json`. `All` property returns built-ins first, then user-defined (no name collisions). `GetByName(string?)` lookup. `Save(userTemplates)` writes only non-built-in templates to JSON.
+
+**Modified files:**
+- `Chum.Llm/PromptBuilder.cs` — `BuildSystemPrompt` now accepts `PromptTemplate? template`. The template's `SystemPromptSuffix` is appended after the base prompt (e.g., "Mode: QUICK. Respond in 50 words...").
+- `Chum.App/Models/AppSettings.cs` — Added `ActiveTemplateName = "Default"`.
+- `Chum.App/Services/MeetingOrchestrator.cs` — `_templateService` field; `GetTemplateService()` accessor; `SwitchTemplate(int oneBasedIndex)` switches active template, saves settings, updates overlay status text; Template1..5 `HotkeyTapped` dispatches to SwitchTemplate; all 4 `BuildSystemPrompt` calls pass the active template.
+- `Chum.App/App.xaml.cs` — Instantiates `TemplateService`, calls `.Load()`, passes to orchestrator; registers Ctrl+Alt+1..5 as Template1..5 hotkeys.
+- `Chum.App/Views/SettingsWindow.xaml` — PROMPT TEMPLATES section: active template ComboBox + Name/Suffix editor + Add/Update/Delete buttons.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — Loads templates into combo on open; saves active selection; `AddTemplate_Click` / `DeleteTemplate_Click` (blocks deletion of built-ins); `LoadTemplateIntoEditor` syncs editor on combo change.
+
+**Hotkey mapping (fixed):** Ctrl+Alt+1 = template 1 (Default), Ctrl+Alt+2 = Quick Answer, Ctrl+Alt+3 = Detailed Explanation, Ctrl+Alt+4 = Action Items, Ctrl+Alt+5 = Devil's Advocate.
+
+**Build:** 0 errors, 4 warnings (pre-existing NU1603/NU1701 only).
 
 ---
 
@@ -740,18 +762,17 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-03-08 — Prompt Templates Library (P2, 3 SP):**
+**US-10-07 — App Startup Performance (P2, 3 SP):**
 
-Let users save and quickly apply custom prompt templates (e.g., "Explain technically", "Draft follow-up email"). Templates accessible via hotkey modifiers Ctrl+Alt+1 through Ctrl+Alt+5.
+Time from process start to "overlay visible and hotkey active" ≤3s. Profile startup, parallelise init tasks (audio, model load, credential load), add Whisper warm-up deferral banner.
 
 Implementation plan:
-1. Add `PromptTemplate` record: `{ string Name, string SystemPromptSuffix }`.
-2. Create `templates.json` (5 built-ins: Default, Meeting Summary, Action Items, Technical Explainer, Executive Brief) in `%APPDATA%\Chum\`.
-3. `PromptBuilder.BuildSystemPrompt` accepts an optional `PromptTemplate?` and appends its suffix.
-4. Settings window: list of templates with add/edit/delete.
-5. Register Ctrl+Alt+1..5 in HotkeyService; `HotkeyTapped` with "Template1"..5 action IDs sets active template.
+1. `Stopwatch` from `OnStartup` to overlay `Show()` — log total startup time.
+2. Parallelise: `Task.WhenAll(initAudio, loadCredentials)` — Whisper model load is already deferred.
+3. If startup exceeds 2s, show splash/status "Starting up…" in overlay.
+4. Check if SileroVad download is blocking startup — ensure it's truly background.
 
-Other P2 candidates: US-10-07 (App Startup Performance, 3 SP), US-09-05 (Teams Auto-Captions, 5 SP).
+Other P2 candidates: US-08-04 (Meeting Participant Disclosure Reminder, 2 SP), US-01-06 (Real-time Audio Level Meters, 2 SP).
 
 ---
 

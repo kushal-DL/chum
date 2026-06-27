@@ -40,6 +40,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private Timer? _latencyLogTimer;
     private readonly PipelineLatencyTracker _latencyTracker = new();
     private readonly SessionCostTracker _costTracker = new();
+    private TemplateService? _templateService;
     private CancellationTokenSource? _cts;
     private MeetingPlatform _lastPlatform = MeetingPlatform.Unknown;
 
@@ -65,7 +66,8 @@ public sealed class MeetingOrchestrator : IDisposable
         SettingsService settings,
         DxgiScreenCapture? screenCapture = null,
         ClipboardMonitor? clipboardMonitor = null,
-        OpenAiSttProvider? cloudStt = null)
+        OpenAiSttProvider? cloudStt = null,
+        TemplateService? templateService = null)
     {
         _audio = audio;
         _stt = stt;
@@ -78,6 +80,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _settings = settings;
         _screenCapture = screenCapture;
         _clipboardMonitor = clipboardMonitor;
+        _templateService = templateService;
 
         if (_clipboardMonitor is not null)
             _clipboardMonitor.ImageAvailable += (_, _) => _overlay.SetClipboardPending(true);
@@ -157,6 +160,9 @@ public sealed class MeetingOrchestrator : IDisposable
                 TogglePause();
             else if (actionId == "HideOverlay")
                 _overlay.ToggleVisibility();
+            else if (actionId.StartsWith("Template", StringComparison.Ordinal) &&
+                     int.TryParse(actionId["Template".Length..], out int tIdx))
+                SwitchTemplate(tIdx);
         };
     }
 
@@ -419,6 +425,21 @@ public sealed class MeetingOrchestrator : IDisposable
         return (s.Queries, s.InputTokens, s.OutputTokens, s.TotalCostUsd);
     }
 
+    public TemplateService? GetTemplateService() => _templateService;
+
+    private void SwitchTemplate(int oneBasedIndex)
+    {
+        if (_templateService is null) return;
+        var all = _templateService.All;
+        int idx = oneBasedIndex - 1;
+        if (idx < 0 || idx >= all.Count) return;
+        var t = all[idx];
+        _settings.Current.ActiveTemplateName = t.Name;
+        _settings.Save(); // persist so the setting survives restart
+        _overlay.SetStatus(OverlayStatus.Idle, $"Template: {t.Name}");
+        Serilog.Log.Information("Active template switched to '{Name}'", t.Name);
+    }
+
     public string GetTranscriptExportText()
     {
         var segments = _transcript.GetAll();
@@ -442,7 +463,8 @@ public sealed class MeetingOrchestrator : IDisposable
             var contextText = _context.BuildContext(holdEnd, _settings.Current.MaxResponseTokens);
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
-                _stt.DetectedLanguage);
+                _stt.DetectedLanguage,
+                _templateService?.GetByName(_settings.Current.ActiveTemplateName));
             var user = PromptBuilder.BuildUserMessage(contextText);
             var request = new LlmRequest(system, user,
                 MaxTokens: _settings.Current.MaxResponseTokens,
@@ -490,7 +512,8 @@ public sealed class MeetingOrchestrator : IDisposable
 
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
-                _stt.DetectedLanguage);
+                _stt.DetectedLanguage,
+                _templateService?.GetByName(_settings.Current.ActiveTemplateName));
             var user = $"Extract all action items, decisions, and owners from this meeting transcript. Format as a bulleted list with owner names where identifiable.\n\n{sb}";
             var request = new LlmRequest(system, user, MaxTokens: 1024);
 
@@ -545,7 +568,8 @@ public sealed class MeetingOrchestrator : IDisposable
             var contextText = _context.BuildContext(DateTimeOffset.UtcNow, _settings.Current.MaxResponseTokens);
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
-                _stt.DetectedLanguage);
+                _stt.DetectedLanguage,
+                _templateService?.GetByName(_settings.Current.ActiveTemplateName));
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
             var request = new LlmRequest(system, user,
                 ImageBase64: imageBase64,
@@ -626,7 +650,8 @@ public sealed class MeetingOrchestrator : IDisposable
             var contextText = _context.BuildContext(DateTimeOffset.UtcNow, _settings.Current.MaxResponseTokens);
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
-                _stt.DetectedLanguage);
+                _stt.DetectedLanguage,
+                _templateService?.GetByName(_settings.Current.ActiveTemplateName));
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
             var request = new LlmRequest(system, user,
                 ImageBase64: imageBase64,

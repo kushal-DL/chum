@@ -11,12 +11,14 @@ public partial class SettingsWindow : Window
 {
     private readonly SettingsService _settings;
     private readonly CredentialService _credentials;
+    private TemplateService? _templateService;
 
     public SettingsWindow()
     {
         InitializeComponent();
         _settings = ((App)Application.Current).Settings;
         _credentials = ((App)Application.Current).Credentials;
+        _templateService = ((App)Application.Current).Orchestrator?.GetTemplateService();
         LoadCurrentSettings();
     }
 
@@ -56,6 +58,20 @@ public partial class SettingsWindow : Window
         ConfirmScreenCaptureBox.IsChecked = s.ConfirmScreenCapture;
         AutoStartCaptureBox.IsChecked = s.AutoStartCapture;
         SpendThresholdBox.Text = s.SpendThresholdDollars.ToString("G");
+
+        // Populate template combo
+        if (_templateService is not null)
+        {
+            ActiveTemplateCombo.Items.Clear();
+            foreach (var t in _templateService.All)
+                ActiveTemplateCombo.Items.Add(t.Name);
+            var activeIdx = _templateService.All
+                .Select((t, i) => (t, i))
+                .FirstOrDefault(x => x.t.Name.Equals(s.ActiveTemplateName, StringComparison.OrdinalIgnoreCase)).i;
+            ActiveTemplateCombo.SelectedIndex = activeIdx;
+        }
+        ActiveTemplateCombo.SelectionChanged += (_, _) => LoadTemplateIntoEditor();
+
         CloudSttFallbackBox.IsChecked = s.CloudSttFallback;
         CloudSttModelBox.Text = s.CloudSttModel;
 
@@ -155,6 +171,8 @@ public partial class SettingsWindow : Window
             s.AutoStartCapture = AutoStartCaptureBox.IsChecked == true;
             if (decimal.TryParse(SpendThresholdBox.Text, out var thresh) && thresh >= 0)
                 s.SpendThresholdDollars = thresh;
+            if (ActiveTemplateCombo.SelectedItem is string tName)
+                s.ActiveTemplateName = tName;
             s.CloudSttFallback = CloudSttFallbackBox.IsChecked == true;
             s.CloudSttModel = CloudSttModelBox.Text.Trim().Length > 0
                 ? CloudSttModelBox.Text.Trim() : "whisper-1";
@@ -216,5 +234,63 @@ public partial class SettingsWindow : Window
     {
         var win = new AboutWindow { Owner = this };
         win.ShowDialog();
+    }
+
+    private void LoadTemplateIntoEditor()
+    {
+        if (_templateService is null) return;
+        var name = ActiveTemplateCombo.SelectedItem as string;
+        var t = _templateService.GetByName(name);
+        TemplateNameBox.Text = t?.Name ?? string.Empty;
+        TemplateSuffixBox.Text = t?.SystemPromptSuffix ?? string.Empty;
+    }
+
+    private void AddTemplate_Click(object sender, RoutedEventArgs e)
+    {
+        if (_templateService is null) return;
+        var name = TemplateNameBox.Text.Trim();
+        var suffix = TemplateSuffixBox.Text;
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        var userTemplates = _templateService.All
+            .Where(t => Chum.Llm.PromptTemplate.BuiltIns.All(b => !b.Name.Equals(t.Name, StringComparison.OrdinalIgnoreCase)))
+            .Where(t => !t.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        userTemplates.Add(new Chum.Llm.PromptTemplate(name, suffix));
+        _templateService.Save(userTemplates);
+
+        // Refresh combo
+        ActiveTemplateCombo.SelectionChanged -= (_, _) => LoadTemplateIntoEditor();
+        ActiveTemplateCombo.Items.Clear();
+        foreach (var t in _templateService.All)
+            ActiveTemplateCombo.Items.Add(t.Name);
+        ActiveTemplateCombo.SelectedItem = name;
+        ActiveTemplateCombo.SelectionChanged += (_, _) => LoadTemplateIntoEditor();
+    }
+
+    private void DeleteTemplate_Click(object sender, RoutedEventArgs e)
+    {
+        if (_templateService is null) return;
+        var name = ActiveTemplateCombo.SelectedItem as string;
+        if (string.IsNullOrWhiteSpace(name)) return;
+        if (Chum.Llm.PromptTemplate.BuiltIns.Any(b => b.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            System.Windows.MessageBox.Show($"'{name}' is a built-in template and cannot be deleted.", "Chum", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var userTemplates = _templateService.All
+            .Where(t => !Chum.Llm.PromptTemplate.BuiltIns.Any(b => b.Name.Equals(t.Name, StringComparison.OrdinalIgnoreCase)))
+            .Where(t => !t.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        _templateService.Save(userTemplates);
+
+        ActiveTemplateCombo.SelectionChanged -= (_, _) => LoadTemplateIntoEditor();
+        ActiveTemplateCombo.Items.Clear();
+        foreach (var t in _templateService.All)
+            ActiveTemplateCombo.Items.Add(t.Name);
+        ActiveTemplateCombo.SelectedIndex = 0;
+        ActiveTemplateCombo.SelectionChanged += (_, _) => LoadTemplateIntoEditor();
+        LoadTemplateIntoEditor();
     }
 }

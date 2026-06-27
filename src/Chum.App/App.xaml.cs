@@ -119,9 +119,12 @@ public partial class App : System.Windows.Application
                 Serilog.Log.Warning("CloudSttFallback enabled but no OpenAI API key stored — fallback disabled");
         }
 
+        var templates = new TemplateService();
+        templates.Load();
+
         _orchestrator = new MeetingOrchestrator(
             audioPipeline, stt, transcriptBuffer, contextExtractor,
-            llm, _hotkeys, _overlayVm, Settings, _screenCapture, _clipboardMonitor, cloudStt);
+            llm, _hotkeys, _overlayVm, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates);
 
         _overlayWindow.ImageFileDropped += (_, path) =>
             _ = _orchestrator.HandleDroppedImageQueryAsync(path);
@@ -205,6 +208,14 @@ public partial class App : System.Windows.Application
         _hotkeys.RegisterFromString("PrivacyPause", s.PrivacyPauseHotkey);
         _hotkeys.RegisterFromString("HideOverlay", s.HideOverlayHotkey);
         _hotkeys.RegisterFromString("ActionItems", s.ActionItemsHotkey);
+
+        // Template selection: Ctrl+Alt+1..5 (fixed, not user-configurable)
+        var templateMods = System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Alt;
+        _hotkeys.Register("Template1", System.Windows.Input.Key.D1, templateMods);
+        _hotkeys.Register("Template2", System.Windows.Input.Key.D2, templateMods);
+        _hotkeys.Register("Template3", System.Windows.Input.Key.D3, templateMods);
+        _hotkeys.Register("Template4", System.Windows.Input.Key.D4, templateMods);
+        _hotkeys.Register("Template5", System.Windows.Input.Key.D5, templateMods);
     }
 
     private IVad BuildVad()

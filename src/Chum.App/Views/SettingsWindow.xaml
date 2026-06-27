@@ -186,6 +186,40 @@
             <TextBlock Text="Ollama base URL" Foreground="#999" FontSize="11" Margin="0,8,0,2"/>
             <TextBox x:Name="OllamaUrlBox" Text="http://localhost:11434"/>
 
+            <!-- ── Prompt Templates ── -->
+            <Label Content="PROMPT TEMPLATES" Style="{StaticResource SectionHeader}"/>
+            <TextBlock Text="Active template (or press Ctrl+Alt+1–5 during a meeting):"
+                       Foreground="#999" FontSize="11" Margin="0,0,0,4"/>
+            <ComboBox x:Name="ActiveTemplateCombo" Margin="0,0,0,8"
+                      Background="#2D2D2D" Foreground="White" BorderBrush="#555"/>
+            <Grid Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Name:" Foreground="#999" FontSize="11" VerticalAlignment="Center"/>
+                <TextBox x:Name="TemplateNameBox" Grid.Row="0" Grid.Column="1"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="System prompt:" Foreground="#999" FontSize="11" VerticalAlignment="Top" Margin="0,4,0,0"/>
+                <TextBox x:Name="TemplateSuffixBox" Grid.Row="1" Grid.Column="1"
+                         TextWrapping="Wrap" AcceptsReturn="True" Height="60" Margin="0,4,0,0"
+                         VerticalScrollBarVisibility="Auto"/>
+                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,6,0,0">
+                    <Button x:Name="AddTemplateBtn" Content="Add / Update" Padding="8,4" Margin="0,0,6,0"
+                            Background="#2D2D2D" Foreground="White" BorderBrush="#555"
+                            Click="AddTemplate_Click" Cursor="Hand"/>
+                    <Button x:Name="DeleteTemplateBtn" Content="Delete" Padding="8,4"
+                            Background="#2D2D2D" Foreground="#EF4444" BorderBrush="#555"
+                            Click="DeleteTemplate_Click" Cursor="Hand"/>
+                </StackPanel>
+            </Grid>
+            <TextBlock Text="Built-in templates (Default, Quick Answer, Detailed Explanation, Action Items, Devil's Advocate) cannot be deleted."
+                       Foreground="#555" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,4"/>
+
             <!-- ── Privacy ── -->
             <Label Content="PRIVACY" Style="{StaticResource SectionHeader}"/>
             <TextBlock Text="Transcript retention" Foreground="#999" FontSize="11" Margin="0,0,0,2"/>
