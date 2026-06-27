@@ -5,9 +5,9 @@
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
 | US-04-01 | Global Hold-to-Ask Hotkey | P0 — MVP | 🔵 Built | 8 |
-| US-04-02 | Screen Capture Hotkey | P1 — High | 🟡 Scaffolded | 3 |
-| US-04-03 | Privacy Pause Hotkey | P1 — High | 🟡 Scaffolded | 2 |
-| US-04-04 | Overlay Hide/Show Hotkey | P1 — High | 🟡 Scaffolded | 2 |
+| US-04-02 | Screen Capture Hotkey | P1 — High | 🔵 Built | 3 |
+| US-04-03 | Privacy Pause Hotkey | P1 — High | 🔵 Built | 2 |
+| US-04-04 | Overlay Hide/Show Hotkey | P1 — High | 🔵 Built | 2 |
 | US-04-05 | Hotkey Configuration UI | P1 — High | 🔵 Built | 5 |
 | US-04-06 | Visual and Audio Feedback | P1 — High | 🔵 Built | 3 |
 | US-04-07 | Action Items Hotkey | P2 — Medium | 🟡 Scaffolded | 3 |

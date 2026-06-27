@@ -4,14 +4,14 @@
 
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
-| US-07-01 | API Key Management | P0 — MVP | 🔴 Yet to Start | 5 |
-| US-07-02 | Audio Device Configuration | P1 — High | 🔴 Yet to Start | 3 |
-| US-07-03 | LLM Provider & Model Selection | P1 — High | 🔴 Yet to Start | 3 |
-| US-07-04 | Transcription Configuration | P1 — High | 🔴 Yet to Start | 3 |
-| US-07-05 | Hotkey Configuration | P1 — High | 🔴 Yet to Start | 3 |
-| US-07-06 | Overlay Appearance Settings | P2 — Medium | 🔴 Yet to Start | 2 |
-| US-07-07 | Startup & Run Behavior | P2 — Medium | 🔴 Yet to Start | 2 |
-| US-07-08 | Data Retention & Privacy Settings | P1 — High | 🔴 Yet to Start | 2 |
+| US-07-01 | API Key Management | P0 — MVP | 🔵 Built | 5 |
+| US-07-02 | Audio Device Configuration | P1 — High | 🟡 Scaffolded | 3 |
+| US-07-03 | LLM Provider & Model Selection | P1 — High | 🔵 Built | 3 |
+| US-07-04 | Transcription Configuration | P1 — High | 🔵 Built | 3 |
+| US-07-05 | Hotkey Configuration | P1 — High | 🔵 Built | 3 |
+| US-07-06 | Overlay Appearance Settings | P2 — Medium | 🔵 Built | 2 |
+| US-07-07 | Startup & Run Behavior | P2 — Medium | 🔵 Built | 2 |
+| US-07-08 | Data Retention & Privacy Settings | P1 — High | 🔵 Built | 2 |
 | US-07-09 | Settings Import & Export | P3 — Low | 🔴 Yet to Start | 2 |
 | US-07-10 | About & Diagnostics Panel | P2 — Medium | 🔴 Yet to Start | 2 |
 

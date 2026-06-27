@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-06-02 Built — ready to build US-06-06 (Image Preprocessing Pipeline)
+**Phase:** US-07-08 Built — 42/84 stories 🔵 Built (174/320 SP, 54%); next: US-07-02 / US-01-03 (Audio Device Selection)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -194,6 +194,22 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 13 (2026-06-27, Part 13)
+
+**Data Retention & Privacy Settings — US-07-08 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/Views/SettingsWindow.xaml` — Added PRIVACY section (Height 540→620): `RetentionSlider` (Minimum=1, Maximum=120, TickFrequency=5, IsSnapToTickEnabled=True, triggers `RetentionSlider_ValueChanged`) and `RetentionLabel` live-updating as the slider moves. Positioned between the BEHAVIOUR section and the Buttons row.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — `LoadCurrentSettings` reads `s.TranscriptRetentionMinutes` → `RetentionSlider.Value` + `RetentionLabel.Text`; `SaveSettings_Click` writes `(int)RetentionSlider.Value` back; `RetentionSlider_ValueChanged` updates label live.
+- `product-backlog/BACKLOG-STATUS.md` — US-07-08 row → 🔵 Built; all summary tables (Overall, By Epic 07, By Project Chum.App, By Priority P1) updated (42 Built 174 SP; 5 Scaffolded 16 SP).
+- `product-backlog/EPIC-07-settings.md` — "Stories at a Glance" table synced.
+
+**Build:** 0 errors (unchanged).
+
+**Decision:** Used a slider (1–120 min, snapping every 5 min) rather than a dropdown — gives finer control without an unbounded text box. Range covers 1 min (most aggressive) to 2 h (longest typical meeting).
+
+---
+
 ### What Was Done Session 12 (2026-06-27, Part 12)
 
 **Visual & Audio Feedback for Hotkey State — US-04-06 → 🔵 Built:**
@@ -257,15 +273,17 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ## Immediate Next Step
 
-**Sweep Scaffolded P1 stories** — Epic 04 has 5 scaffolded P1 stories, Epic 08 has 1, Epic 07 has 2.
+**US-07-02 + US-01-03 — Audio Device Configuration (P1, 3 SP each):**
 
-Recommended order (lowest-risk, highest impact first):
-1. **US-08-05 — Privacy Pause Mode visual indicator** (P1, 3 SP) — `AudioPipeline.Pause()/Resume()` is already wired; just need to update the overlay to show a clear "PAUSED" state (distinct colour, status text)
-2. **US-04-06 — Visual & Audio Feedback for Hotkey State** (P1, 3 SP) — pulsing indicator exists; add audio beep via `System.Media.SystemSounds` or `Console.Beep` on hold start/release
-3. **US-04-03 — Privacy Pause Hotkey** (P1, 2 SP) — hotkey is registered; verify `Pause()`/`Resume()` in orchestrator is correct and working
-4. **US-04-02 — Screen Capture Hotkey** (P1, 3 SP) — registered; `HandleScreenCaptureQueryAsync` is implemented; verify wiring is correct
+Both stories share the same feature: a device picker UI. `DeviceId` (loopback) and `MicDeviceId` (mic) already exist in `AppSettings`; the SettingsWindow just has no ComboBoxes for them yet.
 
-After Scaffolded P1s are swept: **US-09-01 — Meeting Platform Auto-Detection (P1, 5 SP)**
+What needs to be built:
+- Two `ComboBox` controls in SettingsWindow (Loopback Device, Microphone Device), populated with NAudio `WasapiCapture.GetDefaultCaptureDevice` / `DirectSoundDeviceEnumerator` or `MMDeviceEnumerator` at window open.
+- "Use Windows Default" as first option in each list.
+- `LoopbackCapture` and `MicCapture` to accept an optional device ID and open the specified device instead of the default.
+- Wiring in `App.xaml.cs` to pass selected device IDs into the pipeline on settings save.
+
+After that: **US-03-02 — OpenAI API Integration (P1, 3 SP)** — `ILlmProvider` is ready, just needs `OpenAiLlmProvider.cs`.
 
 ---
 

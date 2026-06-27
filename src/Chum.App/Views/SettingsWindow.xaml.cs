@@ -38,6 +38,8 @@ public partial class SettingsWindow : Window
         ScreenCapBox.Text = s.ScreenCaptureHotkey;
         PrivacyPauseBox.Text = s.PrivacyPauseHotkey;
         OpacitySlider.Value = s.OverlayOpacity;
+        RetentionSlider.Value = s.TranscriptRetentionMinutes;
+        RetentionLabel.Text = $"{s.TranscriptRetentionMinutes} min";
         StartWithWindowsBox.IsChecked = s.StartWithWindows;
         StartCapturingBox.IsChecked = s.StartCapturingOnLaunch;
         AutoHideShareBox.IsChecked = s.AutoHideOnScreenShare;
@@ -103,6 +105,7 @@ public partial class SettingsWindow : Window
             s.ScreenCaptureHotkey = ScreenCapBox.Text.Trim();
             s.PrivacyPauseHotkey = PrivacyPauseBox.Text.Trim();
             s.OverlayOpacity = OpacitySlider.Value;
+            s.TranscriptRetentionMinutes = (int)RetentionSlider.Value;
             s.StartWithWindows = StartWithWindowsBox.IsChecked == true;
             s.StartCapturingOnLaunch = StartCapturingBox.IsChecked == true;
             s.AutoHideOnScreenShare = AutoHideShareBox.IsChecked == true;
@@ -123,6 +126,12 @@ public partial class SettingsWindow : Window
     {
         DialogResult = false;
         Close();
+    }
+
+    private void RetentionSlider_ValueChanged(object sender, System.Windows.RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (RetentionLabel is not null)
+            RetentionLabel.Text = $"{(int)e.NewValue} min";
     }
 
     private void ShowError(string msg)

@@ -15,8 +15,8 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 38 | 165 SP | 52% |
-| 🟡 Scaffolded | 9 | 25 SP | 8% |
+| 🔵 Built | 42 | 174 SP | 54% |
+| 🟡 Scaffolded | 5 | 16 SP | 5% |
 | 🔴 Yet to Start | 37 | 130 SP | 41% |
 | **Total** | **84** | **320 SP** | |
 
@@ -31,14 +31,14 @@
 | 01 · Core Audio Engine | 7 | 29 SP | — | 4 (21 SP) | 1 (3 SP) | 2 (5 SP) |
 | 02 · Transcription & Context | 8 | 33 SP | — | 4 (21 SP) | 1 (2 SP) | 3 (10 SP) |
 | 03 · LLM Integration | 8 | 30 SP | — | 3 (13 SP) | — | 5 (17 SP) |
-| 04 · Hotkey & Trigger System | 7 | 26 SP | — | 3 (16 SP) | 4 (10 SP) | — |
+| 04 · Hotkey & Trigger System | 7 | 26 SP | — | 6 (23 SP) | 1 (3 SP) | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 7 (37 SP) | — | 2 (5 SP) |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
-| 07 · Settings & Configuration | 10 | 27 SP | — | 6 (18 SP) | 2 (5 SP) | 2 (4 SP) |
+| 07 · Settings & Configuration | 10 | 27 SP | — | 7 (20 SP) | 1 (3 SP) | 2 (4 SP) |
 | 08 · Privacy & Security | 11 | 36 SP | — | 6 (19 SP) | 1 (5 SP) | 4 (12 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | — | — | 7 (27 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | — | — | 10 (40 SP) |
-| **Total** | **84** | **320 SP** | **0** | **38 (165 SP)** | **9 (25 SP)** | **37 (130 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **42 (174 SP)** | **5 (16 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -51,10 +51,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 5 (24 SP) | 1 (3 SP) | 2 (5 SP) |
 | Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 5 (24 SP) | 1 (2 SP) | 3 (10 SP) |
 | Chum.Llm | Epic 03 | 8 | 30 SP | 3 (13 SP) | — | 5 (17 SP) |
-| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 23 (97 SP) | 6 (15 SP) | 9 (26 SP) |
+| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 27 (106 SP) | 2 (6 SP) | 9 (26 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 | 18 | 72 SP | — | — | 18 (72 SP) |
-| **Total** | | **84** | **320 SP** | **38 (165 SP)** | **9 (25 SP)** | **37 (130 SP)** |
+| **Total** | | **84** | **320 SP** | **42 (174 SP)** | **5 (16 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -63,10 +63,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 34 | 125 SP | 16 (64 SP) | 8 (22 SP) | 10 (39 SP) |
+| P1 — High | 34 | 125 SP | 20 (73 SP) | 4 (13 SP) | 10 (39 SP) |
 | P2 — Medium | 27 | 91 SP | 5 (15 SP) | 1 (3 SP) | 21 (73 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **38 (165 SP)** | **9 (25 SP)** | **37 (130 SP)** |
+| **Total** | **84** | **320 SP** | **42 (174 SP)** | **5 (16 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -129,14 +129,14 @@ Each story is attributed to the project where its primary implementation lives.
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
 | US-04-01 | Global Hold-to-Ask Hotkey | P0 | 🔵 Built | 8 | HotkeyService.cs (WH_KEYBOARD_LL, hold/release events, 300ms debounce) |
-| US-04-02 | Screen Capture Hotkey | P1 | 🟡 Scaffolded | 3 | Registered in HotkeyService; capture logic (EPIC-06) not yet built |
-| US-04-03 | Privacy Pause Hotkey | P1 | 🟡 Scaffolded | 2 | Registered; AudioPipeline.Pause() wired in MeetingOrchestrator |
-| US-04-04 | Overlay Hide/Show Hotkey | P1 | 🟡 Scaffolded | 2 | Registered in HotkeyService; handler in MeetingOrchestrator |
+| US-04-02 | Screen Capture Hotkey | P1 | 🔵 Built | 3 | HotkeyTapped "ScreenCapture" → HandleScreenCaptureQueryAsync (DXGI + clipboard + drop all wired) |
+| US-04-03 | Privacy Pause Hotkey | P1 | 🔵 Built | 2 | HotkeyTapped "PrivacyPause" → TogglePause() → AudioPipeline.Pause/Resume + IsPaused banner |
+| US-04-04 | Overlay Hide/Show Hotkey | P1 | 🔵 Built | 2 | HotkeyTapped "HideOverlay" → OverlayViewModel.ToggleVisibility() |
 | US-04-05 | Hotkey Configuration UI | P1 | 🔵 Built | 5 | TextBoxes in SettingsWindow.xaml; saved via SettingsService |
 | US-04-06 | Visual & Audio Feedback for Hotkey State | P1 | 🔵 Built | 3 | Pulsing green ring (IsListening) + audio beeps: 880 Hz/60ms on hold start, 660 Hz/80ms on release — both on Task.Run to keep hook callback <1ms |
 | US-04-07 | Action Items Hotkey | P2 | 🟡 Scaffolded | 3 | Registered; summary handler stub in MeetingOrchestrator |
 
-**Epic 04 Total:** 26 SP · 0 Done · 16 Built · 10 Scaffolded · 0 Yet to Start
+**Epic 04 Total:** 26 SP · 0 Done · 23 Built · 3 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -188,11 +188,11 @@ Each story is attributed to the project where its primary implementation lives.
 | US-07-05 | Hotkey Configuration | P1 | 🔵 Built | 3 | HoldToAsk/ScreenCap/PrivacyPause TextBoxes in SettingsWindow |
 | US-07-06 | Overlay Appearance Settings | P2 | 🔵 Built | 2 | Opacity slider saved and applied live |
 | US-07-07 | Startup & Run Behavior | P2 | 🔵 Built | 2 | StartWithWindows/StartCapturing checkboxes + App.xaml.cs logic |
-| US-07-08 | Data Retention & Privacy Settings | P1 | 🟡 Scaffolded | 2 | TranscriptRetentionMinutes in AppSettings; no Settings UI section yet |
+| US-07-08 | Data Retention & Privacy Settings | P1 | 🔵 Built | 2 | PRIVACY section in SettingsWindow: retention slider (1–120 min, snaps to 5), live label, saved on "Save Settings" |
 | US-07-09 | Settings Import & Export | P3 | 🔴 Yet to Start | 2 | |
 | US-07-10 | About & Diagnostics Panel | P2 | 🔴 Yet to Start | 2 | |
 
-**Epic 07 Total:** 27 SP · 0 Done · 18 Built · 5 Scaffolded · 4 Yet to Start
+**Epic 07 Total:** 27 SP · 0 Done · 20 Built · 3 Scaffolded · 4 Yet to Start
 
 ---
 
@@ -265,8 +265,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P2 Stories | 27 stories · 91 SP |
 | P3 Stories | 7 stories · 20 SP |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 38 stories · 165 SP (52%) |
-| 🟡 Scaffolded | 9 stories · 25 SP (8%) |
+| 🔵 Built | 42 stories · 174 SP (54%) |
+| 🟡 Scaffolded | 5 stories · 16 SP (5%) |
 | 🔴 Yet to Start | 37 stories · 130 SP (41%) |
 
-*Last updated: 2026-06-27 — Session 12: US-04-06 Hotkey audio feedback 🔵 Built*
+*Last updated: 2026-06-27 — Session 12c: US-07-08 (Data Retention & Privacy Settings) built — retention slider in SettingsWindow*
