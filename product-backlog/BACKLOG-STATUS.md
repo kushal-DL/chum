@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 56 | 224 SP | 70% |
+| 🔵 Built | 57 | 227 SP | 71% |
 | 🟡 Scaffolded | 1 | 5 SP | 2% |
-| 🔴 Yet to Start | 27 | 91 SP | 28% |
+| 🔴 Yet to Start | 26 | 88 SP | 27% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -37,8 +37,8 @@
 | 07 · Settings & Configuration | 10 | 27 SP | — | 8 (23 SP) | — | 2 (4 SP) |
 | 08 · Privacy & Security | 11 | 36 SP | — | 9 (29 SP) | 1 (5 SP) | 1 (2 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 1 (5 SP) | — | 6 (22 SP) |
-| 10 · Performance & Reliability | 10 | 40 SP | — | 2 (10 SP) | — | 8 (30 SP) |
-| **Total** | **84** | **320 SP** | **0** | **56 (224 SP)** | **1 (5 SP)** | **27 (91 SP)** |
+| 10 · Performance & Reliability | 10 | 40 SP | — | 3 (13 SP) | — | 7 (27 SP) |
+| **Total** | **84** | **320 SP** | **0** | **57 (227 SP)** | **1 (5 SP)** | **26 (88 SP)** |
 
 ---
 
@@ -51,10 +51,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 7 (30 SP) | — | 1 (2 SP) |
 | Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 6 (26 SP) | — | 3 (10 SP) |
 | Chum.Llm | Epic 03 | 8 | 30 SP | 5 (21 SP) | — | 3 (9 SP) |
-| Chum.App | Epics 04–07 + US-08-04…08 + US-10-04/05 | 40 | 148 SP | 34 (130 SP) | — | 6 (18 SP) |
+| Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/04/05 | 41 | 151 SP | 35 (133 SP) | — | 6 (18 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
-| Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-04/05) | 16 | 62 SP | 2 (10 SP) | — | 14 (52 SP) |
-| **Total** | | **84** | **320 SP** | **56 (224 SP)** | **1 (5 SP)** | **27 (91 SP)** |
+| Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/04/05) | 15 | 59 SP | 2 (10 SP) | — | 13 (49 SP) |
+| **Total** | | **84** | **320 SP** | **57 (227 SP)** | **1 (5 SP)** | **26 (88 SP)** |
 
 ---
 
@@ -63,10 +63,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 34 | 125 SP | 32 (117 SP) | 1 (5 SP) | 1 (3 SP) |
+| P1 — High | 34 | 125 SP | 33 (120 SP) | 1 (5 SP) | — |
 | P2 — Medium | 27 | 91 SP | 8 (26 SP) | — | 19 (65 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **56 (224 SP)** | **1 (5 SP)** | **27 (91 SP)** |
+| **Total** | **84** | **320 SP** | **57 (227 SP)** | **1 (5 SP)** | **26 (88 SP)** |
 
 ---
 
@@ -239,7 +239,7 @@ Each story is attributed to the project where its primary implementation lives.
 
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
-| US-10-01 | Audio Pipeline Latency Profiling | P1 | 🔴 Yet to Start | 3 | |
+| US-10-01 | Audio Pipeline Latency Profiling | P1 | 🔵 Built | 3 | PipelineLatencyTracker.cs: rolling 1000-segment buffer, p50/p90/p99; Stopwatch around TranscribeAsync; 5-min percentile log; slow alert (>15s × 3 consecutive) shown in overlay |
 | US-10-02 | CPU Usage Optimisation | P1 | 🔴 Yet to Start | 5 | |
 | US-10-03 | GPU Acceleration for Whisper | P2 | 🔴 Yet to Start | 5 | |
 | US-10-04 | Memory Management for Long Meetings | P1 | 🔵 Built | 5 | Response history capped 20→10; periodic GC.Collect(Gen2) every 10 min in MeetingOrchestrator with WorkingSet logging; transcript/audio buffers already bounded |
@@ -250,7 +250,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-10-09 | Auto-Update Mechanism | P2 | 🔴 Yet to Start | 5 | |
 | US-10-10 | Low-Power Mode | P3 | 🔴 Yet to Start | 3 | |
 
-**Epic 10 Total:** 40 SP · 0 Done · 10 Built · 0 Scaffolded · 30 Yet to Start
+**Epic 10 Total:** 40 SP · 0 Done · 13 Built · 0 Scaffolded · 27 Yet to Start
 
 ---
 
@@ -269,4 +269,4 @@ Each story is attributed to the project where its primary implementation lives.
 | 🟡 Scaffolded | 1 story · 5 SP (2%) |
 | 🔴 Yet to Start | 28 stories · 96 SP (30%) |
 
-*Last updated: 2026-06-27 — Session 25: US-10-04 (Memory Management) built — periodic GC + response history bound 10*
+*Last updated: 2026-06-27 — Session 26: US-10-01 (Latency Profiling) built — PipelineLatencyTracker + Stopwatch + 5-min percentile log. All P1 stories Built.*

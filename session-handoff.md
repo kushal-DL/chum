@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-10-04 Built — 56/84 stories 🔵 Built (224/320 SP, 70%); only 1 P1 remaining (US-10-01, 3 SP); next: US-10-01 (Audio Latency Profiling)
+**Phase:** US-10-01 Built — 57/84 stories 🔵 Built (227/320 SP, 71%); ALL P1 stories Built; next: P2 stories (US-10-02 CPU Optimisation or US-05-08 Multi-monitor)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,32 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 26 (2026-06-27, Part 26)
+
+**Audio Pipeline Latency Profiling — US-10-01 → 🔵 Built:**
+
+**🎉 All P1 stories are now Built.**
+
+**New files:**
+- `Chum.App/Services/PipelineLatencyTracker.cs` — Thread-safe circular buffer (1000 segments). `Record(TimeSpan)` inserts into the ring buffer; tracks `_consecutiveSlowCount`; fires `SlowTranscriptionDetected` event when 3+ consecutive segments exceed 15s. `GetPercentiles()` returns `(P50, P90, P99)` using linear interpolation on a sorted copy of the buffer. `SegmentsRecorded` property for log filtering (skip log if no data yet).
+
+**Modified files:**
+- `Chum.App/Services/MeetingOrchestrator.cs`:
+  - Added `using System.Diagnostics;`
+  - `_latencyTracker` field (`PipelineLatencyTracker`, allocated at construction)
+  - `_latencyLogTimer` field (`Timer?`)
+  - Constructor: wires `_latencyTracker.SlowTranscriptionDetected → _overlay.ShowError("⚠ Transcription is slow…")`
+  - `StartAsync()`: adds 5-minute `_latencyLogTimer` that logs p50/p90/p99 via Serilog at `Information` level
+  - `StopAsync()`: disposes `_latencyLogTimer`
+  - `Dispose()`: disposes `_latencyLogTimer`
+  - `RunTranscriptionCycleAsync`: wraps `_stt.TranscribeAsync()` with `Stopwatch`; calls `_latencyTracker.Record(sw.Elapsed)`; logs per-segment STT duration + end-to-end latency at `Verbose` level (off by default; enabled via Serilog config if needed)
+
+**Note:** No Diagnostics UI panel yet (US-07-10 is 🔴 Yet to Start). Percentiles are in the log file at `%LOCALAPPDATA%\Chum\Logs\chum-*.log`.
+
+**Build:** 0 errors (unchanged 6 warnings).
 
 ---
 
@@ -513,11 +539,16 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-10-01 — Audio Pipeline Latency Profiling (P1, 3 SP):**
+**US-10-02 — CPU Usage Optimisation (P2, 5 SP):**
 
-Tag each audio pipeline stage with timestamps: Captured → VAD → Queued → TranscriptionStart → TranscriptionEnd. Add `PipelineLatencyTracker` that computes p50/p90/p99 latency per stage across last 1000 segments. Log latency summary every 5 min. Alert in overlay if transcription latency >15s for >3 consecutive segments.
+Key things to check/implement:
+- Ensure Whisper transcription runs on `BelowNormal` priority thread
+- Audio capture threads: verify no busy-wait (NAudio uses WaitHandle internally — should be fine)
+- Model warm-up deferred to 5s after launch (currently deferred until first chunk arrives — verify)
+- WPF: apply `RenderOptions.BitmapScalingMode = NearestNeighbor` to icon elements in OverlayWindow
+- Background model download already on Task.Run (verified in session 2)
 
-After that: all P1 stories will be Built. Move to P2 stories.
+After that: **US-05-08** (Multi-monitor), **US-05-09** (Response Copy), **US-09-06** (Meeting lifecycle).
 
 ---
 

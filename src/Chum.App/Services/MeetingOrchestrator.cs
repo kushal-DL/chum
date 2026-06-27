@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Drawing;
 using System.Threading.Channels;
 using Chum.App.ViewModels;
@@ -35,6 +36,8 @@ public sealed class MeetingOrchestrator : IDisposable
     private bool _captureConfirming;
     private Timer? _captureConfirmTimer;
     private Timer? _gcTimer;
+    private Timer? _latencyLogTimer;
+    private readonly PipelineLatencyTracker _latencyTracker = new();
     private CancellationTokenSource _cts = new();
 
     /// <summary>Fires when a capture device unexpectedly disconnects. App should rebuild the audio pipeline.</summary>
@@ -95,6 +98,9 @@ public sealed class MeetingOrchestrator : IDisposable
             DeviceDisconnected?.Invoke(this, EventArgs.Empty);
         };
 
+        _latencyTracker.SlowTranscriptionDetected += (_, _) =>
+            _overlay.ShowError("⚠ Transcription is slow (>15s) — consider using the 'base' Whisper model.");
+
         // Wire hotkeys
         _hotkeys.HoldStarted += (_, e) =>
         {
@@ -140,13 +146,24 @@ public sealed class MeetingOrchestrator : IDisposable
         Serilog.Log.Information("MeetingOrchestrator started");
 
         // Periodic Gen2 GC every 10 min to reclaim memory after transcription bursts
-        var interval = TimeSpan.FromMinutes(10);
+        var gcInterval = TimeSpan.FromMinutes(10);
         _gcTimer = new Timer(_ =>
         {
             GC.Collect(2, GCCollectionMode.Optimized, blocking: false);
             Serilog.Log.Debug("Periodic GC pass — WorkingSet={MB}MB",
                 Environment.WorkingSet / 1_048_576);
-        }, null, interval, interval);
+        }, null, gcInterval, gcInterval);
+
+        // Log STT latency percentiles every 5 min
+        var latencyInterval = TimeSpan.FromMinutes(5);
+        _latencyLogTimer = new Timer(_ =>
+        {
+            if (_latencyTracker.SegmentsRecorded == 0) return;
+            var (p50, p90, p99) = _latencyTracker.GetPercentiles();
+            Serilog.Log.Information(
+                "STT latency (last {N} segments) — p50={P50:F1}s p90={P90:F1}s p99={P99:F1}s",
+                _latencyTracker.SegmentsRecorded, p50, p90, p99);
+        }, null, latencyInterval, latencyInterval);
 
         await Task.CompletedTask;
     }
@@ -155,6 +172,8 @@ public sealed class MeetingOrchestrator : IDisposable
     {
         _gcTimer?.Dispose();
         _gcTimer = null;
+        _latencyLogTimer?.Dispose();
+        _latencyLogTimer = null;
         _audio.Stop();
         await _cts.CancelAsync();
         if (_transcriptionLoop is not null)
@@ -246,7 +265,13 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             try
             {
+                var sw = Stopwatch.StartNew();
                 await _stt.TranscribeAsync(chunk.Samples, chunk.Source, ct);
+                sw.Stop();
+                _latencyTracker.Record(sw.Elapsed);
+                Serilog.Log.Verbose("STT segment: {Duration:F1}s  e2e: {E2E:F1}s",
+                    sw.Elapsed.TotalSeconds,
+                    (DateTimeOffset.UtcNow - chunk.Timestamp).TotalSeconds);
             }
             catch (OperationCanceledException) { break; }
             catch (Exception ex)
@@ -519,6 +544,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _cts.Dispose();
         _captureConfirmTimer?.Dispose();
         _gcTimer?.Dispose();
+        _latencyLogTimer?.Dispose();
         _audio.Dispose();
         _stt.Dispose();
         _hotkeys.Dispose();
