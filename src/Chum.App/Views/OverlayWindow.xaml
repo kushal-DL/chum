@@ -104,6 +104,8 @@
 
                 <!-- Close / settings buttons -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,4,0">
+                    <Button Style="{StaticResource ChumButton}" Content="↓" Margin="2,4"
+                            ToolTip="Export transcript to file" Click="ExportTranscript_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="⧉" Margin="2,4"
                             ToolTip="Copy response to clipboard" Click="CopyResponse_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="⚙" Margin="2,4"

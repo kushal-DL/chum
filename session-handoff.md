@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-08-10 Built — 71/84 stories 🔵 Built (271/320 SP, 85%) — All P0+P1 stories built, no scaffolded stories remain
+**Phase:** US-02-07 Built — 72/84 stories 🔵 Built (273/320 SP, 85%) — All P0+P1 stories built, Epic 02 now fully built
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,23 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 41 (2026-06-28, Part 41)
+
+**Transcript Export — US-02-07 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/App.xaml.cs` — Added `public void ExportTranscript()`: calls `_orchestrator.GetTranscriptExportText()` (already existed); shows `MessageBox` if no transcript available; otherwise opens `Microsoft.Win32.SaveFileDialog` (default filename `chum_transcript_{timestamp}.txt`), writes the file via `File.WriteAllText`, and logs the path. Also added "Export Transcript…" tray menu item between the "Stop Capture" section and "Quit Chum".
+- `Chum.App/Views/OverlayWindow.xaml` — Added "↓" button in the header `StackPanel` (leftmost, before "⧉" copy button). ToolTip: "Export transcript to file".
+- `Chum.App/Views/OverlayWindow.xaml.cs` — Added `ExportTranscript_Click` handler: `((App)Application.Current).ExportTranscript()`.
+
+**Architecture note:** Export is wired via `Application.Current` cast to `App` (same pattern as `ApplyCaptureExclusion` and `PersistWindowBounds`). No new interfaces needed — `GetTranscriptExportText()` already formatted the output correctly.
+
+**Note:** Epic 02 (Transcription & Context) is now fully built — all 8 stories at 🔵 Built.
+
+**Build:** 0 errors, 6 pre-existing warnings (unchanged).
 
 ---
 
@@ -866,11 +883,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-02-07 — Transcript Export (P3, 2 SP):**
+**US-07-09 — Settings Import/Export (P2, 2 SP):**
 
-Allow the user to export the full session transcript to a text file. Accessible via tray menu "Export Transcript…" and a button in the overlay. Shows a Save File dialog, writes timestamped plain-text (same format as the emergency export already in App.xaml.cs). `GetTranscriptExportText()` already exists in `MeetingOrchestrator` — this story just needs the UI trigger and Save File dialog.
+Allow user to backup/restore their settings.json and prompt templates. Useful for onboarding a second machine. Implementation: "Export Settings…" and "Import Settings…" buttons in SettingsWindow; SaveFileDialog/OpenFileDialog; write/read settings.json + templates.json as a ZIP or two separate files.
 
-Other P2 candidates (higher priority): US-06-04 (Region Selection/Snip, 5 SP), US-10-03 (GPU Acceleration for Whisper, 5 SP), US-06-05 (UIA Teams Captions, 5 SP).
+Other P2 candidates: US-06-04 (Region Selection/Snip, 5 SP), US-10-03 (GPU Acceleration for Whisper, 5 SP), US-06-05 (UIA Teams Captions, 5 SP), US-09-02 (macOS audio, 3 SP).
 
 ---
 

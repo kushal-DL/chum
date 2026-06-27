@@ -324,6 +324,8 @@ public partial class App : System.Windows.Application
             _started = false;
         });
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("Export Transcript…", null, (_, _) => ExportTranscript());
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Quit Chum", null, (_, _) => Shutdown());
 
         _trayIcon.ContextMenuStrip = menu;
@@ -340,6 +342,31 @@ public partial class App : System.Windows.Application
     {
         var win = new SettingsWindow();
         win.ShowDialog();
+    }
+
+    public void ExportTranscript()
+    {
+        if (_orchestrator is null) return;
+        var text = _orchestrator.GetTranscriptExportText();
+        if (string.IsNullOrEmpty(text))
+        {
+            System.Windows.MessageBox.Show(
+                "No transcript available yet — start capture and wait for speech.",
+                "Chum — Export Transcript", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export Transcript",
+            Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+            FileName = $"chum_transcript_{DateTime.Now:yyyyMMdd_HHmmss}.txt",
+            DefaultExt = ".txt"
+        };
+        if (dlg.ShowDialog() != true) return;
+
+        File.WriteAllText(dlg.FileName, text);
+        Log.Information("Transcript exported: {Path}", dlg.FileName);
     }
 
     protected override async void OnExit(ExitEventArgs e)

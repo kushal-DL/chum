@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 71 | 271 SP | 85% |
+| 🔵 Built | 72 | 273 SP | 85% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
-| 🔴 Yet to Start | 13 | 49 SP | 15% |
+| 🔴 Yet to Start | 12 | 47 SP | 15% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -30,7 +30,7 @@
 | Epic | Stories | Total SP | ✅ Done | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |------|---------|----------|---------|----------|--------------|-----------------|
 | 01 · Core Audio Engine | 7 | 29 SP | — | 7 (29 SP) | — | — |
-| 02 · Transcription & Context | 8 | 33 SP | — | 7 (31 SP) | — | 1 (2 SP) |
+| 02 · Transcription & Context | 8 | 33 SP | — | 8 (33 SP) | — | — |
 | 03 · LLM Integration | 8 | 30 SP | — | 8 (30 SP) | — | — |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 7 (26 SP) | — | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 9 (42 SP) | — | — |
@@ -39,7 +39,7 @@
 | 08 · Privacy & Security | 11 | 36 SP | — | 11 (36 SP) | — | — |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 6 (24 SP) | — | 4 (16 SP) |
-| **Total** | **84** | **320 SP** | **0** | **71 (271 SP)** | **0** | **13 (49 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **72 (273 SP)** | **0** | **12 (47 SP)** |
 
 ---
 
@@ -50,12 +50,12 @@ Each story is attributed to the project where its primary implementation lives.
 | Project | Primary Scope | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |---------|--------------|---------|----------|----------|--------------|-----------------|
 | Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 8 (32 SP) | — | — |
-| Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 8 (34 SP) | — | 1 (2 SP) |
+| Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 9 (36 SP) | — | — |
 | Chum.Llm | Epic 03 | 8 | 30 SP | 8 (30 SP) | — | — |
 | Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/02/04/05 | 43 | 158 SP | 39 (145 SP) | — | 4 (13 SP) |
 | Chum.Service + Chum.Installer | US-08-09, 08-10, 08-11 | 3 | 12 SP | 3 (12 SP) | — | — |
 | Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 5 (18 SP) | — | 9 (36 SP) |
-| **Total** | | **84** | **320 SP** | **71 (271 SP)** | **0** | **13 (49 SP)** |
+| **Total** | | **84** | **320 SP** | **72 (273 SP)** | **0** | **12 (47 SP)** |
 
 ---
 
@@ -66,8 +66,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
 | P1 — High | 34 | 125 SP | 34 (125 SP) | — | — |
 | P2 — Medium | 27 | 91 SP | 18 (58 SP) | — | 9 (33 SP) |
-| P3 — Low | 7 | 20 SP | 3 (4 SP) | — | 4 (16 SP) |
-| **Total** | **84** | **320 SP** | **71 (271 SP)** | **0** | **13 (49 SP)** |
+| P3 — Low | 7 | 20 SP | 4 (6 SP) | — | 3 (14 SP) |
+| **Total** | **84** | **320 SP** | **72 (273 SP)** | **0** | **12 (47 SP)** |
 
 ---
 
@@ -99,10 +99,10 @@ Each story is attributed to the project where its primary implementation lives.
 | US-02-04 | Speaker Label Assignment (Me/Remote) | P1 | 🔵 Built | 3 | TranscriptSegment.SpeakerLabel (Mic→"Me", Loopback→"Remote") |
 | US-02-05 | Language Detection & Multi-language | P2 | 🔵 Built | 3 | |
 | US-02-06 | Transcript Cleanup & Formatting | P1 | 🔵 Built | 2 | TranscriptCleaner.cs: noise tag stripping, music notation removal, word repetition reduction; expanded IsHallucination list |
-| US-02-07 | Transcript Export | P3 | 🔴 Yet to Start | 2 | |
+| US-02-07 | Transcript Export | P3 | 🔵 Built | 2 | "↓" button in overlay header + tray "Export Transcript…"; SaveFileDialog → File.WriteAllText; delegates to MeetingOrchestrator.GetTranscriptExportText() |
 | US-02-08 | Context Window Preparation for LLM | P0 | 🔵 Built | 5 | ContextExtractor.cs (token-budget-aware, 30s recency priority) |
 
-**Epic 02 Total:** 33 SP · 0 Done · 31 Built · 0 Scaffolded · 2 Yet to Start
+**Epic 02 Total:** 33 SP · 0 Done · 33 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 

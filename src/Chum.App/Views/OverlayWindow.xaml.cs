@@ -152,6 +152,9 @@ public partial class OverlayWindow : Window
     private void HistoryNext_Click(object sender, RoutedEventArgs e)
         => ((OverlayViewModel)DataContext).NavigateForward();
 
+    private void ExportTranscript_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).ExportTranscript();
+
     private void CopyResponse_Click(object sender, RoutedEventArgs e)
     {
         var vm = (OverlayViewModel)DataContext;
