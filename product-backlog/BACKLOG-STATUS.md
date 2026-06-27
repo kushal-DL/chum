@@ -15,8 +15,8 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 37 | 162 SP | 51% |
-| 🟡 Scaffolded | 10 | 28 SP | 9% |
+| 🔵 Built | 38 | 165 SP | 52% |
+| 🟡 Scaffolded | 9 | 25 SP | 8% |
 | 🔴 Yet to Start | 37 | 130 SP | 41% |
 | **Total** | **84** | **320 SP** | |
 
@@ -31,14 +31,14 @@
 | 01 · Core Audio Engine | 7 | 29 SP | — | 4 (21 SP) | 1 (3 SP) | 2 (5 SP) |
 | 02 · Transcription & Context | 8 | 33 SP | — | 4 (21 SP) | 1 (2 SP) | 3 (10 SP) |
 | 03 · LLM Integration | 8 | 30 SP | — | 3 (13 SP) | — | 5 (17 SP) |
-| 04 · Hotkey & Trigger System | 7 | 26 SP | — | 2 (13 SP) | 5 (13 SP) | — |
+| 04 · Hotkey & Trigger System | 7 | 26 SP | — | 3 (16 SP) | 4 (10 SP) | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 7 (37 SP) | — | 2 (5 SP) |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
 | 07 · Settings & Configuration | 10 | 27 SP | — | 6 (18 SP) | 2 (5 SP) | 2 (4 SP) |
 | 08 · Privacy & Security | 11 | 36 SP | — | 6 (19 SP) | 1 (5 SP) | 4 (12 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | — | — | 7 (27 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | — | — | 10 (40 SP) |
-| **Total** | **84** | **320 SP** | **0** | **37 (162 SP)** | **10 (28 SP)** | **37 (130 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **38 (165 SP)** | **9 (25 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -51,10 +51,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 5 (24 SP) | 1 (3 SP) | 2 (5 SP) |
 | Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 5 (24 SP) | 1 (2 SP) | 3 (10 SP) |
 | Chum.Llm | Epic 03 | 8 | 30 SP | 3 (13 SP) | — | 5 (17 SP) |
-| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 22 (94 SP) | 7 (18 SP) | 9 (26 SP) |
+| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 23 (97 SP) | 6 (15 SP) | 9 (26 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 | 18 | 72 SP | — | — | 18 (72 SP) |
-| **Total** | | **84** | **320 SP** | **37 (162 SP)** | **10 (28 SP)** | **37 (130 SP)** |
+| **Total** | | **84** | **320 SP** | **38 (165 SP)** | **9 (25 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -63,10 +63,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 34 | 125 SP | 15 (61 SP) | 9 (25 SP) | 10 (39 SP) |
+| P1 — High | 34 | 125 SP | 16 (64 SP) | 8 (22 SP) | 10 (39 SP) |
 | P2 — Medium | 27 | 91 SP | 5 (15 SP) | 1 (3 SP) | 21 (73 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **37 (162 SP)** | **10 (28 SP)** | **37 (130 SP)** |
+| **Total** | **84** | **320 SP** | **38 (165 SP)** | **9 (25 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -133,10 +133,10 @@ Each story is attributed to the project where its primary implementation lives.
 | US-04-03 | Privacy Pause Hotkey | P1 | 🟡 Scaffolded | 2 | Registered; AudioPipeline.Pause() wired in MeetingOrchestrator |
 | US-04-04 | Overlay Hide/Show Hotkey | P1 | 🟡 Scaffolded | 2 | Registered in HotkeyService; handler in MeetingOrchestrator |
 | US-04-05 | Hotkey Configuration UI | P1 | 🔵 Built | 5 | TextBoxes in SettingsWindow.xaml; saved via SettingsService |
-| US-04-06 | Visual & Audio Feedback for Hotkey State | P1 | 🟡 Scaffolded | 3 | Pulsing indicator in OverlayWindow.xaml; no audio beep yet |
+| US-04-06 | Visual & Audio Feedback for Hotkey State | P1 | 🔵 Built | 3 | Pulsing green ring (IsListening) + audio beeps: 880 Hz/60ms on hold start, 660 Hz/80ms on release — both on Task.Run to keep hook callback <1ms |
 | US-04-07 | Action Items Hotkey | P2 | 🟡 Scaffolded | 3 | Registered; summary handler stub in MeetingOrchestrator |
 
-**Epic 04 Total:** 26 SP · 0 Done · 13 Built · 13 Scaffolded · 0 Yet to Start
+**Epic 04 Total:** 26 SP · 0 Done · 16 Built · 10 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -265,8 +265,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P2 Stories | 27 stories · 91 SP |
 | P3 Stories | 7 stories · 20 SP |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 37 stories · 162 SP (51%) |
-| 🟡 Scaffolded | 10 stories · 28 SP (9%) |
+| 🔵 Built | 38 stories · 165 SP (52%) |
+| 🟡 Scaffolded | 9 stories · 25 SP (8%) |
 | 🔴 Yet to Start | 37 stories · 130 SP (41%) |
 
-*Last updated: 2026-06-27 — Session 11: US-08-05 Privacy Pause visual indicator 🔵 Built*
+*Last updated: 2026-06-27 — Session 12: US-04-06 Hotkey audio feedback 🔵 Built*

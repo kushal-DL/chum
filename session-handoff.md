@@ -194,6 +194,18 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 12 (2026-06-27, Part 12)
+
+**Visual & Audio Feedback for Hotkey State — US-04-06 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/Services/MeetingOrchestrator.cs` — added `_ = Task.Run(() => Console.Beep(880, 60))` in the `HoldStarted` handler for "HoldToAsk" (high short beep, "I'm listening now") and `_ = Task.Run(() => Console.Beep(660, 80))` in the `QueryFired` handler before `HandleAudioQueryAsync` (lower beep, "capture complete"). Both fire on a background thread — hook callback returns in <1ms.
+- `product-backlog/EPIC-04-hotkeys.md` — synced "Stories at a Glance" to BACKLOG-STATUS.md (was all 🔴 since initial creation).
+
+**Decision:** `Console.Beep(frequency, duration)` on Windows does not require a visible console window — it routes to the PC speaker / audio driver. `Task.Run` ensures the blocking beep call doesn't stall the low-level keyboard hook callback.
+
+---
+
 ### What Was Done Session 11 (2026-06-27, Part 11)
 
 **Privacy Pause Mode visual indicator — US-08-05 → 🔵 Built:**

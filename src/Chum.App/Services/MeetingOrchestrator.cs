@@ -80,13 +80,21 @@ public sealed class MeetingOrchestrator : IDisposable
         _hotkeys.HoldStarted += (_, e) =>
         {
             if (e.ActionId == "HoldToAsk")
+            {
                 _overlay.SetListeningState(true);
+                // High short beep on background thread — hook callback must return in <1ms
+                _ = Task.Run(() => Console.Beep(880, 60));
+            }
         };
 
         _hotkeys.QueryFired += async (_, e) =>
         {
             if (e.ActionId == "HoldToAsk")
+            {
+                // Lower beep signals end of capture, before async work begins
+                _ = Task.Run(() => Console.Beep(660, 80));
                 await HandleAudioQueryAsync(e.StartTime, e.EndTime);
+            }
         };
 
         _hotkeys.HotkeyTapped += async (_, actionId) =>
