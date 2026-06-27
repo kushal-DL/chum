@@ -10,7 +10,7 @@
 | US-03-04 | Meeting-Optimised System Prompt | P0 — MVP | 🔵 Built | 5 |
 | US-03-05 | Streaming Response Display | P0 — MVP | 🔵 Built | 3 |
 | US-03-06 | Response History | P1 — High | 🔵 Built | 3 |
-| US-03-07 | Cost Estimation & Token Tracking | P2 — Medium | 🔴 Yet to Start | 3 |
+| US-03-07 | Cost Estimation & Token Tracking | P2 — Medium | 🔵 Built | 3 |
 | US-03-08 | Prompt Templates Library | P2 — Medium | 🔴 Yet to Start | 3 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  

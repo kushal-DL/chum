@@ -208,6 +208,10 @@
                 <Grid Margin="10,4">
                     <TextBlock Text="Chum v0.1" Foreground="#444" FontSize="10"
                                HorizontalAlignment="Left"/>
+                    <TextBlock Text="{Binding LastQueryCostHint}"
+                               Foreground="#555" FontSize="10" FontFamily="Consolas"
+                               HorizontalAlignment="Center"
+                               Visibility="{Binding HasCostHint, Converter={StaticResource BoolToVisibilityConverter}}"/>
                     <TextBlock Text="Ctrl+Alt+Space to ask · Ctrl+Alt+H to hide"
                                Foreground="#444" FontSize="10" HorizontalAlignment="Right"/>
                 </Grid>

@@ -235,6 +235,29 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
         Invoke(() => HasPendingClipboardImage = pending);
     }
 
+    // ── Cost hint ─────────────────────────────────────────────────────────
+
+    private string _lastQueryCostHint = string.Empty;
+    public string LastQueryCostHint
+    {
+        get => _lastQueryCostHint;
+        private set { _lastQueryCostHint = value; OnPropertyChanged(); }
+    }
+
+    public bool HasCostHint => !string.IsNullOrEmpty(_lastQueryCostHint);
+
+    public void SetLastQueryCost(int inputTokens, int outputTokens, decimal costUsd)
+    {
+        string hint = costUsd > 0
+            ? $"~${costUsd:F4}  ↑{inputTokens:N0} ↓{outputTokens:N0} tk"
+            : $"↑{inputTokens:N0} ↓{outputTokens:N0} tk";
+        Invoke(() =>
+        {
+            LastQueryCostHint = hint;
+            OnPropertyChanged(nameof(HasCostHint));
+        });
+    }
+
     // ── Screen capture confirmation banner ────────────────────────────────
 
     private bool _hasPendingScreenCapture;

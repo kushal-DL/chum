@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-10-06 Built — 65/84 stories 🔵 Built (253/320 SP, 79%)
+**Phase:** US-03-07 Built — 66/84 stories 🔵 Built (256/320 SP, 80%)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,34 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 35 (2026-06-28, Part 35)
+
+**Cost Estimation & Token Tracking — US-03-07 → 🔵 Built:**
+
+**New files:**
+- `Chum.Llm/LlmUsage.cs` — `LlmUsage` record (Model, InputTokens, OutputTokens, EstimatedCostUsd) + `LlmPricing` static class with hardcoded per-1M token pricing for Anthropic and OpenAI models. `EstimateCost(model, in, out)` returns 0m for unknown models (e.g., Ollama).
+- `Chum.App/Services/SessionCostTracker.cs` — Thread-safe accumulator. `Record(usage, thresholdUsd)` adds to session totals and fires `ThresholdExceeded` once on first crossing. `Reset()` for meeting-start. `GetStats()` returns (Queries, InputTokens, OutputTokens, TotalCostUsd, LastUsage).
+
+**Modified files:**
+- `Chum.Llm/ILlmProvider.cs` — Added `event EventHandler<LlmUsage>? UsageRecorded` to the interface.
+- `Chum.Llm/AnthropicLlmProvider.cs` — Tracks `input_tokens` from `message_start` SSE event and `output_tokens` from `message_delta` SSE event. Fires `UsageRecorded` at end of stream if any tokens counted.
+- `Chum.Llm/OpenAiLlmProvider.cs` — Added `stream_options: {include_usage: true}` to request body. Parses usage from the final SSE chunk (`prompt_tokens`, `completion_tokens`). Fires `UsageRecorded` at end of stream.
+- `Chum.Llm/OllamaLlmProvider.cs` — Declares no-op `UsageRecorded` event (Ollama is local, no API cost; event is never fired).
+- `Chum.App/Models/AppSettings.cs` — Added `SpendThresholdDollars = 1.00m`.
+- `Chum.App/Services/MeetingOrchestrator.cs` — Added `_costTracker` field. Wired `_llm.UsageRecorded` → records cost, calls `_overlay.SetLastQueryCost(...)`, logs debug. Wired `_costTracker.ThresholdExceeded` → `_overlay.ShowError(...)`. Added `GetCostStats()` public method.
+- `Chum.App/ViewModels/OverlayViewModel.cs` — Added `LastQueryCostHint` (string), `HasCostHint` (bool), `SetLastQueryCost(inputTokens, outputTokens, costUsd)`.
+- `Chum.App/Views/OverlayWindow.xaml` — Added centered TextBlock in status bar row, bound to `LastQueryCostHint`, visible only when `HasCostHint` is true.
+- `Chum.App/Views/AboutWindow.xaml` — Added 12th row "Session API cost"; window now 12-row diagnostic grid.
+- `Chum.App/Views/AboutWindow.xaml.cs` — Populates `SessionCostLabel` from `GetCostStats()`; includes cost in "Copy diagnostics" text.
+- `Chum.App/Views/SettingsWindow.xaml` — Added "Spend alert threshold (USD):" textbox in BEHAVIOUR section.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — Load/save `SpendThresholdDollars`.
+
+**Architecture note:** `UsageRecorded` fires from within the `IAsyncEnumerable` generator after the last token, during the final `MoveNextAsync()` call that returns false. The event handler is synchronous so it runs inline — the overlay VM marshals via Dispatcher so no blocking occurs.
+
+**Build:** 0 errors, 8 warnings (same pre-existing + 1 new CS0067 for Ollama's intentional no-op event).
 
 ---
 
@@ -712,18 +740,18 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-03-07 — Structured Response Templates (P2, 5 SP):**
+**US-03-08 — Prompt Templates Library (P2, 3 SP):**
 
-Allow the user to select a response template (e.g., "Action Items", "SWOT Analysis", "Risk Register") that shapes the LLM prompt. Templates are predefined JSON in a settings file.
+Let users save and quickly apply custom prompt templates (e.g., "Explain technically", "Draft follow-up email"). Templates accessible via hotkey modifiers Ctrl+Alt+1 through Ctrl+Alt+5.
 
 Implementation plan:
-1. Add `ResponseTemplate` record: `{ string Name, string SystemPromptSuffix, string UserMessagePrefix }`.
-2. Create `templates.json` in `%APPDATA%\Chum\` with 5–6 built-in templates (Meeting Summary, Action Items, SWOT, Decision Log, Risk Register, Executive Summary).
-3. Add `AppSettings.ActiveTemplateName` (string, default "Default").
-4. `PromptBuilder.BuildSystemPrompt` accepts a `ResponseTemplate?` and appends `SystemPromptSuffix`.
-5. Settings window: dropdown to select template.
+1. Add `PromptTemplate` record: `{ string Name, string SystemPromptSuffix }`.
+2. Create `templates.json` (5 built-ins: Default, Meeting Summary, Action Items, Technical Explainer, Executive Brief) in `%APPDATA%\Chum\`.
+3. `PromptBuilder.BuildSystemPrompt` accepts an optional `PromptTemplate?` and appends its suffix.
+4. Settings window: list of templates with add/edit/delete.
+5. Register Ctrl+Alt+1..5 in HotkeyService; `HotkeyTapped` with "Template1"..5 action IDs sets active template.
 
-Other P2 candidates: US-10-07 (App Startup Performance, 3 SP), US-03-08 (Prompt Templates Library, 3 SP).
+Other P2 candidates: US-10-07 (App Startup Performance, 3 SP), US-09-05 (Teams Auto-Captions, 5 SP).
 
 ---
 

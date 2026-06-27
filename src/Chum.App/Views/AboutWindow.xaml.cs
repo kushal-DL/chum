@@ -53,6 +53,11 @@ public partial class AboutWindow : Window
             {
                 LlmP50Label.Text = LlmP90Label.Text = LlmP99Label.Text = "—  (no queries yet)";
             }
+
+            var (costQueries, inTk, outTk, totalCost) = orch.GetCostStats();
+            SessionCostLabel.Text = costQueries > 0
+                ? $"${totalCost:F4}  (↑{inTk:N0} ↓{outTk:N0} tokens, {costQueries} queries)"
+                : "—  (no queries yet)";
         }
         else
         {
@@ -60,6 +65,7 @@ public partial class AboutWindow : Window
             P50Label.Text = P90Label.Text = P99Label.Text = "—";
             LlmQueriesLabel.Text = "—";
             LlmP50Label.Text = LlmP90Label.Text = LlmP99Label.Text = "—";
+            SessionCostLabel.Text = "—";
         }
 
         var logDir = System.IO.Path.Combine(
@@ -67,7 +73,7 @@ public partial class AboutWindow : Window
             "Chum", "Logs");
         LogPathLabel.Text = $"Logs: {logDir}";
 
-        _diagnosticsText = BuildDiagnosticsText(version, s, app.Orchestrator);
+        _diagnosticsText = BuildDiagnosticsText(version, s, app.Orchestrator, SessionCostLabel.Text);
     }
 
     private void CopyDiag_Click(object sender, RoutedEventArgs e)
@@ -78,7 +84,8 @@ public partial class AboutWindow : Window
 
     private static string FormatMs(double ms) => $"{ms:F0} ms";
 
-    private static string BuildDiagnosticsText(string version, Models.AppSettings s, Services.MeetingOrchestrator? orch)
+    private static string BuildDiagnosticsText(string version, Models.AppSettings s,
+        Services.MeetingOrchestrator? orch, string sessionCost)
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"Chum v{version} — Diagnostics — {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss}");
@@ -97,6 +104,7 @@ public partial class AboutWindow : Window
             sb.AppendLine($"LLM p50      : {FormatMs(llmP50)}");
             sb.AppendLine($"LLM p90      : {FormatMs(llmP90)}");
             sb.AppendLine($"LLM p99      : {FormatMs(llmP99)}");
+            sb.AppendLine($"Session cost : {sessionCost}");
         }
 
         sb.AppendLine($"OS           : {Environment.OSVersion}");

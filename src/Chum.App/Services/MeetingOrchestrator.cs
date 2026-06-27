@@ -39,6 +39,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private Timer? _gcTimer;
     private Timer? _latencyLogTimer;
     private readonly PipelineLatencyTracker _latencyTracker = new();
+    private readonly SessionCostTracker _costTracker = new();
     private CancellationTokenSource? _cts;
     private MeetingPlatform _lastPlatform = MeetingPlatform.Unknown;
 
@@ -111,6 +112,19 @@ public sealed class MeetingOrchestrator : IDisposable
 
         _latencyTracker.SlowTranscriptionDetected += (_, _) =>
             _overlay.ShowError("⚠ Transcription is slow (>15s) — consider using the 'base' Whisper model.");
+
+        _llm.UsageRecorded += (_, usage) =>
+        {
+            _costTracker.Record(usage, _settings.Current.SpendThresholdDollars);
+            _overlay.SetLastQueryCost(usage.InputTokens, usage.OutputTokens, usage.EstimatedCostUsd);
+            Serilog.Log.Debug("LLM usage: ↑{In} ↓{Out} tokens, ~${Cost:F4}",
+                usage.InputTokens, usage.OutputTokens, usage.EstimatedCostUsd);
+        };
+        _costTracker.ThresholdExceeded += (_, _) =>
+        {
+            var stats = _costTracker.GetStats();
+            _overlay.ShowError($"⚠ Session API spend exceeded ${_settings.Current.SpendThresholdDollars:F2} (total: ${stats.TotalCostUsd:F4})");
+        };
 
         // Wire hotkeys
         _hotkeys.HoldStarted += (_, e) =>
@@ -396,6 +410,13 @@ public sealed class MeetingOrchestrator : IDisposable
         var (lp50, lp90, lp99) = _latencyTracker.GetLlmPercentiles();
         return (_latencyTracker.SegmentsRecorded, p50 * 1000, p90 * 1000, p99 * 1000,
                 _latencyTracker.LlmQueriesRecorded, lp50, lp90, lp99);
+    }
+
+    public (int Queries, int InputTokens, int OutputTokens, decimal TotalCostUsd)
+        GetCostStats()
+    {
+        var s = _costTracker.GetStats();
+        return (s.Queries, s.InputTokens, s.OutputTokens, s.TotalCostUsd);
     }
 
     public string GetTranscriptExportText()

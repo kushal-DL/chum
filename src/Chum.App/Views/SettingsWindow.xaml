@@ -156,6 +156,12 @@
                       Content="Auto-start capture when Teams, Zoom, or Google Meet is detected"
                       Margin="0,4"
                       ToolTip="Chum checks for running meeting apps every 5 seconds. Capture starts automatically when one is found and stops when it closes. Overrides the 'Start capturing on launch' setting during that session."/>
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <Label Content="Spend alert threshold (USD):" Foreground="#AAAAAA" FontSize="11" Padding="0" VerticalAlignment="Center"/>
+                <TextBox x:Name="SpendThresholdBox" Width="60" Margin="8,0,0,0"
+                         Background="#2D2D2D" Foreground="White" BorderBrush="#555"
+                         ToolTip="Warn in overlay when session API spend exceeds this amount in USD. Set to 0 to disable."/>
+            </StackPanel>
 
             <!-- ── Cloud STT Fallback ── -->
             <Label Content="CLOUD STT FALLBACK (OPENAI WHISPER)" Style="{StaticResource SectionHeader}"/>

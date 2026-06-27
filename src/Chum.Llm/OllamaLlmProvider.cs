@@ -19,6 +19,9 @@ public sealed class OllamaLlmProvider : ILlmProvider
     public string ProviderName => "Ollama (local)";
     public string ModelId { get; }
 
+    // Local inference has no API cost — UsageRecorded is never fired for Ollama.
+    public event EventHandler<LlmUsage>? UsageRecorded;
+
     public OllamaLlmProvider(string model, string baseUrl = "http://localhost:11434")
     {
         ModelId = model;

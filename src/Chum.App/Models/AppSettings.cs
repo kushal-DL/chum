@@ -61,4 +61,8 @@ public sealed class AppSettings
     public bool LocalOnlyMode { get; set; } = false;
     public string OllamaModel { get; set; } = "llama3.1:8b";
     public string OllamaBaseUrl { get; set; } = "http://localhost:11434";
+
+    // --- Cost tracking ---
+    // Warn in overlay when session API spend exceeds this threshold. 0 = disabled.
+    public decimal SpendThresholdDollars { get; set; } = 1.00m;
 }

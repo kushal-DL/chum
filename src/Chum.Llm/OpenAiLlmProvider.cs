@@ -20,6 +20,8 @@ public sealed class OpenAiLlmProvider : ILlmProvider
     public string ProviderName => "OpenAI";
     public string ModelId { get; }
 
+    public event EventHandler<LlmUsage>? UsageRecorded;
+
     public OpenAiLlmProvider(string apiKey, string modelId = "gpt-4o-mini")
     {
         _apiKey = apiKey;
@@ -56,6 +58,9 @@ public sealed class OpenAiLlmProvider : ILlmProvider
         using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream);
 
+        int inputTokens = 0;
+        int outputTokens = 0;
+
         while (!reader.EndOfStream && !ct.IsCancellationRequested)
         {
             var line = await reader.ReadLineAsync(ct);
@@ -70,6 +75,12 @@ public sealed class OpenAiLlmProvider : ILlmProvider
             {
                 var node = JsonNode.Parse(json);
                 delta = node?["choices"]?[0]?["delta"]?["content"]?.GetValue<string>();
+                // Usage arrives in the final chunk when stream_options.include_usage = true
+                if (node?["usage"] is { } usage)
+                {
+                    inputTokens = usage["prompt_tokens"]?.GetValue<int>() ?? inputTokens;
+                    outputTokens = usage["completion_tokens"]?.GetValue<int>() ?? outputTokens;
+                }
             }
             catch (JsonException)
             {
@@ -78,6 +89,12 @@ public sealed class OpenAiLlmProvider : ILlmProvider
 
             if (delta is not null)
                 yield return delta;
+        }
+
+        if (inputTokens + outputTokens > 0)
+        {
+            var cost = LlmPricing.EstimateCost(ModelId, inputTokens, outputTokens);
+            UsageRecorded?.Invoke(this, new LlmUsage(ModelId, inputTokens, outputTokens, cost));
         }
     }
 
@@ -111,6 +128,7 @@ public sealed class OpenAiLlmProvider : ILlmProvider
             ["max_tokens"] = request.MaxTokens,
             ["temperature"] = (double)request.Temperature,
             ["stream"] = true,
+            ["stream_options"] = new JsonObject { ["include_usage"] = true },
             ["messages"] = new JsonArray
             {
                 new JsonObject { ["role"] = "system", ["content"] = request.SystemPrompt },

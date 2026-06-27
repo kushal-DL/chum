@@ -55,6 +55,7 @@ public partial class SettingsWindow : Window
         ExcludeFromCaptureBox.IsChecked = s.ExcludeFromScreenCapture;
         ConfirmScreenCaptureBox.IsChecked = s.ConfirmScreenCapture;
         AutoStartCaptureBox.IsChecked = s.AutoStartCapture;
+        SpendThresholdBox.Text = s.SpendThresholdDollars.ToString("G");
         CloudSttFallbackBox.IsChecked = s.CloudSttFallback;
         CloudSttModelBox.Text = s.CloudSttModel;
 
@@ -152,6 +153,8 @@ public partial class SettingsWindow : Window
             s.ExcludeFromScreenCapture = ExcludeFromCaptureBox.IsChecked == true;
             s.ConfirmScreenCapture = ConfirmScreenCaptureBox.IsChecked == true;
             s.AutoStartCapture = AutoStartCaptureBox.IsChecked == true;
+            if (decimal.TryParse(SpendThresholdBox.Text, out var thresh) && thresh >= 0)
+                s.SpendThresholdDollars = thresh;
             s.CloudSttFallback = CloudSttFallbackBox.IsChecked == true;
             s.CloudSttModel = CloudSttModelBox.Text.Trim().Length > 0
                 ? CloudSttModelBox.Text.Trim() : "whisper-1";

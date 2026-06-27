@@ -23,6 +23,8 @@ public sealed class AnthropicLlmProvider : ILlmProvider
     public string ProviderName => "Anthropic";
     public string ModelId { get; }
 
+    public event EventHandler<LlmUsage>? UsageRecorded;
+
     public AnthropicLlmProvider(string apiKey, string modelId = "claude-haiku-4-5-20251001")
     {
         _apiKey = apiKey;
@@ -60,6 +62,9 @@ public sealed class AnthropicLlmProvider : ILlmProvider
         using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream);
 
+        int inputTokens = 0;
+        int outputTokens = 0;
+
         // Parse SSE: lines starting with "data: " contain JSON event objects
         while (!reader.EndOfStream && !ct.IsCancellationRequested)
         {
@@ -76,10 +81,12 @@ public sealed class AnthropicLlmProvider : ILlmProvider
                 var node = JsonNode.Parse(json);
                 var type = node?["type"]?.GetValue<string>();
 
-                if (type == "content_block_delta")
+                if (type == "message_start")
+                    inputTokens = node?["message"]?["usage"]?["input_tokens"]?.GetValue<int>() ?? 0;
+                else if (type == "content_block_delta")
                     delta = node?["delta"]?["text"]?.GetValue<string>();
                 else if (type == "message_delta")
-                    ; // stop_reason etc. — ignore
+                    outputTokens = node?["usage"]?["output_tokens"]?.GetValue<int>() ?? outputTokens;
                 else if (type == "error")
                     throw new LlmException($"Anthropic stream error: {node?["error"]?["message"]?.GetValue<string>()}");
             }
@@ -90,6 +97,12 @@ public sealed class AnthropicLlmProvider : ILlmProvider
 
             if (delta is not null)
                 yield return delta;
+        }
+
+        if (inputTokens + outputTokens > 0)
+        {
+            var cost = LlmPricing.EstimateCost(ModelId, inputTokens, outputTokens);
+            UsageRecorded?.Invoke(this, new LlmUsage(ModelId, inputTokens, outputTokens, cost));
         }
     }
 

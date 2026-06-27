@@ -53,6 +53,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Label}" Text="LLM provider"/>
@@ -87,6 +88,9 @@
 
             <TextBlock Grid.Row="10" Grid.Column="0" Style="{StaticResource Label}" Text="LLM first-token p99"/>
             <TextBlock Grid.Row="10" Grid.Column="1" x:Name="LlmP99Label" Style="{StaticResource Value}"/>
+
+            <TextBlock Grid.Row="11" Grid.Column="0" Style="{StaticResource Label}" Text="Session API cost"/>
+            <TextBlock Grid.Row="11" Grid.Column="1" x:Name="SessionCostLabel" Style="{StaticResource Value}"/>
         </Grid>
 
         <!-- Log path note -->

@@ -14,6 +14,9 @@ public interface ILlmProvider
     string ProviderName { get; }
     string ModelId { get; }
 
+    /// <summary>Fired after each stream completes with actual token counts and estimated cost.</summary>
+    event EventHandler<LlmUsage>? UsageRecorded;
+
     /// <summary>Streams response tokens. Each yielded string is one or more new characters.</summary>
     IAsyncEnumerable<string> StreamResponseAsync(LlmRequest request, CancellationToken ct = default);
 }
