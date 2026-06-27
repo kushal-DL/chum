@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-08-07 Built — 50/84 stories 🔵 Built (201/320 SP, 63%); next: US-02-06 (Transcript Cleanup, Scaffolded → Built)
+**Phase:** US-02-06 Built — 51/84 stories 🔵 Built (203/320 SP, 63%); next: US-01-07 (Automatic Device Failover)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,28 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 21 (2026-06-27, Part 21)
+
+**Transcript Cleanup & Formatting — US-02-06 → 🔵 Built:**
+
+**New files:**
+- `Chum.Transcription/TranscriptCleaner.cs` — Source-generated regex static class with three cleanup passes:
+  1. **Noise tag stripping:** removes bracketed/parenthesized tags (`[MUSIC]`, `(APPLAUSE)`, `[INAUDIBLE]`, etc.) and musical note blocks (`♪...♪`, `♫...♫`) embedded in otherwise real speech.
+  2. **Music notation removal:** strips full lines surrounded by ♪/♫.
+  3. **Word repetition reduction:** collapses 3+ consecutive repeats of the same word to a single instance (covers both filler stuttering and Whisper's infamous looping artefact on silence).
+  4. **Whitespace normalization:** collapses multiple spaces/newlines to single space, trims.
+
+**Modified files:**
+- `Chum.Transcription/WhisperSttEngine.cs` — `TranscribeAsync` now calls `TranscriptCleaner.Clean(sb.ToString())` instead of `sb.ToString().Trim()` to apply the full cleanup pass before firing `SegmentTranscribed`. Expanded `_hallucinations` set with 9 more common Whisper hallucination strings (subscribe prompts, Amara subtitle credit, etc.).
+
+**Decisions:**
+- `[GeneratedRegex]` source generator (C# 11) for zero-allocation compiled patterns — same project already targets .NET 10.
+- Repetition threshold set at 3+ occurrences (not 2) to avoid false-positives on natural doubles ("yes, yes" is normal speech; "yes yes yes yes" is a Whisper loop).
+
+**Build:** 0 errors (unchanged).
 
 ---
 
@@ -407,17 +429,17 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-02-06 — Transcript Cleanup & Formatting (P1, 2 SP) — Scaffolded → Built:**
+**US-01-07 — Automatic Device Failover (P1, 3 SP):**
 
-The hallucination filter already exists in `WhisperSttEngine.cs` (filters single-word repetitions and Whisper artefacts). What's still missing for full cleanup:
-- Remove music/noise transcription artefacts (`[MUSIC]`, `[SOUND]`, `♪`, etc.)
-- Strip filler repetitions (e.g., "um um um um" → "um")
-- Normalise whitespace and punctuation spacing
-- Add the cleanup as a post-process step in `WhisperSttEngine.TranscribeAsync()` before the `SegmentTranscribed` event fires
+When a headset or audio device is unplugged, `WasapiLoopbackCapture` / `WasapiCapture` stop emitting data (or throw). Chum should detect this and fall back to Windows default device without requiring a restart.
 
-The logic goes in `Chum.Transcription/WhisperSttEngine.cs` (or a new `TranscriptCleaner.cs` static helper).
+What to build:
+- Handle `RecordingStopped` / device disconnection events on `LoopbackCapture` and `MicCapture` — NAudio fires `RecordingStopped` when the device disappears.
+- In `MeetingOrchestrator` (or `AudioPipeline`): on unexpected stop, log the event and call `App.ApplyAudioDevicesAsync()` with `null` device IDs to switch to Windows default.
+- Show a notification in the overlay: "Audio device disconnected — switched to default".
+- Add `DeviceDisconnected` event to `IAudioCapture` and implement in `LoopbackCapture` + `MicCapture`.
 
-After that: **US-01-07 — Automatic Device Failover (P1, 3 SP)** — audio device disappears (e.g. headset unplugged); should detect and fall back to Windows default.
+After that: **US-08-08 — Network Traffic Transparency (P2, 3 SP)** — show user what data is being sent to the cloud.
 
 ---
 

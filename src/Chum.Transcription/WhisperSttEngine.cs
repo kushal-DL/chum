@@ -71,7 +71,7 @@ public sealed class WhisperSttEngine : IDisposable
                 sb.Append(text).Append(' ');
         }
 
-        var result = sb.ToString().Trim();
+        var result = TranscriptCleaner.Clean(sb.ToString());
 
         // Zero raw samples after transcription (privacy: don't keep audio in memory)
         Array.Clear(samples);
@@ -87,8 +87,16 @@ public sealed class WhisperSttEngine : IDisposable
 
     private static readonly HashSet<string> _hallucinations =
     [
-        "[BLANK_AUDIO]", "(MUSIC)", "[MUSIC]", "(APPLAUSE)", "[APPLAUSE]",
-        "[ Silence ]", "[silence]", "Thanks for watching!", "Thank you."
+        // Whisper segment-level silence/noise markers
+        "[BLANK_AUDIO]", "[ Silence ]", "[silence]", "[SILENCE]",
+        "(MUSIC)", "[MUSIC]", "(APPLAUSE)", "[APPLAUSE]",
+        "[INAUDIBLE]", "(INAUDIBLE)", "[NOISE]", "(NOISE)",
+        "[SOUND]", "(SOUND)", "[LAUGHTER]", "(LAUGHTER)",
+        // Common hallucinations on near-silence audio
+        "Thanks for watching!", "Thank you.", "Thank you!",
+        "Thank you for watching.", "Please subscribe.",
+        "Subtitles by the Amara.org community",
+        "This video is brought to you by",
     ];
 
     private static bool IsHallucination(string text)

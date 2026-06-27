@@ -9,7 +9,7 @@
 | US-02-03 | Rolling Transcript Buffer | P0 — MVP | 🔴 Yet to Start | 5 |
 | US-02-04 | Speaker Label Assignment | P1 — High | 🔴 Yet to Start | 3 |
 | US-02-05 | Language Detection & Multi-language | P2 — Medium | 🔴 Yet to Start | 3 |
-| US-02-06 | Transcript Cleanup & Formatting | P1 — High | 🔴 Yet to Start | 2 |
+| US-02-06 | Transcript Cleanup & Formatting | P1 — High | 🔵 Built | 2 |
 | US-02-07 | Transcript Export | P3 — Low | 🔴 Yet to Start | 2 |
 | US-02-08 | Context Window Preparation for LLM | P0 — MVP | 🔴 Yet to Start | 5 |
 
