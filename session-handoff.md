@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-06-05+US-09-05 Built — 79/84 stories 🔵 Built (301/320 SP, 94%) — 5 stories remain (Epic 09: 1, Epic 10: 4)
+**Phase:** US-10-09 Built — 80/84 stories 🔵 Built (306/320 SP, 96%) — 4 stories remain (Epic 09: 1, Epic 10: 3)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,35 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 48 (2026-06-28, Part 48)
+
+**Auto-Update Mechanism — US-10-09 → 🔵 Built:**
+
+**New files:**
+- `Chum.App/Services/UpdateChecker.cs` — Polls GitHub Releases API (`GET https://api.github.com/repos/kushal-DL/chum/releases/latest`) using `HttpClient.GetFromJsonAsync`. Parses `tag_name` (accepts "v1.2.3", "1.2.3", "v1.2" formats), compares against running assembly version via `Assembly.GetExecutingAssembly().GetName().Version`. If newer: finds the MSI or `-setup.exe` asset from the `assets` array. SHA256 verification: searches the release body text for a line containing both the installer filename and a 64-character hex string. Download via `GetByteArrayAsync` → `File.WriteAllBytesAsync` to `%TEMP%`. Launch: MSI via `msiexec.exe /i ... /passive`; EXE via direct invocation with `/S` flag. Never throws to callers — all exceptions caught and logged.
+
+**Modified files:**
+- `Chum.App/Models/AppSettings.cs` — Added `CheckForUpdates` (bool, default true) and `LastUpdateCheckUtc` (DateTimeOffset, default MinValue) for daily-throttle persistence.
+- `Chum.App/App.xaml.cs`:
+  - Added `_pendingUpdate` field (`UpdateInfo?`).
+  - `OnStartup`: fires `_ = CheckForUpdatesAsync()` after startup completes (fire-and-forget; never blocks startup).
+  - Added `CheckForUpdatesAsync()`: respects `CheckForUpdates` setting and 24-hour throttle (compares `LastUpdateCheckUtc`); updates `LastUpdateCheckUtc` on every check; if update found, sets `_pendingUpdate` and shows `NotifyIcon.ShowBalloonTip` with `BalloonTipClicked` → `OnUpdateBalloonClicked`.
+  - Added `OnUpdateBalloonClicked()`: blocks download if `_orchestrator.IsRunning` (shows `MessageBox` warning); otherwise fires a background `Task.Run(() => checker.DownloadAndLaunchAsync(info))`.
+
+**Decisions made:**
+- Update check fires as fire-and-forget after startup is complete — it never delays the overlay showing.
+- SHA256 verification is opportunistic: if no hash is published in the release body, the installer is downloaded without verification (logged at Info level). This keeps the feature usable before a formal release pipeline is set up.
+- Block download (not just warning) when meeting is in progress: losing the app mid-call is worse than missing an update.
+- `LastUpdateCheckUtc` persisted to `settings.json` so the once-per-day throttle survives app restarts.
+
+**Build:** 0 errors, 9 warnings (all pre-existing).
+
+**Immediate Next Step:**
+- **US-09-04 — Screen Share Detection per Platform (P3, 5 SP)**: Detect per-platform share: Teams via window title change + child process (`Stop sharing` text); Zoom via `FindWindow("ZPControlBar", null)`; generic via monitoring if another WGC capture session starts on the same display. When detected: auto-hide overlay (if `AutoHideOnScreenShare` setting is on); restore after 2s delay when share ends.
+- Then: **US-10-08 — Crash Reporting Opt-in (P3, 3 SP)**, **US-10-10 — Low-Power Mode (P3, 3 SP)**, **US-09-07 — Platform Compatibility Testing Matrix (P3, 3 SP)**.
 
 ---
 

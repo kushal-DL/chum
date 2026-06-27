@@ -12,7 +12,7 @@
 | US-10-06 | End-to-End Latency Benchmark | P2 — Medium | 🔵 Built | 3 |
 | US-10-07 | App Startup Performance | P2 — Medium | 🔵 Built | 3 |
 | US-10-08 | Crash Reporting (Opt-in) | P3 — Low | 🔴 Yet to Start | 3 |
-| US-10-09 | Auto-Update Mechanism | P2 — Medium | 🔴 Yet to Start | 5 |
+| US-10-09 | Auto-Update Mechanism | P2 — Medium | 🔵 Built | 5 |
 | US-10-10 | Low-Power Mode | P3 — Low | 🔴 Yet to Start | 3 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  

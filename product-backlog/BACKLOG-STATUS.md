@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 79 | 301 SP | 94% |
+| 🔵 Built | 80 | 306 SP | 96% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
-| 🔴 Yet to Start | 5 | 19 SP | 6% |
+| 🔴 Yet to Start | 4 | 14 SP | 4% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -38,8 +38,8 @@
 | 07 · Settings & Configuration | 10 | 27 SP | — | 10 (27 SP) | — | — |
 | 08 · Privacy & Security | 11 | 36 SP | — | 11 (36 SP) | — | — |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 6 (24 SP) | — | 1 (3 SP) |
-| 10 · Performance & Reliability | 10 | 40 SP | — | 7 (29 SP) | — | 3 (11 SP) |
-| **Total** | **84** | **320 SP** | **0** | **79 (301 SP)** | **0** | **5 (19 SP)** |
+| 10 · Performance & Reliability | 10 | 40 SP | — | 8 (34 SP) | — | 2 (6 SP) |
+| **Total** | **84** | **320 SP** | **0** | **80 (306 SP)** | **0** | **4 (14 SP)** |
 
 ---
 
@@ -65,9 +65,9 @@ Each story is attributed to the project where its primary implementation lives.
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
 | P1 — High | 34 | 125 SP | 34 (125 SP) | — | — |
-| P2 — Medium | 27 | 91 SP | 19 (63 SP) | — | 8 (28 SP) |
+| P2 — Medium | 27 | 91 SP | 20 (68 SP) | — | 7 (23 SP) |
 | P3 — Low | 7 | 20 SP | 5 (8 SP) | — | 2 (12 SP) |
-| **Total** | **84** | **320 SP** | **74 (280 SP)** | **0** | **10 (40 SP)** |
+| **Total** | **84** | **320 SP** | **75 (285 SP)** | **0** | **9 (35 SP)** |
 
 ---
 
@@ -248,7 +248,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-10-06 | End-to-End Latency Benchmark | P2 | 🔵 Built | 3 | LLM first-token latency tracking |
 | US-10-07 | App Startup Performance | P2 | 🔵 Built | 3 | Stopwatch from OnStartup; overlay shown early; VAD ONNX loads parallelised |
 | US-10-08 | Crash Reporting (Opt-in) | P3 | 🔴 Yet to Start | 3 | |
-| US-10-09 | Auto-Update Mechanism | P2 | 🔴 Yet to Start | 5 | |
+| US-10-09 | Auto-Update Mechanism | P2 | 🔵 Built | 5 | UpdateChecker.cs — GitHub Releases API + SHA256 + tray balloon |
 | US-10-10 | Low-Power Mode | P3 | 🔴 Yet to Start | 3 | |
 
 **Epic 10 Total:** 40 SP · 0 Done · 29 Built · 0 Scaffolded · 11 Yet to Start

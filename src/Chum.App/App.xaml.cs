@@ -33,6 +33,7 @@ public partial class App : System.Windows.Application
     private ClipboardMonitor? _clipboardMonitor;
     private bool _started;
     private string? _pendingMeetingDeviceId;
+    private UpdateInfo? _pendingUpdate;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -91,6 +92,9 @@ public partial class App : System.Windows.Application
 
         if (Settings.Current.StartCapturingOnLaunch)
             await StartCaptureAsync();
+
+        // Fire-and-forget; never blocks startup or throws to the UI thread
+        _ = CheckForUpdatesAsync();
     }
 
     private async Task BuildAndWireComponentsAsync()
@@ -410,6 +414,66 @@ public partial class App : System.Windows.Application
 
         File.WriteAllText(dlg.FileName, text);
         Log.Information("Transcript exported: {Path}", dlg.FileName);
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        var s = Settings.Current;
+        if (!s.CheckForUpdates) return;
+
+        // Throttle to once per day
+        if ((DateTimeOffset.UtcNow - s.LastUpdateCheckUtc).TotalHours < 24) return;
+
+        try
+        {
+            var checker = new UpdateChecker(new HttpClient());
+            var info = await checker.CheckForUpdateAsync();
+
+            // Record that we checked (regardless of result)
+            Settings.Update(x => x.LastUpdateCheckUtc = DateTimeOffset.UtcNow);
+
+            if (info is null) return;
+
+            _pendingUpdate = info;
+            Log.Information("Update available: v{Version}", info.Version);
+
+            // Show tray balloon — clicking it starts the download
+            Dispatcher.Invoke(() =>
+            {
+                if (_trayIcon is null) return;
+                _trayIcon.BalloonTipTitle = $"Chum v{info.Version} available";
+                _trayIcon.BalloonTipText = string.IsNullOrEmpty(info.ReleaseNotes)
+                    ? "Click to update now."
+                    : $"{info.ReleaseNotes}\nClick to update now.";
+                _trayIcon.BalloonTipIcon = ToolTipIcon.Info;
+                _trayIcon.BalloonTipClicked -= OnUpdateBalloonClicked;
+                _trayIcon.BalloonTipClicked += OnUpdateBalloonClicked;
+                _trayIcon.ShowBalloonTip(10_000);
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Update check failed");
+        }
+    }
+
+    private void OnUpdateBalloonClicked(object? sender, EventArgs e)
+    {
+        if (_pendingUpdate is null) return;
+        if (_orchestrator?.IsRunning == true)
+        {
+            System.Windows.MessageBox.Show(
+                "Chum is currently capturing a meeting. Stop capture before updating.",
+                "Chum — Update", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var info = _pendingUpdate;
+        _ = Task.Run(async () =>
+        {
+            var checker = new UpdateChecker(new HttpClient());
+            await checker.DownloadAndLaunchAsync(info);
+        });
     }
 
     protected override async void OnExit(ExitEventArgs e)

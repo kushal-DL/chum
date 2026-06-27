@@ -79,4 +79,10 @@ public sealed class AppSettings
     // and merges it into the transcript buffer as a supplementary source.
     // Off by default: requires Teams auto-captions to be enabled by the organiser.
     public bool UseTeamsCaptions { get; set; } = false;
+
+    // --- Auto-update (US-10-09) ---
+    // When true: check GitHub Releases on startup (at most once per day).
+    public bool CheckForUpdates { get; set; } = true;
+    // UTC timestamp of the last successful version check (persisted so we respect the daily limit).
+    public DateTimeOffset LastUpdateCheckUtc { get; set; } = DateTimeOffset.MinValue;
 }
