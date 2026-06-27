@@ -15,8 +15,8 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 36 | 159 SP | 50% |
-| 🟡 Scaffolded | 11 | 31 SP | 10% |
+| 🔵 Built | 37 | 162 SP | 51% |
+| 🟡 Scaffolded | 10 | 28 SP | 9% |
 | 🔴 Yet to Start | 37 | 130 SP | 41% |
 | **Total** | **84** | **320 SP** | |
 
@@ -35,10 +35,10 @@
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 7 (37 SP) | — | 2 (5 SP) |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
 | 07 · Settings & Configuration | 10 | 27 SP | — | 6 (18 SP) | 2 (5 SP) | 2 (4 SP) |
-| 08 · Privacy & Security | 11 | 36 SP | — | 5 (16 SP) | 2 (8 SP) | 4 (12 SP) |
+| 08 · Privacy & Security | 11 | 36 SP | — | 6 (19 SP) | 1 (5 SP) | 4 (12 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | — | — | 7 (27 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | — | — | 10 (40 SP) |
-| **Total** | **84** | **320 SP** | **0** | **36 (159 SP)** | **11 (31 SP)** | **37 (130 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **37 (162 SP)** | **10 (28 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -51,10 +51,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 5 (24 SP) | 1 (3 SP) | 2 (5 SP) |
 | Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 5 (24 SP) | 1 (2 SP) | 3 (10 SP) |
 | Chum.Llm | Epic 03 | 8 | 30 SP | 3 (13 SP) | — | 5 (17 SP) |
-| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 21 (91 SP) | 8 (21 SP) | 9 (26 SP) |
+| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 22 (94 SP) | 7 (18 SP) | 9 (26 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 | 18 | 72 SP | — | — | 18 (72 SP) |
-| **Total** | | **84** | **320 SP** | **36 (159 SP)** | **11 (31 SP)** | **37 (130 SP)** |
+| **Total** | | **84** | **320 SP** | **37 (162 SP)** | **10 (28 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -63,10 +63,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 34 | 125 SP | 14 (58 SP) | 10 (28 SP) | 10 (39 SP) |
+| P1 — High | 34 | 125 SP | 15 (61 SP) | 9 (25 SP) | 10 (39 SP) |
 | P2 — Medium | 27 | 91 SP | 5 (15 SP) | 1 (3 SP) | 21 (73 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **36 (159 SP)** | **11 (31 SP)** | **37 (130 SP)** |
+| **Total** | **84** | **320 SP** | **37 (162 SP)** | **10 (28 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -205,7 +205,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-08-02 | Audio Buffer Auto-Purge | P0 | 🔵 Built | 3 | Array.Clear() in AudioPipeline.FlushSegment() + WhisperSttEngine |
 | US-08-03 | Transcript Retention Controls | P1 | 🔵 Built | 3 | TranscriptBuffer auto-eviction by retention window |
 | US-08-04 | Meeting Participant Disclosure Reminder | P2 | 🔴 Yet to Start | 2 | |
-| US-08-05 | Privacy Pause Mode | P1 | 🟡 Scaffolded | 3 | AudioPipeline.Pause()/Resume(); hotkey wired; no visual indicator yet |
+| US-08-05 | Privacy Pause Mode | P1 | 🔵 Built | 3 | IsPaused bool on OverlayViewModel; red "⏸ Audio capture PAUSED" banner in overlay (same row as clipboard notification, stacked via StackPanel); dismisses automatically on Resume() |
 | US-08-06 | Secure API Key Storage | P0 | 🔵 Built | 3 | CredentialService via Windows Credential Manager (DPAPI) |
 | US-08-07 | Screen Capture Privacy Safeguards | P1 | 🔴 Yet to Start | 2 | |
 | US-08-08 | Network Traffic Transparency | P2 | 🔴 Yet to Start | 3 | |
@@ -213,7 +213,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-08-10 | Windows Service Installer (Admin-Elevated) | P1 | 🟡 Scaffolded | 5 | Chum.Service project created; installer (WiX/NSIS) not yet written |
 | US-08-11 | Process Identity — Run as Named System Service | P1 | 🔵 Built | 5 | ChumHostSvc worker + IPC server/client; tray↔service named pipe |
 
-**Epic 08 Total:** 36 SP · 0 Done · 16 Built · 8 Scaffolded · 12 Yet to Start
+**Epic 08 Total:** 36 SP · 0 Done · 19 Built · 5 Scaffolded · 12 Yet to Start
 
 ---
 
@@ -265,8 +265,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P2 Stories | 27 stories · 91 SP |
 | P3 Stories | 7 stories · 20 SP |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 36 stories · 159 SP (50%) |
-| 🟡 Scaffolded | 11 stories · 31 SP (10%) |
+| 🔵 Built | 37 stories · 162 SP (51%) |
+| 🟡 Scaffolded | 10 stories · 28 SP (9%) |
 | 🔴 Yet to Start | 37 stories · 130 SP (41%) |
 
-*Last updated: 2026-06-27 — Session 10: US-06-03 Image File Drop Target 🔵 Built*
+*Last updated: 2026-06-27 — Session 11: US-08-05 Privacy Pause visual indicator 🔵 Built*

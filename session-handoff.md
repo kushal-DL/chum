@@ -194,6 +194,19 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 11 (2026-06-27, Part 11)
+
+**Privacy Pause Mode visual indicator — US-08-05 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/ViewModels/OverlayViewModel.cs` — added `IsPaused` bool property; `SetStatus` now sets `IsPaused = (status == OverlayStatus.Paused)` inside the Invoke block so it stays on UI thread.
+- `Chum.App/Views/OverlayWindow.xaml` — replaced the single clipboard notification `<Border>` in Row 2 with a `<StackPanel>` containing two banners: a red `⏸ Audio capture PAUSED` banner (bound to `IsPaused`) and the existing amber clipboard notification (bound to `HasPendingClipboardImage`). Both banners can show simultaneously and stack vertically.
+- `product-backlog/EPIC-08-privacy-security.md` — synced "Stories at a Glance" table to BACKLOG-STATUS.md truth (it was showing all stories as 🔴 since initial creation).
+
+**Decision:** Used the same banner pattern as the clipboard notification (semi-transparent colored border + text) for visual consistency. Dismissed automatically when `Resume()` is called since `SetStatus(Listening, ...)` sets `IsPaused = false`.
+
+---
+
 ### What Was Done Session 10 (2026-06-27, Part 10)
 
 **Image File Drop Target — US-06-03 → 🔵 Built:**

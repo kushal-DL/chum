@@ -144,13 +144,21 @@
                 </TextBlock.Triggers>
             </TextBlock>
 
-            <!-- ── Clipboard image notification ── -->
-            <Border Grid.Row="2" Background="#1FFBBF24" BorderBrush="#FBBF24"
-                    BorderThickness="0,1,0,0" Padding="10,5"
-                    Visibility="{Binding HasPendingClipboardImage, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock Text="Image in clipboard — press Ctrl+Alt+S to analyse"
-                           Foreground="#FBBF24" FontSize="11"/>
-            </Border>
+            <!-- ── Notification banners (paused + clipboard) ── -->
+            <StackPanel Grid.Row="2">
+                <Border Background="#1FEF4444" BorderBrush="#EF4444"
+                        BorderThickness="0,1,0,0" Padding="10,6"
+                        Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="⏸  Audio capture PAUSED — hotkey to resume"
+                               Foreground="#EF4444" FontSize="11" FontWeight="SemiBold"/>
+                </Border>
+                <Border Background="#1FFBBF24" BorderBrush="#FBBF24"
+                        BorderThickness="0,1,0,0" Padding="10,5"
+                        Visibility="{Binding HasPendingClipboardImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Image in clipboard — press Ctrl+Alt+S to analyse"
+                               Foreground="#FBBF24" FontSize="11"/>
+                </Border>
+            </StackPanel>
 
             <!-- ── Transcript strip (collapsed by default) ── -->
             <Expander Grid.Row="3" Header="Transcript" Foreground="#777"

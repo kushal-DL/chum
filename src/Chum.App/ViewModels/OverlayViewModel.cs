@@ -91,12 +91,20 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
         private set { _statusColor = value; OnPropertyChanged(); }
     }
 
+    private bool _isPaused;
+    public bool IsPaused
+    {
+        get => _isPaused;
+        private set { _isPaused = value; OnPropertyChanged(); }
+    }
+
     public void SetStatus(OverlayStatus status, string text)
     {
         _currentStatus = status;
         Invoke(() =>
         {
             StatusText = text;
+            IsPaused = status == OverlayStatus.Paused;
             StatusColor = status switch
             {
                 OverlayStatus.Listening => "#22C55E",    // green
