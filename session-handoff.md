@@ -203,28 +203,27 @@ Warnings are all benign:
 
 ---
 
-## What To Build Next (After Successful Build)
+## What To Build Next
 
-### Priority 1 — Fix any compile errors
-Source files were written without a live compiler. Likely issues:
-- Missing `using` statements
-- Namespace conflicts (e.g., `System.Windows.Application` vs `Application`)
-- NAudio API surface mismatches (verify event/property names)
+Build is clean. All 16 P0 MVP stories are 🔵 Built. Next steps in priority order:
 
-### Priority 2 — First Run Test
-1. Launch app → settings window should open (no API key yet)
-2. Enter Anthropic key → click Test → should get "OK"  
-3. Close settings → overlay window should appear bottom-right
-4. Right-click tray icon → Start Capture → audio capture begins
+### Step 1 — First Run Test (do this before writing more code)
+1. Launch `dotnet run --project src/Chum.App` → settings window should open (no API key stored)
+2. Enter Anthropic key → click Test → should get "OK"
+3. Close settings → overlay window appears bottom-right
+4. Right-click tray icon → Start Capture → audio pipeline starts
+5. Speak → transcription should appear in overlay
 
-### Priority 3 — Screen Capture (EPIC-06)
-Next major feature after MVP works end-to-end. Start with:
-- `US-06-01` — WGC API screen capture (`Windows.Graphics.Capture`)
-- `US-06-07` — Multimodal LLM vision request (already wired in `AnthropicLlmProvider`)
-- `US-06-02` — Clipboard image monitoring (simplest workaround for Teams DRM)
+### Step 2 — US-06-02: Clipboard Image Monitoring (P1, 3 SP) ← Next story
+Wire `WM_CLIPBOARDUPDATE` via `HwndSource` to detect clipboard images. Closes the Teams call window gap — user uses Win+Shift+S or Snipping Tool, image goes to clipboard, Chum detects it and sends to LLM.
 
-### Priority 4 — ~~Silero VAD~~ ✅ Done (Session 5)
-`SileroVad.cs` written; `IVad` interface extracted; `AudioPipeline` accepts injected VAD; fallback to `EnergyVad` with background download on first run.
+### Step 3 — US-06-03: Image File Drop Target (P2, 3 SP)
+`AllowDrop="True"` on overlay; `Drop` event handler; validate image file; send to LLM.
+
+### Step 4 — P1 Scaffolded → Built sweep
+Several hotkey and settings stories are Scaffolded (handler stubs exist). Complete the logic:
+- US-04-06: Audio feedback (beep on hotkey press)
+- US-08-05: Privacy Pause visual indicator in overlay
 
 ---
 

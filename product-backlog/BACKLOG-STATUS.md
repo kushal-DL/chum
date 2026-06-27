@@ -8,6 +8,68 @@
 
 ---
 
+## At a Glance
+
+### Overall
+
+| Status | Stories | Story Points | % of Total SP |
+|--------|---------|--------------|---------------|
+| ✅ Done | 0 | 0 SP | 0% |
+| 🔵 Built | 33 | 150 SP | 47% |
+| 🟡 Scaffolded | 11 | 31 SP | 10% |
+| 🔴 Yet to Start | 40 | 139 SP | 43% |
+| **Total** | **84** | **320 SP** | |
+
+> **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
+
+---
+
+### By Epic
+
+| Epic | Stories | Total SP | ✅ Done | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
+|------|---------|----------|---------|----------|--------------|-----------------|
+| 01 · Core Audio Engine | 7 | 29 SP | — | 4 (21 SP) | 1 (3 SP) | 2 (5 SP) |
+| 02 · Transcription & Context | 8 | 33 SP | — | 4 (21 SP) | 1 (2 SP) | 3 (10 SP) |
+| 03 · LLM Integration | 8 | 30 SP | — | 3 (13 SP) | — | 5 (17 SP) |
+| 04 · Hotkey & Trigger System | 7 | 26 SP | — | 2 (13 SP) | 5 (13 SP) | — |
+| 05 · Overlay UI & Display | 9 | 42 SP | — | 7 (37 SP) | — | 2 (5 SP) |
+| 06 · Screen Capture & Vision | 7 | 30 SP | — | 2 (11 SP) | — | 5 (19 SP) |
+| 07 · Settings & Configuration | 10 | 27 SP | — | 6 (18 SP) | 2 (5 SP) | 2 (4 SP) |
+| 08 · Privacy & Security | 11 | 36 SP | — | 5 (16 SP) | 2 (8 SP) | 4 (12 SP) |
+| 09 · Platform Compatibility | 7 | 27 SP | — | — | — | 7 (27 SP) |
+| 10 · Performance & Reliability | 10 | 40 SP | — | — | — | 10 (40 SP) |
+| **Total** | **84** | **320 SP** | **0** | **33 (150 SP)** | **11 (31 SP)** | **40 (139 SP)** |
+
+---
+
+### By Project (App Layer)
+
+Each story is attributed to the project where its primary implementation lives.
+
+| Project | Primary Scope | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
+|---------|--------------|---------|----------|----------|--------------|-----------------|
+| Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 5 (24 SP) | 1 (3 SP) | 2 (5 SP) |
+| Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 5 (24 SP) | 1 (2 SP) | 3 (10 SP) |
+| Chum.Llm | Epic 03 | 8 | 30 SP | 3 (13 SP) | — | 5 (17 SP) |
+| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 18 (82 SP) | 8 (21 SP) | 12 (35 SP) |
+| Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
+| Cross-cutting | US-08-01 + Epics 09–10 | 18 | 72 SP | — | — | 18 (72 SP) |
+| **Total** | | **84** | **320 SP** | **33 (150 SP)** | **11 (31 SP)** | **40 (139 SP)** |
+
+---
+
+### By Priority
+
+| Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
+|----------|---------|----------|----------|--------------|-----------------|
+| P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
+| P1 — High | 34 | 125 SP | 12 (52 SP) | 10 (28 SP) | 12 (45 SP) |
+| P2 — Medium | 27 | 91 SP | 4 (12 SP) | 1 (3 SP) | 22 (76 SP) |
+| P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
+| **Total** | **84** | **320 SP** | **33 (150 SP)** | **11 (31 SP)** | **40 (139 SP)** |
+
+---
+
 ## Epic 01 — Core Audio Engine
 *[Full spec: EPIC-01-audio-engine.md](EPIC-01-audio-engine.md)*
 
@@ -151,7 +213,7 @@
 | US-08-10 | Windows Service Installer (Admin-Elevated) | P1 | 🟡 Scaffolded | 5 | Chum.Service project created; installer (WiX/NSIS) not yet written |
 | US-08-11 | Process Identity — Run as Named System Service | P1 | 🔵 Built | 5 | ChumHostSvc worker + IPC server/client; tray↔service named pipe |
 
-**Epic 08 Total:** 38 SP · 0 Done · 21 Built · 8 Scaffolded · 9 Yet to Start
+**Epic 08 Total:** 36 SP · 0 Done · 16 Built · 8 Scaffolded · 12 Yet to Start
 
 ---
 
@@ -196,14 +258,15 @@
 
 | Metric | Value |
 |--------|-------|
-| Total Story Points | 310 SP |
-| P0 Stories | 16 stories · 78 SP |
-| P1 Stories | 32 stories · 124 SP |
-| P2 Stories | 22 stories · 87 SP |
-| P3 Stories | 5 stories · 21 SP |
-| ✅ Done | 0 SP (0%) |
-| 🔵 Built | 155 SP (50%) |
-| 🟡 Scaffolded | 31 SP (10%) |
-| 🔴 Yet to Start | 136 SP (44%) |
+| Total Stories | 84 |
+| Total Story Points | 320 SP |
+| P0 Stories | 16 stories · 84 SP · **all 🔵 Built** |
+| P1 Stories | 34 stories · 125 SP |
+| P2 Stories | 27 stories · 91 SP |
+| P3 Stories | 7 stories · 20 SP |
+| ✅ Done | 0 stories · 0 SP (0%) |
+| 🔵 Built | 33 stories · 150 SP (47%) |
+| 🟡 Scaffolded | 11 stories · 31 SP (10%) |
+| 🔴 Yet to Start | 40 stories · 139 SP (43%) |
 
-*Last updated: 2026-06-27 — Session 6: DXGI screen capture (US-06-01 + US-06-07), Epic 09 priorities revised*
+*Last updated: 2026-06-27 — Session 7: first successful build (0 errors); corrected SP counts throughout (Epic 08: 38→36 SP, overall: 310→320 SP, P0: 78→84 SP)*
