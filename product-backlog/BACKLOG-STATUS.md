@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 51 | 203 SP | 63% |
+| 🔵 Built | 52 | 206 SP | 64% |
 | 🟡 Scaffolded | 1 | 5 SP | 2% |
-| 🔴 Yet to Start | 32 | 112 SP | 35% |
+| 🔴 Yet to Start | 31 | 109 SP | 34% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -28,7 +28,7 @@
 
 | Epic | Stories | Total SP | ✅ Done | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |------|---------|----------|---------|----------|--------------|-----------------|
-| 01 · Core Audio Engine | 7 | 29 SP | — | 5 (24 SP) | — | 2 (5 SP) |
+| 01 · Core Audio Engine | 7 | 29 SP | — | 6 (27 SP) | — | 1 (2 SP) |
 | 02 · Transcription & Context | 8 | 33 SP | — | 5 (23 SP) | — | 3 (10 SP) |
 | 03 · LLM Integration | 8 | 30 SP | — | 5 (19 SP) | — | 3 (11 SP) |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 7 (26 SP) | — | — |
@@ -38,7 +38,7 @@
 | 08 · Privacy & Security | 11 | 36 SP | — | 8 (26 SP) | 1 (5 SP) | 2 (5 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 1 (5 SP) | — | 6 (22 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | — | — | 10 (40 SP) |
-| **Total** | **84** | **320 SP** | **0** | **51 (203 SP)** | **1 (5 SP)** | **32 (112 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **52 (206 SP)** | **1 (5 SP)** | **31 (109 SP)** |
 
 ---
 
@@ -48,13 +48,13 @@ Each story is attributed to the project where its primary implementation lives.
 
 | Project | Primary Scope | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |---------|--------------|---------|----------|----------|--------------|-----------------|
-| Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 6 (27 SP) | — | 2 (5 SP) |
+| Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 7 (30 SP) | — | 1 (2 SP) |
 | Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 6 (26 SP) | — | 3 (10 SP) |
 | Chum.Llm | Epic 03 | 8 | 30 SP | 4 (16 SP) | — | 4 (14 SP) |
 | Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 31 (117 SP) | — | 7 (21 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 | 18 | 72 SP | 2 (10 SP) | — | 16 (62 SP) |
-| **Total** | | **84** | **320 SP** | **51 (203 SP)** | **1 (5 SP)** | **32 (112 SP)** |
+| **Total** | | **84** | **320 SP** | **52 (206 SP)** | **1 (5 SP)** | **31 (109 SP)** |
 
 ---
 
@@ -63,10 +63,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 34 | 125 SP | 29 (104 SP) | 1 (5 SP) | 4 (16 SP) |
+| P1 — High | 34 | 125 SP | 30 (107 SP) | 1 (5 SP) | 3 (13 SP) |
 | P2 — Medium | 27 | 91 SP | 6 (18 SP) | — | 21 (73 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **51 (203 SP)** | **1 (5 SP)** | **32 (112 SP)** |
+| **Total** | **84** | **320 SP** | **52 (206 SP)** | **1 (5 SP)** | **31 (109 SP)** |
 
 ---
 
@@ -81,7 +81,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-01-04 | Voice Activity Detection (Silero VAD) | P0 | 🔵 Built | 8 | SileroVad.cs (ONNX, stateful LSTM, 512-sample chunks); EnergyVad kept as fallback when model not downloaded |
 | US-01-05 | Audio Ring Buffer | P0 | 🔵 Built | 5 | AudioPipeline.cs: pre-buffer + Channel<AudioChunk> |
 | US-01-06 | Real-time Audio Level Meters | P2 | 🔴 Yet to Start | 2 | |
-| US-01-07 | Automatic Device Failover | P1 | 🔴 Yet to Start | 3 | |
+| US-01-07 | Automatic Device Failover | P1 | 🔵 Built | 3 | Disconnected event on IAudioCapture/AudioPipeline; DeviceDisconnected event on MeetingOrchestrator; FallbackToDefaultAudioAsync in App |
 
 **Epic 01 Total:** 29 SP · 0 Done · 24 Built · 0 Scaffolded · 5 Yet to Start
 

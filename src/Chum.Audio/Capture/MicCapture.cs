@@ -14,6 +14,7 @@ public sealed class MicCapture : IAudioCapture
     private readonly string? _deviceId;
 
     public event EventHandler<RawAudioEventArgs>? RawAudioAvailable;
+    public event EventHandler? Disconnected;
 
     public string DeviceName { get; private set; } = "Default Microphone";
     public bool IsCapturing { get; private set; }
@@ -71,7 +72,10 @@ public sealed class MicCapture : IAudioCapture
     {
         IsCapturing = false;
         if (e.Exception is not null)
-            Serilog.Log.Error(e.Exception, "Mic capture stopped with error");
+        {
+            Serilog.Log.Error(e.Exception, "Mic capture stopped with error — device may have disconnected");
+            Disconnected?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public void Dispose()

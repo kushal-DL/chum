@@ -14,6 +14,7 @@ public sealed class LoopbackCapture : IAudioCapture
     private readonly string? _deviceId; // null = Windows default
 
     public event EventHandler<RawAudioEventArgs>? RawAudioAvailable;
+    public event EventHandler? Disconnected;
 
     public string DeviceName { get; private set; } = "Default Output";
     public bool IsCapturing { get; private set; }
@@ -66,7 +67,10 @@ public sealed class LoopbackCapture : IAudioCapture
     {
         IsCapturing = false;
         if (e.Exception is not null)
-            Serilog.Log.Error(e.Exception, "Loopback capture stopped with error");
+        {
+            Serilog.Log.Error(e.Exception, "Loopback capture stopped with error — device may have disconnected");
+            Disconnected?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public void Dispose()

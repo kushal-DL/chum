@@ -35,6 +35,9 @@ public sealed class MeetingOrchestrator : IDisposable
     private bool _captureConfirming;
     private Timer? _captureConfirmTimer;
     private CancellationTokenSource _cts = new();
+
+    /// <summary>Fires when a capture device unexpectedly disconnects. App should rebuild the audio pipeline.</summary>
+    public event EventHandler? DeviceDisconnected;
     private Task? _transcriptionLoop;
     private bool _disposed;
 
@@ -82,6 +85,14 @@ public sealed class MeetingOrchestrator : IDisposable
 
         // Detect meeting platform for prompt context
         _platformDetector = new MeetingPlatformDetector();
+
+        // Wire device disconnect → notify App to rebuild pipeline
+        _audio.CaptureDisconnected += (_, _) =>
+        {
+            Serilog.Log.Warning("Audio capture device disconnected — requesting pipeline failover");
+            _overlay.SetStatus(OverlayStatus.Initialising, "Audio device disconnected — switching to default...");
+            DeviceDisconnected?.Invoke(this, EventArgs.Empty);
+        };
 
         // Wire hotkeys
         _hotkeys.HoldStarted += (_, e) =>

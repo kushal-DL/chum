@@ -5,6 +5,9 @@ public interface IAudioCapture : IDisposable
     /// <summary>Fires for each raw audio buffer from the device (device native format).</summary>
     event EventHandler<RawAudioEventArgs>? RawAudioAvailable;
 
+    /// <summary>Fires when the device unexpectedly disconnects (e.g. headset unplugged).</summary>
+    event EventHandler? Disconnected;
+
     string DeviceName { get; }
     bool IsCapturing { get; }
 

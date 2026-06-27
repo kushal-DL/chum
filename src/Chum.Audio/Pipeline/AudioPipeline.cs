@@ -43,8 +43,12 @@ public sealed class AudioPipeline : IDisposable
     private readonly Channel<AudioChunk> _outputChannel;
     public ChannelReader<AudioChunk> Output => _outputChannel.Reader;
 
+    /// <summary>Fires when either capture device disconnects unexpectedly. At most once per pipeline instance.</summary>
+    public event EventHandler? CaptureDisconnected;
+
     private bool _paused;
     private bool _disposed;
+    private int _disconnectFired; // interlocked flag — ensures CaptureDisconnected fires at most once
 
     public AudioPipeline(IAudioCapture loopback, IAudioCapture mic,
         IVad? loopbackVad = null, IVad? micVad = null, int outputChannelCapacity = 64)
@@ -61,6 +65,8 @@ public sealed class AudioPipeline : IDisposable
 
         _loopback.RawAudioAvailable += (_, e) => ProcessRaw(e, AudioSource.Loopback);
         _mic.RawAudioAvailable += (_, e) => ProcessRaw(e, AudioSource.Microphone);
+        _loopback.Disconnected += OnCaptureDisconnected;
+        _mic.Disconnected += OnCaptureDisconnected;
     }
 
     public void Start()
@@ -77,6 +83,13 @@ public sealed class AudioPipeline : IDisposable
 
     public void Pause() => _paused = true;
     public void Resume() => _paused = false;
+
+    private void OnCaptureDisconnected(object? sender, EventArgs e)
+    {
+        // Interlocked ensures only one disconnect notification fires even if both devices fail simultaneously
+        if (Interlocked.Exchange(ref _disconnectFired, 1) == 0)
+            CaptureDisconnected?.Invoke(this, EventArgs.Empty);
+    }
 
     private void ProcessRaw(RawAudioEventArgs e, AudioSource source)
     {

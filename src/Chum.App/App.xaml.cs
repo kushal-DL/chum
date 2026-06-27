@@ -111,6 +111,9 @@ public partial class App : System.Windows.Application
         _overlayWindow.ImageFileDropped += (_, path) =>
             _ = _orchestrator.HandleDroppedImageQueryAsync(path);
 
+        _orchestrator.DeviceDisconnected += async (_, _) =>
+            await FallbackToDefaultAudioAsync();
+
         // Opacity binding
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
         Settings.SettingsChanged += (_, _) =>
@@ -142,6 +145,26 @@ public partial class App : System.Windows.Application
         var newLoopback = new LoopbackCapture(s.LoopbackDeviceId);
         var newMic = new MicCapture(s.MicDeviceId);
         var newPipeline = new AudioPipeline(newLoopback, newMic, BuildVad(), BuildVad());
+        _orchestrator.ReplaceAudio(newPipeline);
+
+        if (wasStarted)
+            await StartCaptureAsync();
+    }
+
+    private async Task FallbackToDefaultAudioAsync()
+    {
+        if (_orchestrator is null) return;
+        Log.Warning("Audio device failover triggered — rebuilding pipeline to Windows default");
+
+        var wasStarted = _started;
+        if (wasStarted)
+        {
+            await _orchestrator.StopAsync();
+            _started = false;
+        }
+
+        // Rebuild with null device IDs = Windows default, without changing saved settings
+        var newPipeline = new AudioPipeline(new LoopbackCapture(null), new MicCapture(null), BuildVad(), BuildVad());
         _orchestrator.ReplaceAudio(newPipeline);
 
         if (wasStarted)

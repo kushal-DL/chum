@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-02-06 Built — 51/84 stories 🔵 Built (203/320 SP, 63%); next: US-01-07 (Automatic Device Failover)
+**Phase:** US-01-07 Built — 52/84 stories 🔵 Built (206/320 SP, 64%); next: US-08-08 (Network Traffic Transparency)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,26 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 22 (2026-06-27, Part 22)
+
+**Automatic Device Failover — US-01-07 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.Audio/Capture/IAudioCapture.cs` — Added `event EventHandler? Disconnected` to the interface.
+- `Chum.Audio/Capture/LoopbackCapture.cs` — Implements `Disconnected`; fires it in `OnRecordingStopped` when `e.Exception != null` (unexpected NAudio stop = device unplugged or driver crash).
+- `Chum.Audio/Capture/MicCapture.cs` — Same as LoopbackCapture.
+- `Chum.Audio/Pipeline/AudioPipeline.cs` — Added `CaptureDisconnected` event + `_disconnectFired` interlocked flag (prevents double-fire when both devices disconnect). Subscribes to `_loopback.Disconnected` and `_mic.Disconnected` in constructor; fires `CaptureDisconnected` at most once.
+- `Chum.App/Services/MeetingOrchestrator.cs` — Added `DeviceDisconnected` event. Subscribes to `_audio.CaptureDisconnected` in constructor; on fire: sets overlay status to "Audio device disconnected — switching to default..." and fires `DeviceDisconnected`.
+- `Chum.App/App.xaml.cs` — Subscribes to `_orchestrator.DeviceDisconnected` in `BuildAndWireComponents()`; calls new `FallbackToDefaultAudioAsync()` which stops the orchestrator (if running), creates a new `AudioPipeline` with null device IDs (= Windows defaults), calls `ReplaceAudio`, then restarts. Does NOT overwrite saved device settings — the user's explicit device choice is preserved; next restart will try the saved device again.
+
+**Decisions:**
+- The `_disconnectFired` interlocked flag prevents a race where both loopback and mic disconnect simultaneously (e.g. USB audio adapter removed) — only the first fires the event.
+- Fallback uses null device IDs (Windows default) without saving to `settings.json` — if the user plugs their headset back in and reopens settings, their old device selection is still there.
+
+**Build:** 0 errors (unchanged).
 
 ---
 
@@ -429,17 +449,20 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-01-07 — Automatic Device Failover (P1, 3 SP):**
+**US-08-08 — Network Traffic Transparency (P2, 3 SP):**
 
-When a headset or audio device is unplugged, `WasapiLoopbackCapture` / `WasapiCapture` stop emitting data (or throw). Chum should detect this and fall back to Windows default device without requiring a restart.
+When a cloud LLM call is made, the user should be able to see what's being sent. Specifically:
+- Show the model + provider in the overlay status bar during each query (e.g. "Asking Claude Haiku...")
+- Log all outbound LLM requests to the existing Serilog log (provider, model, token estimate) — no transcript content or keys in the log.
+- Optionally: add a "View last request details" tooltip or popup in the overlay.
 
 What to build:
-- Handle `RecordingStopped` / device disconnection events on `LoopbackCapture` and `MicCapture` — NAudio fires `RecordingStopped` when the device disappears.
-- In `MeetingOrchestrator` (or `AudioPipeline`): on unexpected stop, log the event and call `App.ApplyAudioDevicesAsync()` with `null` device IDs to switch to Windows default.
-- Show a notification in the overlay: "Audio device disconnected — switched to default".
-- Add `DeviceDisconnected` event to `IAudioCapture` and implement in `LoopbackCapture` + `MicCapture`.
+- `ILlmProvider.ProviderName` and `ModelId` are already on the interface — use them.
+- In `MeetingOrchestrator.HandleAudioQueryAsync()`: call `_overlay.SetStatus(OverlayStatus.Thinking, $"Asking {_llm.ProviderName} ({_llm.ModelId})...")` before the LLM call.
+- Same for `HandleActionItemsQueryAsync` and `HandleScreenCaptureQueryAsync`.
+- Log `Serilog.Log.Information("LLM request: provider={P} model={M} approxInputTokens={T}", ...)`.
 
-After that: **US-08-08 — Network Traffic Transparency (P2, 3 SP)** — show user what data is being sent to the cloud.
+After that: pick the next P1 story from the remaining 3: **US-09-02** (Teams audio device handling), **US-09-03** (Zoom audio device handling), or remaining P2 stories.
 
 ---
 
