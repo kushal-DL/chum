@@ -13,15 +13,15 @@
 
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
-| US-01-01 | Capture System Audio Loopback | P0 | 🔴 Yet to Start | 5 | |
-| US-01-02 | Capture Microphone Audio | P0 | 🔴 Yet to Start | 3 | |
-| US-01-03 | Audio Device Selection | P1 | 🔴 Yet to Start | 3 | |
-| US-01-04 | Voice Activity Detection (Silero VAD) | P0 | 🔴 Yet to Start | 8 | |
-| US-01-05 | Audio Ring Buffer | P0 | 🔴 Yet to Start | 5 | |
+| US-01-01 | Capture System Audio Loopback | P0 | 🔵 Built | 5 | LoopbackCapture.cs (WasapiLoopbackCapture) |
+| US-01-02 | Capture Microphone Audio | P0 | 🔵 Built | 3 | MicCapture.cs (WasapiCapture) |
+| US-01-03 | Audio Device Selection | P1 | 🟡 Scaffolded | 3 | DeviceId in AppSettings; no device-picker UI yet |
+| US-01-04 | Voice Activity Detection (Silero VAD) | P0 | 🟡 Scaffolded | 8 | EnergyVad.cs (energy/RMS MVP); Silero ONNX deferred to v0.2 |
+| US-01-05 | Audio Ring Buffer | P0 | 🔵 Built | 5 | AudioPipeline.cs: pre-buffer + Channel<AudioChunk> |
 | US-01-06 | Real-time Audio Level Meters | P2 | 🔴 Yet to Start | 2 | |
 | US-01-07 | Automatic Device Failover | P1 | 🔴 Yet to Start | 3 | |
 
-**Epic 01 Total:** 29 SP · 0 Done · 0 Built · 0 Scaffolded · 7 Yet to Start
+**Epic 01 Total:** 29 SP · 0 Done · 13 Built · 11 Scaffolded · 5 Yet to Start
 
 ---
 
@@ -30,16 +30,16 @@
 
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
-| US-02-01 | Local Whisper Transcription | P0 | 🔴 Yet to Start | 8 | |
+| US-02-01 | Local Whisper Transcription | P0 | 🔵 Built | 8 | WhisperSttEngine.cs (Whisper.net, model auto-download) |
 | US-02-02 | Cloud STT Fallback (Azure) | P2 | 🔴 Yet to Start | 5 | |
-| US-02-03 | Rolling Transcript Buffer | P0 | 🔴 Yet to Start | 5 | |
-| US-02-04 | Speaker Label Assignment (Me/Remote) | P1 | 🔴 Yet to Start | 3 | |
+| US-02-03 | Rolling Transcript Buffer | P0 | 🔵 Built | 5 | TranscriptBuffer.cs (LinkedList + retention window) |
+| US-02-04 | Speaker Label Assignment (Me/Remote) | P1 | 🔵 Built | 3 | TranscriptSegment.SpeakerLabel (Mic→"Me", Loopback→"Remote") |
 | US-02-05 | Language Detection & Multi-language | P2 | 🔴 Yet to Start | 3 | |
-| US-02-06 | Transcript Cleanup & Formatting | P1 | 🔴 Yet to Start | 2 | |
+| US-02-06 | Transcript Cleanup & Formatting | P1 | 🟡 Scaffolded | 2 | Hallucination filter in WhisperSttEngine; no full cleanup pass |
 | US-02-07 | Transcript Export | P3 | 🔴 Yet to Start | 2 | |
-| US-02-08 | Context Window Preparation for LLM | P0 | 🔴 Yet to Start | 5 | |
+| US-02-08 | Context Window Preparation for LLM | P0 | 🔵 Built | 5 | ContextExtractor.cs (token-budget-aware, 30s recency priority) |
 
-**Epic 02 Total:** 33 SP · 0 Done · 0 Built · 0 Scaffolded · 8 Yet to Start
+**Epic 02 Total:** 33 SP · 0 Done · 21 Built · 2 Scaffolded · 10 Yet to Start
 
 ---
 
@@ -48,16 +48,16 @@
 
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
-| US-03-01 | Anthropic Claude API Integration | P0 | 🔴 Yet to Start | 5 | |
+| US-03-01 | Anthropic Claude API Integration | P0 | 🔵 Built | 5 | AnthropicLlmProvider.cs (HttpClient + SSE streaming) |
 | US-03-02 | OpenAI API Integration | P1 | 🔴 Yet to Start | 3 | |
 | US-03-03 | Local LLM via Ollama | P2 | 🔴 Yet to Start | 5 | |
-| US-03-04 | Meeting-Optimised System Prompt | P0 | 🔴 Yet to Start | 5 | |
-| US-03-05 | Streaming Response Display | P0 | 🔴 Yet to Start | 3 | |
+| US-03-04 | Meeting-Optimised System Prompt | P0 | 🔵 Built | 5 | PromptBuilder.cs (≤150 word rule, no preamble) |
+| US-03-05 | Streaming Response Display | P0 | 🔵 Built | 3 | AppendResponseToken → OverlayViewModel → OverlayWindow |
 | US-03-06 | Response History | P1 | 🔴 Yet to Start | 3 | |
 | US-03-07 | Cost Estimation & Token Tracking | P2 | 🔴 Yet to Start | 3 | |
 | US-03-08 | Prompt Templates Library | P2 | 🔴 Yet to Start | 3 | |
 
-**Epic 03 Total:** 30 SP · 0 Done · 0 Built · 0 Scaffolded · 8 Yet to Start
+**Epic 03 Total:** 30 SP · 0 Done · 13 Built · 0 Scaffolded · 17 Yet to Start
 
 ---
 
@@ -66,15 +66,15 @@
 
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
-| US-04-01 | Global Hold-to-Ask Hotkey | P0 | 🔴 Yet to Start | 8 | |
-| US-04-02 | Screen Capture Hotkey | P1 | 🔴 Yet to Start | 3 | |
-| US-04-03 | Privacy Pause Hotkey | P1 | 🔴 Yet to Start | 2 | |
-| US-04-04 | Overlay Hide/Show Hotkey | P1 | 🔴 Yet to Start | 2 | |
-| US-04-05 | Hotkey Configuration UI | P1 | 🔴 Yet to Start | 5 | |
-| US-04-06 | Visual & Audio Feedback for Hotkey State | P1 | 🔴 Yet to Start | 3 | |
-| US-04-07 | Action Items Hotkey | P2 | 🔴 Yet to Start | 3 | |
+| US-04-01 | Global Hold-to-Ask Hotkey | P0 | 🔵 Built | 8 | HotkeyService.cs (WH_KEYBOARD_LL, hold/release events, 300ms debounce) |
+| US-04-02 | Screen Capture Hotkey | P1 | 🟡 Scaffolded | 3 | Registered in HotkeyService; capture logic (EPIC-06) not yet built |
+| US-04-03 | Privacy Pause Hotkey | P1 | 🟡 Scaffolded | 2 | Registered; AudioPipeline.Pause() wired in MeetingOrchestrator |
+| US-04-04 | Overlay Hide/Show Hotkey | P1 | 🟡 Scaffolded | 2 | Registered in HotkeyService; handler in MeetingOrchestrator |
+| US-04-05 | Hotkey Configuration UI | P1 | 🔵 Built | 5 | TextBoxes in SettingsWindow.xaml; saved via SettingsService |
+| US-04-06 | Visual & Audio Feedback for Hotkey State | P1 | 🟡 Scaffolded | 3 | Pulsing indicator in OverlayWindow.xaml; no audio beep yet |
+| US-04-07 | Action Items Hotkey | P2 | 🟡 Scaffolded | 3 | Registered; summary handler stub in MeetingOrchestrator |
 
-**Epic 04 Total:** 26 SP · 0 Done · 0 Built · 0 Scaffolded · 7 Yet to Start
+**Epic 04 Total:** 26 SP · 0 Done · 13 Built · 13 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -83,17 +83,17 @@
 
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
-| US-05-01 | Transparent Always-on-Top Window | P0 | 🔴 Yet to Start | 5 | |
-| US-05-02 | Response Display Panel | P0 | 🔴 Yet to Start | 8 | |
-| US-05-03 | Live Transcript Strip | P2 | 🔴 Yet to Start | 5 | |
-| US-05-04 | Status Indicators | P1 | 🔴 Yet to Start | 3 | |
-| US-05-05 | System Tray Integration | P1 | 🔴 Yet to Start | 5 | |
-| US-05-06 | Overlay Theme & Opacity Config | P2 | 🔴 Yet to Start | 3 | |
+| US-05-01 | Transparent Always-on-Top Window | P0 | 🔵 Built | 5 | OverlayWindow.xaml (AllowsTransparency, Topmost, WindowStyle=None) |
+| US-05-02 | Response Display Panel | P0 | 🔵 Built | 8 | ScrollViewer + TextBlock bound to OverlayViewModel.ResponseText |
+| US-05-03 | Live Transcript Strip | P2 | 🔵 Built | 5 | Collapsible Expander + ObservableCollection<string> TranscriptLines |
+| US-05-04 | Status Indicators | P1 | 🔵 Built | 3 | StatusDot with StatusColor binding; OverlayStatus enum |
+| US-05-05 | System Tray Integration | P1 | 🔵 Built | 5 | NotifyIcon in App.xaml.cs with context menu (Show/Settings/Start/Stop/Quit) |
+| US-05-06 | Overlay Theme & Opacity Config | P2 | 🔵 Built | 3 | Opacity slider in SettingsWindow; live-bound in App.xaml.cs |
 | US-05-07 | Auto-hide During Screen Share Detection | P1 | 🔴 Yet to Start | 8 | |
 | US-05-08 | Multi-monitor Support | P2 | 🔴 Yet to Start | 3 | |
 | US-05-09 | Response Copy & Share | P2 | 🔴 Yet to Start | 2 | |
 
-**Epic 05 Total:** 42 SP · 0 Done · 0 Built · 0 Scaffolded · 9 Yet to Start
+**Epic 05 Total:** 42 SP · 0 Done · 29 Built · 0 Scaffolded · 13 Yet to Start
 
 ---
 
@@ -110,7 +110,7 @@
 | US-06-06 | Image Preprocessing Pipeline | P1 | 🔴 Yet to Start | 3 | |
 | US-06-07 | Multimodal LLM Vision Request | P1 | 🔴 Yet to Start | 3 | |
 
-**Epic 06 Total:** 30 SP · 0 Done · 0 Built · 0 Scaffolded · 7 Yet to Start
+**Epic 06 Total:** 30 SP · 0 Done · 0 Built · 0 Scaffolded · 30 Yet to Start
 
 ---
 
@@ -119,18 +119,18 @@
 
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
-| US-07-01 | API Key Management (Credential Manager) | P0 | 🔴 Yet to Start | 5 | |
-| US-07-02 | Audio Device Configuration | P1 | 🔴 Yet to Start | 3 | |
-| US-07-03 | LLM Provider & Model Selection | P1 | 🔴 Yet to Start | 3 | |
-| US-07-04 | Transcription Configuration | P1 | 🔴 Yet to Start | 3 | |
-| US-07-05 | Hotkey Configuration | P1 | 🔴 Yet to Start | 3 | |
-| US-07-06 | Overlay Appearance Settings | P2 | 🔴 Yet to Start | 2 | |
-| US-07-07 | Startup & Run Behavior | P2 | 🔴 Yet to Start | 2 | |
-| US-07-08 | Data Retention & Privacy Settings | P1 | 🔴 Yet to Start | 2 | |
+| US-07-01 | API Key Management (Credential Manager) | P0 | 🔵 Built | 5 | CredentialService.cs (AdysTech DPAPI) + SettingsWindow save/test |
+| US-07-02 | Audio Device Configuration | P1 | 🟡 Scaffolded | 3 | DeviceId in AppSettings; no device-picker combo in UI yet |
+| US-07-03 | LLM Provider & Model Selection | P1 | 🔵 Built | 3 | ModelCombo in SettingsWindow; persisted via SettingsService |
+| US-07-04 | Transcription Configuration | P1 | 🔵 Built | 3 | WhisperModelCombo in SettingsWindow |
+| US-07-05 | Hotkey Configuration | P1 | 🔵 Built | 3 | HoldToAsk/ScreenCap/PrivacyPause TextBoxes in SettingsWindow |
+| US-07-06 | Overlay Appearance Settings | P2 | 🔵 Built | 2 | Opacity slider saved and applied live |
+| US-07-07 | Startup & Run Behavior | P2 | 🔵 Built | 2 | StartWithWindows/StartCapturing checkboxes + App.xaml.cs logic |
+| US-07-08 | Data Retention & Privacy Settings | P1 | 🟡 Scaffolded | 2 | TranscriptRetentionMinutes in AppSettings; no Settings UI section yet |
 | US-07-09 | Settings Import & Export | P3 | 🔴 Yet to Start | 2 | |
 | US-07-10 | About & Diagnostics Panel | P2 | 🔴 Yet to Start | 2 | |
 
-**Epic 07 Total:** 27 SP · 0 Done · 0 Built · 0 Scaffolded · 10 Yet to Start
+**Epic 07 Total:** 27 SP · 0 Done · 18 Built · 5 Scaffolded · 4 Yet to Start
 
 ---
 
@@ -140,16 +140,16 @@
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
 | US-08-01 | Local-only Processing Mode | P1 | 🔴 Yet to Start | 5 | |
-| US-08-02 | Audio Buffer Auto-Purge | P0 | 🔴 Yet to Start | 3 | |
-| US-08-03 | Transcript Retention Controls | P1 | 🔴 Yet to Start | 3 | |
+| US-08-02 | Audio Buffer Auto-Purge | P0 | 🔵 Built | 3 | Array.Clear() in AudioPipeline.FlushSegment() + WhisperSttEngine |
+| US-08-03 | Transcript Retention Controls | P1 | 🔵 Built | 3 | TranscriptBuffer auto-eviction by retention window |
 | US-08-04 | Meeting Participant Disclosure Reminder | P2 | 🔴 Yet to Start | 2 | |
-| US-08-05 | Privacy Pause Mode | P1 | 🔴 Yet to Start | 3 | |
-| US-08-06 | Secure API Key Storage | P0 | 🔴 Yet to Start | 3 | |
+| US-08-05 | Privacy Pause Mode | P1 | 🟡 Scaffolded | 3 | AudioPipeline.Pause()/Resume(); hotkey wired; no visual indicator yet |
+| US-08-06 | Secure API Key Storage | P0 | 🔵 Built | 3 | CredentialService via Windows Credential Manager (DPAPI) |
 | US-08-07 | Screen Capture Privacy Safeguards | P1 | 🔴 Yet to Start | 2 | |
 | US-08-08 | Network Traffic Transparency | P2 | 🔴 Yet to Start | 3 | |
 | US-08-09 | Audit Log (Enterprise) | P3 | 🔴 Yet to Start | 2 | |
 
-**Epic 08 Total:** 26 SP · 0 Done · 0 Built · 0 Scaffolded · 9 Yet to Start
+**Epic 08 Total:** 26 SP · 0 Done · 9 Built · 3 Scaffolded · 14 Yet to Start
 
 ---
 
@@ -166,7 +166,7 @@
 | US-09-06 | Meeting Start & End Lifecycle | P2 | 🔴 Yet to Start | 3 | |
 | US-09-07 | Platform Compatibility Testing Matrix | P2 | 🔴 Yet to Start | 3 | |
 
-**Epic 09 Total:** 27 SP · 0 Done · 0 Built · 0 Scaffolded · 7 Yet to Start
+**Epic 09 Total:** 27 SP · 0 Done · 0 Built · 0 Scaffolded · 27 Yet to Start
 
 ---
 
@@ -186,7 +186,7 @@
 | US-10-09 | Auto-Update Mechanism | P2 | 🔴 Yet to Start | 5 | |
 | US-10-10 | Low-Power Mode | P3 | 🔴 Yet to Start | 3 | |
 
-**Epic 10 Total:** 40 SP · 0 Done · 0 Built · 0 Scaffolded · 10 Yet to Start
+**Epic 10 Total:** 40 SP · 0 Done · 0 Built · 0 Scaffolded · 40 Yet to Start
 
 ---
 
@@ -199,9 +199,9 @@
 | P1 Stories | 32 stories · 124 SP |
 | P2 Stories | 22 stories · 87 SP |
 | P3 Stories | 5 stories · 21 SP |
-| Done | 0 SP (0%) |
-| Built | 0 SP (0%) |
-| Scaffolded | 0 SP (0%) |
-| Yet to Start | 310 SP (100%) |
+| ✅ Done | 0 SP (0%) |
+| 🔵 Built | 116 SP (37%) |
+| 🟡 Scaffolded | 34 SP (11%) |
+| 🔴 Yet to Start | 160 SP (52%) |
 
-*Last updated: 2026-06-27 — Initial backlog creation*
+*Last updated: 2026-06-27 — Session 2: Full MVP source code written (audio, transcription, LLM, hotkeys, overlay UI, settings, app orchestration)*

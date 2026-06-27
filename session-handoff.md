@@ -12,7 +12,7 @@
 ### Core User Flows
 
 **Flow 1 — Audio Query (Hold-to-Ask)**
-User holds `Ctrl+Alt+Space` while a question is being asked in the meeting. Chum marks the audio window, transcribes the conversation, and fires a query to Claude/GPT. The AI response streams into a floating transparent overlay that only the user sees. User reads the answer; releases the hotkey and continues the meeting naturally.
+User holds `Ctrl+Alt+Space` while a question is being asked in the meeting. Chum marks the audio window, transcribes the conversation, and fires a query to Claude/GPT. The AI response streams into a floating transparent overlay that only the user sees.
 
 **Flow 2 — Visual Query (Screen Capture)**
 User presses `Ctrl+Alt+S`. Chum captures the screen (or clipboard/dropped image) and sends it to a multimodal LLM along with recent transcript context. Useful for whiteboards, shared slides, diagrams in screen-share.
@@ -33,11 +33,11 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 |----------|--------|--------|
 | Language/Platform | C# .NET 8 + WPF | Best Windows native API access; NAudio ecosystem; WPF transparent windows |
 | Audio capture | NAudio WASAPI | Loopback + mic in shared mode; device change events |
-| VAD | Silero VAD (ONNX) | Local, fast (~1ms), MIT license |
+| VAD | Energy-based RMS MVP (Silero ONNX planned v0.2) | Silero is better but EnergyVad unblocks MVP immediately |
 | STT | Whisper.NET (whisper.cpp) | Local by default; no cost; GPU-acceleratable |
 | LLM primary | Anthropic Claude Haiku 4.5 (default), Sonnet 4.6 (quality) | Long context; fast; pluggable via `ILlmProvider` |
 | LLM vision | Claude Sonnet 4.6 or GPT-4o | Both support multimodal |
-| Screen capture | Windows.Graphics.Capture API | Most compatible; graceful Teams blackout |
+| Screen capture | Windows.Graphics.Capture API | Most compatible; graceful Teams blackout (v0.2) |
 | Global hotkeys | Win32 LowLevel Keyboard Hook | Reliable across all apps; full combo control |
 | Secure storage | Windows Credential Manager (DPAPI) | OS-managed; never keys in files |
 
@@ -46,91 +46,97 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** Pre-development — Product backlog complete
+**Phase:** MVP source code complete — awaiting first build verification
 
-### What Was Done This Session (2026-06-27)
+### What Was Done Session 1 (2026-06-27, Part 1)
 
-This was the **inaugural session**. No code has been written yet. The following documentation was created from scratch:
+Created the complete product backlog and project infrastructure:
+- `/product-backlog/` folder with `README.md`, 10 epic files, and `BACKLOG-STATUS.md`
+- `CLAUDE.md` project guide, `session-handoff.md`, `.gitignore`
+- Pushed to `https://github.com/kushal-DL/chum`
 
-1. **Created `/product-backlog/` folder** with complete product backlog:
-   - `README.md` — App name suggestions, vision, tech stack, architecture diagram, epic overview
-   - `EPIC-01-audio-engine.md` through `EPIC-10-performance.md` — 10 detailed epic files with full user stories, acceptance criteria, technical implementation notes, known challenges, and workarounds
-   - `BACKLOG-STATUS.md` — Master status tracker for all 75 stories (310 total story points)
+### What Was Done Session 2 (2026-06-27, Part 2)
 
-2. **Story priorities assigned** (P0–P3) across all 75 stories in all epic files and BACKLOG-STATUS.md
+**Wrote all MVP source code** across 4 projects. Every file listed below is complete:
 
-3. **Created `CLAUDE.md`** — Project guide for Claude: tech stack, session protocol, backlog update rules, code conventions, MVP build order
+#### `src/Chum.Audio/`
+- `Models/AudioChunk.cs` — `AudioSource` enum + `AudioChunk` record
+- `Capture/IAudioCapture.cs` — Interface with `RawAudioAvailable` event
+- `Capture/LoopbackCapture.cs` — `WasapiLoopbackCapture` wrapper
+- `Capture/MicCapture.cs` — `WasapiCapture` wrapper (warns on Bluetooth HFP)
+- `Vad/EnergyVad.cs` — RMS energy VAD with hysteresis (−40/−45 dBFS thresholds)
+- `Pipeline/AudioConverter.cs` — IeeeFloat/PCM16/PCM32 → mono 16 kHz float32
+- `Pipeline/AudioPipeline.cs` — Full pipeline: pre-buffer (300ms), post-silence (600ms), max segment (25s), `Channel<AudioChunk>` output, `Pause()`/`Resume()`
 
-4. **Created `session-handoff.md`** (this file)
+#### `src/Chum.Transcription/`
+- `Models/TranscriptSegment.cs` — record with `SpeakerLabel` (Me/Remote)
+- `WhisperSttEngine.cs` — Whisper.net integration, model auto-download, hallucination filter, zeroes samples after transcription
+- `TranscriptBuffer.cs` — Thread-safe `LinkedList<TranscriptSegment>` with auto-eviction
+- `ContextExtractor.cs` — Token-budget-aware context builder (last 30s always included; 8000 token budget)
 
-5. **Pushed to GitHub** — `https://github.com/kushal-DL/chum` (branch: `main`)
+#### `src/Chum.Llm/`
+- `ILlmProvider.cs` — `LlmRequest` record + `ILlmProvider` interface (streaming)
+- `AnthropicLlmProvider.cs` — Direct `HttpClient` + SSE streaming, no SDK; vision support
+- `PromptBuilder.cs` — Meeting-optimised system prompt (≤150 words, no preamble)
 
-### What Has NOT Been Done
-- No `.sln` or `.csproj` files created yet
-- No source code written
-- No NuGet packages configured
-- No CI/CD pipeline set up
+#### `src/Chum.App/`
+- `Models/AppSettings.cs` — All user preferences (LLM, audio, hotkeys, overlay, behaviour)
+- `Services/SettingsService.cs` — JSON at `%APPDATA%\Chum\settings.json`
+- `Services/CredentialService.cs` — AdysTech DPAPI wrappers for 4 credential targets
+- `Services/HotkeyService.cs` — Win32 `WH_KEYBOARD_LL`, hold events, 300ms debounce
+- `Services/ModelDownloadService.cs` — Whisper model dir helper; Silero VAD download URL
+- `Services/MeetingOrchestrator.cs` — Wires all services together; runs transcription loop; handles all hotkey actions
+- `ViewModels/OverlayViewModel.cs` — INPC, `AppendResponseToken`, `SetListeningState`, `TranscriptLines`, `StatusColor`
+- `Views/OverlayWindow.xaml` + `.cs` — Transparent always-on-top WPF window, 4-row layout, pulsing indicator, streaming cursor, transcript expander
+- `Views/SettingsWindow.xaml` + `.cs` — Dark-themed settings: API key save/test, model combos, hotkey textboxes, opacity slider, behaviour checkboxes
+- `App.xaml` + `App.xaml.cs` — DI wiring, tray icon (`NotifyIcon` with context menu), startup flow (opens settings if no API key), `ShutdownMode="OnExplicitShutdown"`, Serilog file logging
+- `Assets/chum.ico` — Placeholder 32×32 icon (generated via System.Drawing)
+
+**BACKLOG-STATUS.md updated:** 116 SP 🔵 Built · 34 SP 🟡 Scaffolded · 160 SP 🔴 Yet to Start
 
 ---
 
-## Next Session — What To Do First
+## Immediate Next Step: Verify the Build
 
-### Immediate Priority: Scaffold the Solution
+**The .NET 8 SDK is NOT installed on this machine.** Only the runtime exists at `C:\Program Files\dotnet\` — there is no `sdk/` subdirectory. `dotnet build` will fail until the SDK is installed.
 
-Build in this order (all P0 MVP stories):
-
-**Step 1 — Solution scaffold**
+**Action required (user):** Install .NET 8 SDK from https://aka.ms/dotnet/download, then run:
+```powershell
+cd c:\Users\kushal.f.sharma\repos\chum
+dotnet build src\Chum.sln
 ```
-src/
-├── Chum.sln
-├── Chum.App/           WPF application, entry point
-├── Chum.Audio/         Class library — WASAPI capture + VAD
-├── Chum.Transcription/ Class library — Whisper STT + transcript buffer
-├── Chum.Llm/           Class library — ILlmProvider + Claude + OpenAI
-└── Chum.Tests/         xUnit test project
-```
-→ Updates: US-07-01 (scaffold settings), US-01-01, US-01-02, US-01-05 to 🟡 Scaffolded
 
-**Step 2 — Settings & API key management (US-07-01)**
-- `SettingsService` backed by `settings.json` in `%APPDATA%\Chum\`
-- `CredentialService` wrapping Windows Credential Manager
-- Settings panel window (basic — just API key entry to start)
-→ Updates: US-07-01 to 🔵 Built
+Expected first-run issues:
+1. NuGet restore (first run — needs internet access)
+2. Whisper.net.Runtime may need GPU-specific package configuration
+3. Possible WPF-specific warnings (harmless)
 
-**Step 3 — Audio capture (US-01-01, US-01-02)**
-- `WasapiLoopbackCapture` + `WasapiCapture`
-- Resample to 16kHz/16-bit mono
-- `Channel<AudioChunk>` ring buffer
-→ Updates: US-01-01, US-01-02, US-01-05 to 🔵 Built
+---
 
-**Step 4 — VAD (US-01-04)**
-- Silero VAD ONNX model integration
-- Gated segment extraction from audio buffer
-→ Updates: US-01-04 to 🔵 Built
+## What To Build Next (After Successful Build)
 
-**Step 5 — Whisper STT (US-02-01, US-02-03)**
-- Whisper.NET integration; `small` model
-- `TranscriptBuffer` with rolling 10-min window
-→ Updates: US-02-01, US-02-03 to 🔵 Built
+### Priority 1 — Fix any compile errors
+Source files were written without a live compiler. Likely issues:
+- Missing `using` statements
+- Namespace conflicts (e.g., `System.Windows.Application` vs `Application`)
+- NAudio API surface mismatches (verify event/property names)
 
-**Step 6 — LLM integration (US-03-01, US-03-04, US-03-05)**
-- `ILlmProvider` interface
-- `AnthropicLlmProvider` with streaming
-- Meeting system prompt
-→ Updates: US-03-01, US-03-04, US-03-05 to 🔵 Built
+### Priority 2 — First Run Test
+1. Launch app → settings window should open (no API key yet)
+2. Enter Anthropic key → click Test → should get "OK"  
+3. Close settings → overlay window should appear bottom-right
+4. Right-click tray icon → Start Capture → audio capture begins
 
-**Step 7 — Hotkey (US-04-01)**
-- LowLevel keyboard hook on STA thread
-- Hold-start / hold-end events
-→ Updates: US-04-01 to 🔵 Built
+### Priority 3 — Screen Capture (EPIC-06)
+Next major feature after MVP works end-to-end. Start with:
+- `US-06-01` — WGC API screen capture (`Windows.Graphics.Capture`)
+- `US-06-07` — Multimodal LLM vision request (already wired in `AnthropicLlmProvider`)
+- `US-06-02` — Clipboard image monitoring (simplest workaround for Teams DRM)
 
-**Step 8 — Overlay UI (US-05-01, US-05-02)**
-- WPF transparent `Topmost` window
-- Response `FlowDocument` panel with streaming append
-- Wire hotkey → LLM → overlay
-→ Updates: US-05-01, US-05-02 to 🔵 Built
-
-At the end of Step 8, the core MVP loop is functional: hold hotkey → transcript context → LLM → streamed response in overlay.
+### Priority 4 — Silero VAD (US-01-04 → 🔵 Built)
+Replace `EnergyVad` with proper Silero ONNX model for much better VAD accuracy.
+- Model already has download URL in `ModelDownloadService`
+- ONNX runtime already in `Chum.Audio.csproj`
 
 ---
 
@@ -138,36 +144,65 @@ At the end of Step 8, the core MVP loop is functional: hold hotkey → transcrip
 
 | Decision | Why Deferred | When To Revisit |
 |----------|-------------|-----------------|
-| Screen capture / vision (EPIC-06) | Teams DRM complexity; not in MVP | After core audio loop works (v0.2) |
-| Multi-platform (macOS) | WPF is Windows-only; Tauri would be needed | After v1.0 ships on Windows |
-| Speaker diarization (multiple remote voices) | Requires pyannote.audio or NeMo — complex | v0.3 |
-| Auto-update mechanism | Out of scope until distributable build exists | After first public release |
-| Crash reporting (Sentry) | Opt-in feature; not needed for personal use | v0.5 |
+| Screen capture / vision (EPIC-06) | Teams DRM complexity; not in MVP | After audio loop verified working |
+| Silero VAD | EnergyVad unblocks MVP; Silero is better | After first successful build |
+| OpenAI API provider | ILlmProvider interface ready; just needs impl | v0.2 |
+| Multi-platform (macOS) | WPF is Windows-only | After v1.0 |
+| Speaker diarization | Requires pyannote.audio or NeMo | v0.3 |
+| Auto-update mechanism | Out of scope until distributable build | After first public release |
 
 ---
 
-## Open Questions (Resolve in Next Session)
+## File Map (Key Source Files)
 
-1. **Project layout preference** — Monorepo with `src/` subfolder, or source at repo root?
-2. **Whisper model hosting** — Download from GitHub Releases or Hugging Face on first run?
-3. **Default LLM model** — Claude Haiku 4.5 (fast/cheap) or Sonnet 4.6 (better quality) as the default?
-4. **Overlay position default** — Bottom-right corner, or centered-top?
-5. **Testing approach** — Unit tests for domain logic only, or integration tests with virtual audio devices?
+```
+src/
+├── Chum.sln
+├── Chum.Audio/
+│   ├── Chum.Audio.csproj              (NAudio 2.2.1, OnnxRuntime 1.19.2)
+│   ├── Models/AudioChunk.cs
+│   ├── Capture/IAudioCapture.cs
+│   ├── Capture/LoopbackCapture.cs
+│   ├── Capture/MicCapture.cs
+│   ├── Vad/EnergyVad.cs
+│   └── Pipeline/AudioPipeline.cs + AudioConverter.cs
+├── Chum.Transcription/
+│   ├── Chum.Transcription.csproj      (Whisper.net 1.7.0)
+│   ├── Models/TranscriptSegment.cs
+│   ├── WhisperSttEngine.cs
+│   ├── TranscriptBuffer.cs
+│   └── ContextExtractor.cs
+├── Chum.Llm/
+│   ├── Chum.Llm.csproj                (no external packages)
+│   ├── ILlmProvider.cs
+│   ├── AnthropicLlmProvider.cs
+│   └── PromptBuilder.cs
+└── Chum.App/
+    ├── Chum.App.csproj                (WPF+WinForms, AdysTech.CredentialManager, Serilog)
+    ├── Models/AppSettings.cs
+    ├── Services/
+    │   ├── SettingsService.cs
+    │   ├── CredentialService.cs
+    │   ├── HotkeyService.cs
+    │   ├── ModelDownloadService.cs
+    │   └── MeetingOrchestrator.cs
+    ├── ViewModels/OverlayViewModel.cs
+    ├── Views/
+    │   ├── OverlayWindow.xaml + .cs
+    │   └── SettingsWindow.xaml + .cs
+    ├── Assets/chum.ico                (placeholder 32×32 blue dot)
+    ├── App.xaml                       (ShutdownMode=OnExplicitShutdown)
+    └── App.xaml.cs                    (DI wiring, tray icon, startup logic)
+```
 
 ---
 
 ## Context for Next Claude Session
 
-When you start a new session on this project:
+1. All product backlog is in `product-backlog/` — `BACKLOG-STATUS.md` has current status per story
+2. All MVP source code is written in `src/` — **needs .NET 8 SDK to build**
+3. Read `CLAUDE.md` for code conventions and the mandatory backlog update protocol
+4. Kushal is in a corporate environment, Windows 11, primary meeting app is Microsoft Teams
+5. Repo: `https://github.com/kushal-DL/chum`
 
-1. The entire product backlog is in `product-backlog/` — read `README.md` for overview
-2. All 75 stories have priorities and statuses in `product-backlog/BACKLOG-STATUS.md`
-3. The app does not have any code yet — you're starting from scratch
-4. Read `CLAUDE.md` for code conventions, the MVP build order, and the backlog update protocol
-5. The user (Kushal) is building this for personal use in corporate meetings — the primary meeting app is Microsoft Teams
-
-**Kushal's context:** Corporate environment, Windows 11, likely has Teams + Google Meet. Building this as a personal productivity tool. Repo is at `https://github.com/kushal-DL/chum`.
-
----
-
-*Last updated: 2026-06-27 by Claude (inaugural session — backlog creation and GitHub push)*
+*Last updated: 2026-06-27 by Claude (Session 2 — complete MVP source code written)*
