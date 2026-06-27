@@ -25,7 +25,10 @@ public sealed class SileroVad : IVad, IDisposable
 
     public SileroVad(string modelPath, float startThreshold = 0.5f, float endThreshold = 0.35f)
     {
-        _session = new InferenceSession(modelPath);
+        // Limit OnnxRuntime to 2 intra-op threads so VAD doesn't saturate CPU on low-end hardware.
+        var opts = new SessionOptions { IntraOpNumThreads = 2,
+            GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL };
+        _session = new InferenceSession(modelPath, opts);
         _startThreshold = startThreshold;
         _endThreshold = endThreshold;
     }

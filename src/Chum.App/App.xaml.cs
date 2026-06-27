@@ -198,11 +198,13 @@ public partial class App : System.Windows.Application
         }
 
         // Model not yet downloaded — start background download for next launch, use EnergyVad now
-        Log.Information("Silero VAD model not found — using EnergyVad; downloading model in background");
+        Log.Information("Silero VAD model not found — using EnergyVad; downloading model in background (5s delay)");
         _ = Task.Run(async () =>
         {
             try
             {
+                // Defer 5s so the download doesn't compete with app startup on the network/CPU
+                await Task.Delay(TimeSpan.FromSeconds(5));
                 var dl = new ModelDownloadService(new HttpClient());
                 await dl.EnsureSileroAsync();
                 Log.Information("Silero VAD model download complete — will use on next launch");

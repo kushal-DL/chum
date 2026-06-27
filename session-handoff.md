@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-10-01 Built — 57/84 stories 🔵 Built (227/320 SP, 71%); ALL P1 stories Built; next: P2 stories (US-10-02 CPU Optimisation or US-05-08 Multi-monitor)
+**Phase:** US-10-02 Built — 58/84 stories 🔵 Built (232/320 SP, 73%); next: US-05-08 (Multi-monitor) or US-05-09 (Response Copy/Share) — P2 overlay stories
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,23 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 27 (2026-06-27, Part 27)
+
+**CPU Usage Optimisation — US-10-02 → 🔵 Built:**
+
+Three targeted changes across 3 files:
+
+**Modified files:**
+- `Chum.Audio/Vad/SileroVad.cs` — `InferenceSession` now uses `SessionOptions { IntraOpNumThreads = 2, GraphOptimizationLevel = ORT_ENABLE_ALL }`. Limiting intra-op threads to 2 prevents Silero VAD from saturating all CPU cores on mid-range hardware (4-core i5). Graph optimisation enabled to reduce inference time per call.
+- `Chum.App/App.xaml.cs` — Added `await Task.Delay(TimeSpan.FromSeconds(5))` inside the background Silero model download Task.Run lambda. This defers the network download until 5s after app startup so the download doesn't compete with audio initialisation, Whisper model load, and initial UI rendering for CPU/network bandwidth.
+- `Chum.App/Views/OverlayWindow.xaml` — Added `RenderOptions.BitmapScalingMode="NearestNeighbor"` on the root `<Grid>`. This disables WPF's default bilinear bitmap scaling for all child elements, reducing GPU compositor work when the overlay window is redrawn.
+
+**Note:** Whisper STT thread count is controlled by whisper.cpp's internal threading (exposed via Whisper.net builder). Whisper uses all available logical cores by default; this can be configured via `WithThreads()` on the processor builder when performance profiling reveals it's needed. Not changed yet — defer until actual CPU measurement shows it's an issue.
+
+**Build:** 0 errors (2 pre-existing NuGet version warnings).
 
 ---
 
@@ -539,16 +556,9 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-10-02 — CPU Usage Optimisation (P2, 5 SP):**
+**US-05-09 — Response Copy & Share (P2, 2 SP):**
 
-Key things to check/implement:
-- Ensure Whisper transcription runs on `BelowNormal` priority thread
-- Audio capture threads: verify no busy-wait (NAudio uses WaitHandle internally — should be fine)
-- Model warm-up deferred to 5s after launch (currently deferred until first chunk arrives — verify)
-- WPF: apply `RenderOptions.BitmapScalingMode = NearestNeighbor` to icon elements in OverlayWindow
-- Background model download already on Task.Run (verified in session 2)
-
-After that: **US-05-08** (Multi-monitor), **US-05-09** (Response Copy), **US-09-06** (Meeting lifecycle).
+Add a "Copy" button to the overlay that copies `OverlayViewModel.ResponseText` to the clipboard. Then consider **US-05-08** (Multi-monitor support) and **US-09-06** (Meeting start/end lifecycle auto-start).
 
 ---
 

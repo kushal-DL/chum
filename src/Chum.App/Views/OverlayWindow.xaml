@@ -43,7 +43,7 @@
     <!-- Root: semi-transparent dark panel -->
     <Border Background="#CC1A1A1A" CornerRadius="10"
             Visibility="{Binding OverlayVisibility}">
-        <Grid>
+        <Grid RenderOptions.BitmapScalingMode="NearestNeighbor">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>  <!-- Header / drag bar -->
                 <RowDefinition Height="*"/>      <!-- Response area -->
