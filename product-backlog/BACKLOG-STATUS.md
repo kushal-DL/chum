@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 73 | 275 SP | 86% |
+| 🔵 Built | 74 | 280 SP | 88% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
-| 🔴 Yet to Start | 11 | 45 SP | 14% |
+| 🔴 Yet to Start | 10 | 40 SP | 12% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -38,8 +38,8 @@
 | 07 · Settings & Configuration | 10 | 27 SP | — | 10 (27 SP) | — | — |
 | 08 · Privacy & Security | 11 | 36 SP | — | 11 (36 SP) | — | — |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
-| 10 · Performance & Reliability | 10 | 40 SP | — | 6 (24 SP) | — | 4 (16 SP) |
-| **Total** | **84** | **320 SP** | **0** | **73 (275 SP)** | **0** | **11 (45 SP)** |
+| 10 · Performance & Reliability | 10 | 40 SP | — | 7 (29 SP) | — | 3 (11 SP) |
+| **Total** | **84** | **320 SP** | **0** | **74 (280 SP)** | **0** | **10 (40 SP)** |
 
 ---
 
@@ -54,8 +54,8 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.Llm | Epic 03 | 8 | 30 SP | 8 (30 SP) | — | — |
 | Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/02/04/05 | 43 | 158 SP | 40 (147 SP) | — | 3 (11 SP) |
 | Chum.Service + Chum.Installer | US-08-09, 08-10, 08-11 | 3 | 12 SP | 3 (12 SP) | — | — |
-| Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 5 (18 SP) | — | 9 (36 SP) |
-| **Total** | | **84** | **320 SP** | **73 (275 SP)** | **0** | **11 (45 SP)** |
+| Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 6 (23 SP) | — | 8 (31 SP) |
+| **Total** | | **84** | **320 SP** | **74 (280 SP)** | **0** | **10 (40 SP)** |
 
 ---
 
@@ -65,9 +65,9 @@ Each story is attributed to the project where its primary implementation lives.
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
 | P1 — High | 34 | 125 SP | 34 (125 SP) | — | — |
-| P2 — Medium | 27 | 91 SP | 18 (58 SP) | — | 9 (33 SP) |
+| P2 — Medium | 27 | 91 SP | 19 (63 SP) | — | 8 (28 SP) |
 | P3 — Low | 7 | 20 SP | 5 (8 SP) | — | 2 (12 SP) |
-| **Total** | **84** | **320 SP** | **73 (275 SP)** | **0** | **11 (45 SP)** |
+| **Total** | **84** | **320 SP** | **74 (280 SP)** | **0** | **10 (40 SP)** |
 
 ---
 
@@ -242,7 +242,7 @@ Each story is attributed to the project where its primary implementation lives.
 |----------|-------|----------|--------|----|-------|
 | US-10-01 | Audio Pipeline Latency Profiling | P1 | 🔵 Built | 3 | PipelineLatencyTracker.cs: rolling 1000-segment buffer, p50/p90/p99; Stopwatch around TranscribeAsync; 5-min percentile log; slow alert (>15s × 3 consecutive) shown in overlay |
 | US-10-02 | CPU Usage Optimisation | P2 | 🔵 Built | 5 | SileroVad: IntraOpNumThreads=2; Silero download deferred 5s post-launch; OverlayWindow root Grid: RenderOptions.BitmapScalingMode=NearestNeighbor |
-| US-10-03 | GPU Acceleration for Whisper | P2 | 🔴 Yet to Start | 5 | |
+| US-10-03 | GPU Acceleration for Whisper | P2 | 🔵 Built | 5 | DXGI adapter enumeration detects dedicated GPU ≥500MB VRAM in App.xaml.cs; WhisperSttEngine.TryCudaDetect() probes nvcuda.dll for CUDA driver presence; AccelerationMode property reports CPU/GPU status; About panel shows "Whisper acceleration"; GPU runtime enabled by swapping to Whisper.net.Runtime.Cuda NuGet package |
 | US-10-04 | Memory Management for Long Meetings | P1 | 🔵 Built | 5 | Response history capped 20→10; periodic GC.Collect(Gen2) every 10 min in MeetingOrchestrator with WorkingSet logging; transcript/audio buffers already bounded |
 | US-10-05 | Graceful Error Recovery | P1 | 🔵 Built | 5 | Global exception handlers (AppDomain/Dispatcher/UnobservedTask); LLM retry with backoff (1s/2s/4s, 3 attempts); transcription loop auto-restart; emergency transcript export on crash |
 | US-10-06 | End-to-End Latency Benchmark | P2 | 🔵 Built | 3 | LLM first-token latency tracking |
@@ -251,7 +251,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-10-09 | Auto-Update Mechanism | P2 | 🔴 Yet to Start | 5 | |
 | US-10-10 | Low-Power Mode | P3 | 🔴 Yet to Start | 3 | |
 
-**Epic 10 Total:** 40 SP · 0 Done · 21 Built · 0 Scaffolded · 19 Yet to Start
+**Epic 10 Total:** 40 SP · 0 Done · 29 Built · 0 Scaffolded · 11 Yet to Start
 
 ---
 
@@ -266,8 +266,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P2 Stories | 27 stories · 91 SP |
 | P3 Stories | 7 stories · 20 SP |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 71 stories · 271 SP (85%) |
+| 🔵 Built | 74 stories · 280 SP (88%) |
 | 🟡 Scaffolded | 0 stories · 0 SP (0%) |
-| 🔴 Yet to Start | 13 stories · 49 SP (15%) |
+| 🔴 Yet to Start | 10 stories · 40 SP (12%) |
 
-*Last updated: 2026-06-28 — Session 40: US-08-10 (Windows Service Installer) built — all P0+P1 stories built, no scaffolded stories remain*
+*Last updated: 2026-06-28 — Session 43: US-10-03 (GPU Acceleration for Whisper) built — 74/84 stories built*

@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-07-09 Built — 73/84 stories 🔵 Built (275/320 SP, 86%) — All P0+P1 stories built; Epics 02, 07 now fully built
+**Phase:** US-10-03 Built — 74/84 stories 🔵 Built (280/320 SP, 88%) — All P0+P1 stories built; Epics 02, 07 fully built
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,29 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 43 (2026-06-28, Part 43)
+
+**GPU Acceleration for Whisper — US-10-03 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.Transcription/WhisperSttEngine.cs`:
+  - Added `public string AccelerationMode { get; private set; }` property (reports "CPU", "CPU (CUDA drivers detected — add Whisper.net.Runtime.Cuda to enable GPU)").
+  - Added `public static bool TryCudaDetect(out string? adapterName)` static method: probes `nvcuda.dll` via `NativeLibrary.TryLoad` to detect NVIDIA CUDA drivers without any P/Invoke boilerplate.
+  - `InitializeAsync` sets `AccelerationMode` based on `TryCudaDetect()` result and logs it.
+  - Note: In Whisper.net 1.7.x, GPU acceleration is runtime-only (swap `Whisper.net.Runtime` for `Whisper.net.Runtime.Cuda` NuGet to activate CUDA). No builder API exists for GPU layers in this version.
+- `Chum.App/App.xaml.cs`:
+  - Added `DetectDedicatedGpu(out string gpuName)` using `Vortice.DXGI.DXGI.CreateDXGIFactory1()` + adapter enumeration. Returns true if a non-software adapter with ≥500MB dedicated VRAM is found. GPU name + VRAM logged at startup.
+- `Chum.App/Services/MeetingOrchestrator.cs`:
+  - Added `public string GetSttAccelerationMode() => _stt.AccelerationMode;` public accessor.
+- `Chum.App/Views/AboutWindow.xaml`:
+  - Added 13th row "Whisper acceleration" bound to `AccelLabel`. Height 480 → 510.
+- `Chum.App/Views/AboutWindow.xaml.cs`:
+  - Populates `AccelLabel` from `app.Orchestrator?.GetSttAccelerationMode()`. Includes in "Copy diagnostics" text as "Whisper accel: ...".
+
+**Build:** 0 errors, 6 pre-existing warnings (unchanged).
 
 ---
 
@@ -899,11 +922,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-10-03 — GPU Acceleration for Whisper (P2, 5 SP):**
+**US-09-02 — Platform-Specific Audio Handling (P2, 3 SP):**
 
-Accelerate Whisper STT via CUDA or DirectML so transcription keeps pace with speech on CPU-limited hardware. Whisper.net supports `WithGpuLayers()` and `WithCudaLayers()` builder methods. Implementation: detect CUDA/DirectML availability at startup, prefer GPU if found, fall back to CPU silently. Surface "GPU / CPU" status in the About & Diagnostics panel.
+Handle edge cases where WASAPI loopback fails (e.g., devices in exclusive mode). Current implementation shows a basic error. This story should: detect when loopback fails with an ACCESS_DENIED / device-busy error, prompt the user to install VB-Cable (or similar virtual audio device), and provide a fallback path. See EPIC-09-platform-compatibility.md for details.
 
-Other P2 candidates: US-06-04 (Region Selection/Snip, 5 SP), US-06-05 (UIA Teams Captions, 5 SP), US-09-02 (Platform Audio Handling, 3 SP).
+Other P2 candidates: US-06-04 (Region Selection/Snip, 5 SP), US-06-05 (UIA Teams Captions, 5 SP), US-09-05 (Teams Auto-Captions via UIA, 5 SP).
 
 ---
 

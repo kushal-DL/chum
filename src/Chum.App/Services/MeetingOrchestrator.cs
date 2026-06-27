@@ -457,6 +457,8 @@ public sealed class MeetingOrchestrator : IDisposable
         Serilog.Log.Information("Active template switched to '{Name}'", t.Name);
     }
 
+    public string GetSttAccelerationMode() => _stt.AccelerationMode;
+
     public string GetTranscriptExportText()
     {
         var segments = _transcript.GetAll();

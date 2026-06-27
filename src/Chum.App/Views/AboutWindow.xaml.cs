@@ -26,6 +26,7 @@ public partial class AboutWindow : Window
         ProviderLabel.Text = s.LocalOnlyMode ? "Ollama (local)" : s.LlmProvider;
         ModelLabel.Text = s.LocalOnlyMode ? s.OllamaModel : s.LlmModel;
         WhisperModelLabel.Text = s.WhisperModel;
+        AccelLabel.Text = app.Orchestrator?.GetSttAccelerationMode() ?? "CPU";
 
         if (app.Orchestrator is { } orch)
         {
@@ -92,6 +93,7 @@ public partial class AboutWindow : Window
         sb.AppendLine($"LLM provider : {(s.LocalOnlyMode ? "Ollama (local)" : s.LlmProvider)}");
         sb.AppendLine($"LLM model    : {(s.LocalOnlyMode ? s.OllamaModel : s.LlmModel)}");
         sb.AppendLine($"Whisper model: {s.WhisperModel}");
+        sb.AppendLine($"Whisper accel: {(orch?.GetSttAccelerationMode() ?? "CPU")}");
 
         if (orch is not null)
         {

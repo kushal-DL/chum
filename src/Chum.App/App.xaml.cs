@@ -131,6 +131,8 @@ public partial class App : System.Windows.Application
         var modelType = Enum.TryParse<GgmlType>(Settings.Current.WhisperModel, out var gt) ? gt : GgmlType.Small;
         var modelDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Chum", "Models");
+        bool hasGpu = DetectDedicatedGpu(out string gpuName);
+        Log.Information("GPU detection: {HasGpu} — {GpuName}", hasGpu, gpuName);
         var stt = new WhisperSttEngine(modelDir, modelType);
 
         var retentionWindow = TimeSpan.FromMinutes(Settings.Current.TranscriptRetentionMinutes);
@@ -430,6 +432,40 @@ public partial class App : System.Windows.Application
             Log.Error(ex, "Failed to export emergency transcript");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Enumerates DXGI adapters and returns true if a dedicated GPU with ≥500 MB VRAM is found.
+    /// The GPU name is written to <paramref name="gpuName"/>. Uses Vortice.DXGI (already in scope
+    /// for DxgiScreenCapture). Returns false + empty name in VMs or on systems with no discrete GPU.
+    /// </summary>
+    private static bool DetectDedicatedGpu(out string gpuName)
+    {
+        gpuName = "none";
+        try
+        {
+            using var factory = Vortice.DXGI.DXGI.CreateDXGIFactory1<Vortice.DXGI.IDXGIFactory1>();
+            for (int i = 0; factory.EnumAdapters1(i, out var adapter).Success; i++)
+            {
+                using (adapter)
+                {
+                    var desc = adapter.Description1;
+                    // Skip the "Microsoft Basic Render Driver" (software adapter)
+                    if ((desc.Flags & Vortice.DXGI.AdapterFlags.Software) != 0) continue;
+                    long vram = (long)desc.DedicatedVideoMemory;
+                    if (vram >= 500 * 1024 * 1024) // 500 MB minimum for Whisper small
+                    {
+                        gpuName = $"{desc.Description.TrimEnd('\0')} ({vram / (1024 * 1024)} MB VRAM)";
+                        return true;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "GPU detection via DXGI failed — assuming CPU-only");
+        }
+        return false;
     }
 
     private static void ConfigureLogging()

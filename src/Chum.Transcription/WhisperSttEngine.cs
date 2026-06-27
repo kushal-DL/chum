@@ -26,10 +26,30 @@ public sealed class WhisperSttEngine : IDisposable
     /// <summary>ISO language code detected by Whisper (e.g. "en", "es"). Null until first segment transcribed.</summary>
     public string? DetectedLanguage { get; private set; }
 
+    /// <summary>
+    /// Describes what acceleration is active: "CPU", "GPU (CUDA)", or "CPU (no CUDA drivers)".
+    /// In Whisper.net 1.7.x, GPU acceleration is determined by the native runtime:
+    ///   CPU runtime: Whisper.net.Runtime (default)
+    ///   GPU runtime: Whisper.net.Runtime.Cuda (add this NuGet package to enable CUDA)
+    /// This property reports whether the CUDA driver was detected on the host machine.
+    /// </summary>
+    public string AccelerationMode { get; private set; } = "CPU";
+
     public WhisperSttEngine(string modelDirectory, GgmlType modelType = GgmlType.Small)
     {
         _modelType = modelType;
         _modelPath = Path.Combine(modelDirectory, $"ggml-{modelType.ToString().ToLowerInvariant()}.bin");
+    }
+
+    /// <summary>
+    /// Detects whether a CUDA-capable GPU and driver are available by probing nvcuda.dll.
+    /// Returns the adapter name if found, null otherwise.
+    /// </summary>
+    public static bool TryCudaDetect(out string? adapterName)
+    {
+        adapterName = null;
+        return System.Runtime.InteropServices.NativeLibrary
+            .TryLoad("nvcuda.dll", typeof(WhisperSttEngine).Assembly, null, out _);
     }
 
     /// <summary>Downloads model if needed, then loads it. Call once at startup on a background thread.</summary>
@@ -51,8 +71,17 @@ public sealed class WhisperSttEngine : IDisposable
             .WithLanguage("auto")
             .Build();
 
+        // Whisper.net 1.7.x GPU acceleration is determined by which native runtime package is installed:
+        //   CPU: Whisper.net.Runtime (default — no CUDA)
+        //   GPU: Whisper.net.Runtime.Cuda (add this NuGet package; replaces the CPU DLLs)
+        // If nvcuda.dll is present the host has CUDA drivers; adding the Runtime.Cuda package would activate GPU.
+        AccelerationMode = TryCudaDetect(out _)
+            ? "CPU (CUDA drivers detected — add Whisper.net.Runtime.Cuda to enable GPU)"
+            : "CPU";
+
         _initialized = true;
-        Serilog.Log.Information("Whisper {Model} loaded from {Path}", _modelType, _modelPath);
+        Serilog.Log.Information("Whisper {Model} loaded from {Path} — acceleration: {Mode}",
+            _modelType, _modelPath, AccelerationMode);
     }
 
     /// <summary>
