@@ -1,0 +1,37 @@
+<!--
+  Chum Windows Installer (WiX v4)
+
+  Prerequisites:
+    dotnet tool install --global wix           (installs WiX v4 globally)
+    wix extension add WixToolset.UI.wixext
+    wix extension add WixToolset.Util.wixext
+
+  Build:
+    1. Publish the service and app first:
+         dotnet publish src\Chum.Service -r win-x64 -c Release -o src\Chum.Service\publish
+         dotnet publish src\Chum.App    -r win-x64 -c Release -o src\Chum.App\publish
+    2. Build the installer:
+         cd src\Chum.Installer
+         dotnet build   (or: wix build Package.wxs -d SvcPublishDir=..\Chum.Service\publish\ -d AppPublishDir=..\Chum.App\publish\)
+    3. Signed MSI output: bin\Release\ChumSetup.msi
+-->
+<Project Sdk="WixToolset.Sdk/4.0.5">
+
+  <PropertyGroup>
+    <OutputName>ChumSetup</OutputName>
+    <Platform>x64</Platform>
+    <!--
+      Publish the two projects first:
+        dotnet publish ..\Chum.Service -r win-x64 -c Release -o ..\Chum.Service\publish
+        dotnet publish ..\Chum.App    -r win-x64 -c Release -o ..\Chum.App\publish
+    -->
+    <SvcPublishDir>$(MSBuildProjectDirectory)\..\Chum.Service\publish\</SvcPublishDir>
+    <AppPublishDir>$(MSBuildProjectDirectory)\..\Chum.App\publish\</AppPublishDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext"   Version="4.0.5" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="4.0.5" />
+  </ItemGroup>
+
+</Project>

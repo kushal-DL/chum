@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chum Collaboration Host — WiX v4 Installer Package
+
+  What this installs:
+    %ProgramFiles%\Chum\Service\  ← ChumHostSvc.exe (Windows service)
+    %ProgramFiles%\Chum\App\      ← Chum.exe (WPF tray application)
+    %ProgramData%\Chum\           ← Runtime data directory (audit log)
+
+  What this registers:
+    Windows service: ChumHostSvc (auto-start, LocalSystem)
+    Event Log source: Chum (Application log)
+    Scheduled task: "Chum Tray Application" (ONLOGON, standard user)
+
+  Build:
+    cd src\Chum.Installer
+    dotnet build -c Release
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package
+    Name="Chum Collaboration Host"
+    Manufacturer="Chum Contributors"
+    Version="0.1.0.0"
+    UpgradeCode="D3A1F6B2-E4C9-47D8-A5B3-F2E1D0C8A7B6"
+    Scope="perMachine"
+    Compressed="yes">
+
+    <SummaryInformation
+      Description="Chum AI meeting co-pilot — service host and tray application." />
+
+    <!-- Block downgrade installations -->
+    <MajorUpgrade
+      DowngradeErrorMessage="A newer version of Chum Collaboration Host is already installed. Uninstall it before installing this version." />
+
+    <!-- Embed all files into the MSI (single-file installer) -->
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Require 64-bit Windows 10 (build 10240+) or later -->
+    <Launch
+      Condition="Installed OR (VersionNT64 &gt;= 1000)"
+      Message="Chum requires Windows 10 (64-bit) or later." />
+
+    <!-- ─────────────────────────────────────────────────────────────
+         Directory Structure
+         ───────────────────────────────────────────────────────────── -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLDIR" Name="Chum">
+        <Directory Id="SERVICE_DIR" Name="Service" />
+        <Directory Id="APP_DIR"     Name="App"     />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="PROGRAMDATA_CHUM" Name="Chum" />
+    </StandardDirectory>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         Components — Service (ChumHostSvc)
+         ───────────────────────────────────────────────────────────── -->
+    <ComponentGroup Id="ServiceComponents" Directory="SERVICE_DIR">
+
+      <!--
+        ChumHostSvc.exe is the primary service file.
+        ServiceInstall must be in the same Component as the service binary.
+      -->
+      <Component Id="ChumHostSvcBinary"
+                 Guid="B5C6D7E8-F9A0-1B2C-3D4E-5F6A7B8C9D0E">
+        <File Id="ChumHostSvcExe"
+              Source="$(var.SvcPublishDir)ChumHostSvc.exe"
+              KeyPath="yes" />
+
+        <!-- Register ChumHostSvc as a Windows service -->
+        <ServiceInstall
+          Id="ChumSvcInstall"
+          Name="ChumHostSvc"
+          DisplayName="Chum Collaboration Host"
+          Description="Chum AI meeting co-pilot: audio capture, transcription, and LLM integration. Installed and managed by IT."
+          Start="auto"
+          Type="ownProcess"
+          ErrorControl="normal"
+          Account="LocalSystem"
+          Vital="yes">
+          <!-- Restart on failure: 10s delay, reset counter after 1 day -->
+          <util:ServiceConfig
+            FirstFailureActionType="restart"
+            SecondFailureActionType="restart"
+            ThirdFailureActionType="none"
+            ResetPeriodInDays="1"
+            RestartServiceDelayInSeconds="10" />
+        </ServiceInstall>
+
+        <!-- Start on install; stop and remove on uninstall -->
+        <ServiceControl
+          Id="ChumSvcControl"
+          Name="ChumHostSvc"
+          Start="install"
+          Stop="both"
+          Remove="uninstall"
+          Wait="yes" />
+
+        <!--
+          Register Event Log source "Chum" under Application log.
+          TypesSupported=7 allows Information (4) + Warning (2) + Error (1).
+          EventMessageFile points to EventCreate.exe as a generic message provider
+          (production builds should point to a real message DLL).
+        -->
+        <RegistryKey Root="HKLM"
+                     Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Chum">
+          <RegistryValue Type="expandable"
+                         Name="EventMessageFile"
+                         Value="%SystemRoot%\System32\EventCreate.exe" />
+          <RegistryValue Type="integer"
+                         Name="TypesSupported"
+                         Value="7" />
+        </RegistryKey>
+      </Component>
+
+      <!-- Companion runtime files -->
+      <Component Id="ChumSvcDepsJson"
+                 Guid="C6D7E8F9-A0B1-2C3D-4E5F-6A7B8C9D0E1F">
+        <File Source="$(var.SvcPublishDir)ChumHostSvc.deps.json" KeyPath="yes" />
+      </Component>
+
+      <Component Id="ChumSvcRuntimeConfig"
+                 Guid="D7E8F9A0-B1C2-3D4E-5F6A-7B8C9D0E1F2A">
+        <File Source="$(var.SvcPublishDir)ChumHostSvc.runtimeconfig.json" KeyPath="yes" />
+      </Component>
+
+      <!--
+        Auto-generate one Component per DLL in the service publish output.
+        WiX v4 glob harvesting: each matched file gets a stable auto-GUID.
+        For recursive (runtimes\win-x64\native\*.dll) add a second Files entry.
+      -->
+      <Files Include="$(var.SvcPublishDir)*.dll" />
+      <Files Include="$(var.SvcPublishDir)runtimes\win-x64\native\*.dll"
+             Subdirectory="runtimes\win-x64\native" />
+
+    </ComponentGroup>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         Components — Tray Application (Chum.App)
+         ───────────────────────────────────────────────────────────── -->
+    <ComponentGroup Id="AppComponents" Directory="APP_DIR">
+
+      <Component Id="ChumAppBinary"
+                 Guid="E8F9A0B1-C2D3-4E5F-6A7B-8C9D0E1F2A3B">
+        <File Id="ChumAppExe"
+              Source="$(var.AppPublishDir)Chum.exe"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="ChumAppDepsJson"
+                 Guid="F9A0B1C2-D3E4-5F6A-7B8C-9D0E1F2A3B4C">
+        <File Source="$(var.AppPublishDir)Chum.deps.json" KeyPath="yes" />
+      </Component>
+
+      <Component Id="ChumAppRuntimeConfig"
+                 Guid="A0B1C2D3-E4F5-6A7B-8C9D-0E1F2A3B4C5D">
+        <File Source="$(var.AppPublishDir)Chum.runtimeconfig.json" KeyPath="yes" />
+      </Component>
+
+      <Files Include="$(var.AppPublishDir)*.dll" />
+
+    </ComponentGroup>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         Components — %PROGRAMDATA%\Chum\  (runtime data)
+         ───────────────────────────────────────────────────────────── -->
+    <ComponentGroup Id="ProgramDataComponents" Directory="PROGRAMDATA_CHUM">
+      <Component Id="ProgramDataDir"
+                 Guid="B1C2D3E4-F5A6-7B8C-9D0E-1F2A3B4C5D6E">
+        <CreateFolder>
+          <!-- SYSTEM and Administrators: full control (service writes audit log) -->
+          <util:PermissionEx User="SYSTEM"         GenericAll="yes" />
+          <util:PermissionEx User="Administrators" GenericAll="yes" />
+          <!-- Standard users: read-only (view audit log entries) -->
+          <util:PermissionEx User="Users" Read="yes" Synchronize="yes" />
+        </CreateFolder>
+      </Component>
+    </ComponentGroup>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         Feature Tree
+         ───────────────────────────────────────────────────────────── -->
+    <Feature Id="ProductFeature"
+             Title="Chum Collaboration Host"
+             Description="Installs the Chum service, tray application, and runtime data directory."
+             Level="1">
+      <ComponentGroupRef Id="ServiceComponents"     />
+      <ComponentGroupRef Id="AppComponents"         />
+      <ComponentGroupRef Id="ProgramDataComponents" />
+    </Feature>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         Custom Actions
+
+         Pattern: SetProperty (immediate, has session) pre-formats the
+         command string using MSI properties; the deferred CustomAction
+         executes [CustomActionData] which equals the formatted string.
+         ───────────────────────────────────────────────────────────── -->
+
+    <!-- Write EventId 1000 to Windows Application Event Log on install -->
+    <SetProperty
+      Id="WriteInstallEvent"
+      Sequence="execute"
+      Before="WriteInstallEvent"
+      Value="[SystemFolder]cmd.exe /C EventCreate.exe /T INFORMATION /ID 1000 /L APPLICATION /SO Chum /D &quot;Chum Collaboration Host v[ProductVersion] installed successfully.&quot;" />
+
+    <CustomAction
+      Id="WriteInstallEvent"
+      Directory="INSTALLDIR"
+      ExeCommand="[CustomActionData]"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <!-- Create scheduled task: Chum tray app starts at every user logon -->
+    <SetProperty
+      Id="CreateTrayTask"
+      Sequence="execute"
+      Before="CreateTrayTask"
+      Value="[SystemFolder]cmd.exe /C schtasks /Create /F /TN &quot;Chum Tray Application&quot; /TR &quot;[APP_DIR]Chum.exe&quot; /SC ONLOGON /RL LIMITED" />
+
+    <CustomAction
+      Id="CreateTrayTask"
+      Directory="INSTALLDIR"
+      ExeCommand="[CustomActionData]"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <!-- Delete the scheduled task on uninstall -->
+    <SetProperty
+      Id="DeleteTrayTask"
+      Sequence="execute"
+      Before="DeleteTrayTask"
+      Value="[SystemFolder]cmd.exe /C schtasks /Delete /F /TN &quot;Chum Tray Application&quot;" />
+
+    <CustomAction
+      Id="DeleteTrayTask"
+      Directory="INSTALLDIR"
+      ExeCommand="[CustomActionData]"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <!-- Schedule the custom actions in the execute sequence -->
+    <InstallExecuteSequence>
+      <!-- After service files are installed and service is running -->
+      <Custom Action="WriteInstallEvent" After="StartServices">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CreateTrayTask"    After="WriteInstallEvent">NOT Installed AND NOT REMOVE</Custom>
+      <!-- Before service is stopped/removed on uninstall -->
+      <Custom Action="DeleteTrayTask"    Before="StopServices">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         Installer UI
+         WixUI_InstallDir: shows license, then install-directory picker.
+         UAC elevation is required automatically for perMachine packages.
+         ───────────────────────────────────────────────────────────── -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLDIR" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+  </Package>
+
+</Wix>

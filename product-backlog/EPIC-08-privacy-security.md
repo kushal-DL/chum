@@ -13,7 +13,7 @@
 | US-08-07 | Screen Capture Privacy Safeguards | P1 — High | 🔵 Built | 2 |
 | US-08-08 | Network Traffic Transparency | P2 — Medium | 🔵 Built | 3 |
 | US-08-09 | Audit Log | P3 — Low | 🔵 Built | 2 |
-| US-08-10 | Windows Service Installer (Admin-Elevated) | P1 — High | 🟡 Scaffolded | 5 |
+| US-08-10 | Windows Service Installer (Admin-Elevated) | P1 — High | 🔵 Built | 5 |
 | US-08-11 | Process Identity — Run as Named System Service | P1 — High | 🔵 Built | 5 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  

@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-01-06 Built — 70/84 stories 🔵 Built (266/320 SP, 83%) — Epic 01 (Audio) fully built
+**Phase:** US-08-10 Built — 71/84 stories 🔵 Built (271/320 SP, 85%) — All P0+P1 stories built, no scaffolded stories remain
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,40 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 40 (2026-06-28, Part 40)
+
+**Windows Service Installer — US-08-10 → 🔵 Built:**
+
+**New files:**
+- `src/Chum.Installer/Chum.Installer.wixproj` — WiX v4 MSBuild SDK project (`WixToolset.Sdk/4.0.5`); references `WixToolset.UI.wixext` and `WixToolset.Util.wixext`; defines `SvcPublishDir` and `AppPublishDir` properties pointing to `dotnet publish` output.
+- `src/Chum.Installer/Package.wxs` — Complete WiX v4 installer definition:
+  - Installs `ChumHostSvc.exe` to `%ProgramFiles%\Chum\Service\` with `ServiceInstall` (auto-start, LocalSystem) + `ServiceControl` (start on install, stop+remove on uninstall); failure recovery via `util:ServiceConfig` (restart on 1st+2nd failure, 10s delay, 1-day reset).
+  - Installs `Chum.exe` tray app to `%ProgramFiles%\Chum\App\`; all DLLs via `<Files Include="*.dll" />` glob.
+  - Creates `%PROGRAMDATA%\Chum\` with ACLs via `util:PermissionEx`: SYSTEM+Administrators full control, Users read-only.
+  - Registers Event Log source `Chum` in `HKLM\...\EventLog\Application\Chum` (TypesSupported=7).
+  - Custom action: writes EventId 1000 to Application log on install completion.
+  - Custom action: creates scheduled task `"Chum Tray Application"` via `schtasks` (ONLOGON, LIMITED) on install; deletes it on uninstall.
+  - WixUI_InstallDir UI (UAC elevation is implicit for perMachine packages).
+  - `MajorUpgrade` prevents downgrades; `Launch` condition requires Win10 x64+.
+- `src/Chum.Installer/License.rtf` — RTF license text for WiX installer UI.
+- `scripts/Install-Chum.ps1` — Complete PowerShell installer (dev/CI alternative to MSI): `dotnet publish` both projects, copies to `%ProgramFiles%\Chum\`, creates `%PROGRAMDATA%\Chum\` with ACLs, `sc.exe create ChumHostSvc`, failure recovery config, `Register-ScheduledTask`, `Write-EventLog` (EventId 1000). `#Requires -RunAsAdministrator`.
+- `scripts/Uninstall-Chum.ps1` — PowerShell uninstaller: `Stop-Service`, `sc.exe delete`, `Unregister-ScheduledTask`, removes Event Log source registry key, removes `%ProgramFiles%\Chum\`. `-RemoveData` flag also removes `%PROGRAMDATA%\Chum\` (off by default — preserves audit logs).
+
+**Updated files:**
+- `REPO_STRUCTURE.md` — Added `src/Chum.Installer/`, `scripts/`, and their file-type routing rules to the layout and "Where New Files Go" table.
+
+**Decisions made:**
+- WiX v4 (not v5) — WiX v4 is the stable release; v5 was still in preview at the time of writing.
+- SetProperty + deferred CustomAction pattern for schtasks/EventCreate: SetProperty runs immediately (has session properties to format `[APP_DIR]Chum.exe` paths); deferred CA executes the pre-formatted command via `[CustomActionData]`.
+- `Chum.Installer.wixproj` is NOT added to `Chum.sln` because WiX `.wixproj` files require `msbuild` with WiX installed, not `dotnet build`. The installer has its own build instructions in the project file header comments.
+- PowerShell scripts use `Register-ScheduledTask` (not `schtasks.exe`) for cleaner PowerShell semantics; the WiX installer uses `schtasks.exe` via custom action (no PS dependency in the installer runtime).
+
+**Note:** All P0 and P1 stories are now 🔵 Built. No scaffolded stories remain. All remaining work is P2/P3.
+
+**Build:** WiX installer requires `dotnet tool install --global wix` + `dotnet publish` of both projects. See `Chum.Installer.wixproj` header for full build instructions.
 
 ---
 
@@ -832,11 +866,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-02-09 — Transcript Export (P2, 3 SP):**
+**US-02-07 — Transcript Export (P3, 2 SP):**
 
-Allow the user to export the full session transcript to a text file. Accessible via tray menu "Export Transcript…" and a button in the overlay. Shows a Save File dialog, writes timestamped plain-text (same format as the emergency export already in App.xaml.cs).
+Allow the user to export the full session transcript to a text file. Accessible via tray menu "Export Transcript…" and a button in the overlay. Shows a Save File dialog, writes timestamped plain-text (same format as the emergency export already in App.xaml.cs). `GetTranscriptExportText()` already exists in `MeetingOrchestrator` — this story just needs the UI trigger and Save File dialog.
 
-Other P2 candidates: US-05-06 (Font Size Adjustment, 2 SP), US-07-03 (LLM Model Hotswap, 3 SP), US-10-03 (GPU Acceleration for Whisper, 5 SP).
+Other P2 candidates (higher priority): US-06-04 (Region Selection/Snip, 5 SP), US-10-03 (GPU Acceleration for Whisper, 5 SP), US-06-05 (UIA Teams Captions, 5 SP).
 
 ---
 

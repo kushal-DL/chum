@@ -24,7 +24,12 @@ chum/
 │   ├── Chum.Audio/        ← Layer 1: audio capture + VAD
 │   ├── Chum.Transcription/← Layer 2: STT + transcript buffer
 │   ├── Chum.Llm/          ← Layer 3: LLM provider abstraction
-│   └── Chum.App/          ← Layer 4: WPF app, services, UI
+│   ├── Chum.App/          ← Layer 4: WPF app, services, UI
+│   ├── Chum.Service/      ← Windows service host (ChumHostSvc) + IPC
+│   └── Chum.Installer/    ← WiX v4 MSI installer (Chum.Installer.wixproj)
+├── scripts/               ← Deployment and maintenance scripts
+│   ├── Install-Chum.ps1   ← PowerShell installer (dev/CI alternative to MSI)
+│   └── Uninstall-Chum.ps1 ← PowerShell uninstaller
 ├── .claude/               ← (see above)
 ├── .gitignore
 ├── CLAUDE.md              ← Session protocol + code conventions (read every session)
@@ -127,6 +132,8 @@ Chum.App/
 | New background service / OS integration | `Chum.App/Services/` |
 | New settings property | `Chum.App/Models/AppSettings.cs` (add property there) |
 | Binary assets (icons, sounds) | `Chum.App/Assets/` |
+| WiX installer source (.wxs) | `Chum.Installer/` |
+| Deployment / ops scripts (.ps1) | `scripts/` |
 
 **Never create:** top-level source files outside these directories. Every new `.cs` belongs in one of the above folders.
 
@@ -185,4 +192,4 @@ Chum.App/
 
 ---
 
-*Last updated: 2026-06-27 — initial structure document*
+*Last updated: 2026-06-28 — added Chum.Service, Chum.Installer (WiX), and scripts/ directory*

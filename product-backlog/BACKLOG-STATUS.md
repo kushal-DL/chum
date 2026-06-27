@@ -15,12 +15,13 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 70 | 266 SP | 83% |
-| 🟡 Scaffolded | 1 | 5 SP | 2% |
+| 🔵 Built | 71 | 271 SP | 85% |
+| 🟡 Scaffolded | 0 | 0 SP | 0% |
 | 🔴 Yet to Start | 13 | 49 SP | 15% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
+> **All P1 stories are 🔵 Built — no scaffolded stories remain.**
 
 ---
 
@@ -35,10 +36,10 @@
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 9 (42 SP) | — | — |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
 | 07 · Settings & Configuration | 10 | 27 SP | — | 9 (25 SP) | — | 1 (2 SP) |
-| 08 · Privacy & Security | 11 | 36 SP | — | 10 (31 SP) | 1 (5 SP) | — |
+| 08 · Privacy & Security | 11 | 36 SP | — | 11 (36 SP) | — | — |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 6 (24 SP) | — | 4 (16 SP) |
-| **Total** | **84** | **320 SP** | **0** | **70 (266 SP)** | **1 (5 SP)** | **13 (49 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **71 (271 SP)** | **0** | **13 (49 SP)** |
 
 ---
 
@@ -48,13 +49,13 @@ Each story is attributed to the project where its primary implementation lives.
 
 | Project | Primary Scope | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |---------|--------------|---------|----------|----------|--------------|-----------------|
-| Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 7 (30 SP) | — | 1 (2 SP) |
-| Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 6 (26 SP) | — | 3 (10 SP) |
-| Chum.Llm | Epic 03 | 8 | 30 SP | 5 (21 SP) | — | 3 (9 SP) |
+| Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 8 (32 SP) | — | — |
+| Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 8 (34 SP) | — | 1 (2 SP) |
+| Chum.Llm | Epic 03 | 8 | 30 SP | 8 (30 SP) | — | — |
 | Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/02/04/05 | 43 | 158 SP | 39 (145 SP) | — | 4 (13 SP) |
-| Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
-| Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 2 (10 SP) | — | 12 (44 SP) |
-| **Total** | | **84** | **320 SP** | **67 (259 SP)** | **1 (5 SP)** | **16 (56 SP)** |
+| Chum.Service + Chum.Installer | US-08-09, 08-10, 08-11 | 3 | 12 SP | 3 (12 SP) | — | — |
+| Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 5 (18 SP) | — | 9 (36 SP) |
+| **Total** | | **84** | **320 SP** | **71 (271 SP)** | **0** | **13 (49 SP)** |
 
 ---
 
@@ -63,10 +64,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 34 | 125 SP | 33 (120 SP) | 1 (5 SP) | — |
+| P1 — High | 34 | 125 SP | 34 (125 SP) | — | — |
 | P2 — Medium | 27 | 91 SP | 18 (58 SP) | — | 9 (33 SP) |
-| P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **67 (259 SP)** | **1 (5 SP)** | **16 (56 SP)** |
+| P3 — Low | 7 | 20 SP | 3 (4 SP) | — | 4 (16 SP) |
+| **Total** | **84** | **320 SP** | **71 (271 SP)** | **0** | **13 (49 SP)** |
 
 ---
 
@@ -83,7 +84,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-01-06 | Real-time Audio Level Meters | P2 | 🔵 Built | 2 | RMS dBFS computed in AudioPipeline; compact LB/MIC ProgressBar meters in overlay |
 | US-01-07 | Automatic Device Failover | P1 | 🔵 Built | 3 | Disconnected event on IAudioCapture/AudioPipeline; DeviceDisconnected event on MeetingOrchestrator; FallbackToDefaultAudioAsync in App |
 
-**Epic 01 Total:** 29 SP · 0 Done · 24 Built · 0 Scaffolded · 5 Yet to Start
+**Epic 01 Total:** 29 SP · 0 Done · 29 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -101,7 +102,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-02-07 | Transcript Export | P3 | 🔴 Yet to Start | 2 | |
 | US-02-08 | Context Window Preparation for LLM | P0 | 🔵 Built | 5 | ContextExtractor.cs (token-budget-aware, 30s recency priority) |
 
-**Epic 02 Total:** 33 SP · 0 Done · 21 Built · 2 Scaffolded · 10 Yet to Start
+**Epic 02 Total:** 33 SP · 0 Done · 31 Built · 0 Scaffolded · 2 Yet to Start
 
 ---
 
@@ -136,7 +137,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-04-06 | Visual & Audio Feedback for Hotkey State | P1 | 🔵 Built | 3 | Pulsing green ring (IsListening) + audio beeps: 880 Hz/60ms on hold start, 660 Hz/80ms on release — both on Task.Run to keep hook callback <1ms |
 | US-04-07 | Action Items Hotkey | P2 | 🔵 Built | 3 | Ctrl+Alt+A registered; HandleActionItemsQueryAsync sends full transcript to LLM with "extract action items" prompt |
 
-**Epic 04 Total:** 26 SP · 0 Done · 23 Built · 3 Scaffolded · 0 Yet to Start
+**Epic 04 Total:** 26 SP · 0 Done · 26 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -155,7 +156,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-05-08 | Multi-monitor Support | P2 | 🔵 Built | 3 | |
 | US-05-09 | Response Copy & Share | P2 | 🔵 Built | 2 | "⧉" Copy button in overlay header; CopyResponse_Click copies ResponseText to clipboard |
 
-**Epic 05 Total:** 42 SP · 0 Done · 39 Built · 0 Scaffolded · 3 Yet to Start
+**Epic 05 Total:** 42 SP · 0 Done · 42 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -192,7 +193,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-07-09 | Settings Import & Export | P3 | 🔴 Yet to Start | 2 | |
 | US-07-10 | About & Diagnostics Panel | P2 | 🔵 Built | 2 | |
 
-**Epic 07 Total:** 27 SP · 0 Done · 23 Built · 0 Scaffolded · 4 Yet to Start
+**Epic 07 Total:** 27 SP · 0 Done · 25 Built · 0 Scaffolded · 2 Yet to Start
 
 ---
 
@@ -210,10 +211,10 @@ Each story is attributed to the project where its primary implementation lives.
 | US-08-07 | Screen Capture Privacy Safeguards | P1 | 🔵 Built | 2 | ConfirmScreenCapture setting; TryHandleScreenCaptureAsync two-press confirmation with 5s timer + overlay banner |
 | US-08-08 | Network Traffic Transparency | P2 | 🔵 Built | 3 | Status bar shows provider+model during each query; Serilog logs provider/model/type for every LLM call |
 | US-08-09 | Audit Log (Enterprise) | P3 | 🔵 Built | 2 | AuditLogger.cs — JSON-Lines to %PROGRAMDATA%\Chum\audit.jsonl |
-| US-08-10 | Windows Service Installer (Admin-Elevated) | P1 | 🟡 Scaffolded | 5 | Chum.Service project created; installer (WiX/NSIS) not yet written |
+| US-08-10 | Windows Service Installer (Admin-Elevated) | P1 | 🔵 Built | 5 | Chum.Installer/ WiX v4 project (Package.wxs, License.rtf); scripts/Install-Chum.ps1 + Uninstall-Chum.ps1 PowerShell fallback |
 | US-08-11 | Process Identity — Run as Named System Service | P1 | 🔵 Built | 5 | ChumHostSvc worker + IPC server/client; tray↔service named pipe |
 
-**Epic 08 Total:** 36 SP · 0 Done · 19 Built · 5 Scaffolded · 12 Yet to Start
+**Epic 08 Total:** 36 SP · 0 Done · 36 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -230,7 +231,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-09-06 | Meeting Start & End Lifecycle | P2 | 🔵 Built | 3 | Auto-start/stop capture on meeting open/close |
 | US-09-07 | Platform Compatibility Testing Matrix | P3 | 🔴 Yet to Start | 3 | Downgraded: DXGI+WASAPI is platform-agnostic; matrix is a QA task not a feature |
 
-**Epic 09 Total:** 27 SP · 0 Done · 5 Built · 0 Scaffolded · 22 Yet to Start
+**Epic 09 Total:** 27 SP · 0 Done · 8 Built · 0 Scaffolded · 19 Yet to Start
 
 ---
 
@@ -261,12 +262,12 @@ Each story is attributed to the project where its primary implementation lives.
 | Total Stories | 84 |
 | Total Story Points | 320 SP |
 | P0 Stories | 16 stories · 84 SP · **all 🔵 Built** |
-| P1 Stories | 34 stories · 125 SP |
+| P1 Stories | 34 stories · 125 SP · **all 🔵 Built** |
 | P2 Stories | 27 stories · 91 SP |
 | P3 Stories | 7 stories · 20 SP |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 67 stories · 259 SP (81%) |
-| 🟡 Scaffolded | 1 story · 5 SP (2%) |
-| 🔴 Yet to Start | 16 stories · 56 SP (17%) |
+| 🔵 Built | 71 stories · 271 SP (85%) |
+| 🟡 Scaffolded | 0 stories · 0 SP (0%) |
+| 🔴 Yet to Start | 13 stories · 49 SP (15%) |
 
-*Last updated: 2026-06-28 — Session 36: US-03-08 (Prompt Templates Library) built — Epic 03 fully built*
+*Last updated: 2026-06-28 — Session 40: US-08-10 (Windows Service Installer) built — all P0+P1 stories built, no scaffolded stories remain*
