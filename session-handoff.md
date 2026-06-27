@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-09-02 Built — 75/84 stories 🔵 Built (283/320 SP, 88%) — 9 stories remain (Epic 06: 2, Epic 09: 4, Epic 10: 3)
+**Phase:** US-09-03 Built — 76/84 stories 🔵 Built (286/320 SP, 89%) — 8 stories remain (Epic 06: 2, Epic 09: 3, Epic 10: 3)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,18 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 45 (2026-06-28, Part 45)
+
+**Zoom Audio Device Handling — US-09-03 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.Audio/Capture/AudioSessionHelper.cs` — Added `TryFindRenderDeviceByName(string namePattern, out deviceId, out deviceFriendlyName, StringComparison)`: enumerates active WASAPI render endpoints and returns the first whose `FriendlyName` contains the given pattern. Used to detect "Zoom Audio Device" by name.
+- `Chum.App/Services/MeetingOrchestrator.cs` — Rewrote `CheckPlatformAudioDevice` to use a two-path detection for Zoom: (1) `TryFindRenderDeviceByName("Zoom Audio Device")` as the primary check — finds Zoom's virtual audio device by the well-known FriendlyName even without active sessions; (2) PID-based session detection as fallback if no virtual device is found. Teams still uses PID-only path. Both paths converge on the same `AudioDeviceMismatchDetected` event → same overlay Switch banner flow built in US-09-02.
+
+**Build:** 0 errors, 6 pre-existing warnings (unchanged).
 
 ---
 
@@ -949,11 +961,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-09-03 — Zoom Audio Device Handling (P2, 3 SP):**
+**US-06-04 — Region Selection/Snip Mode (P2, 5 SP):**
 
-Detect the "Zoom Audio Device" virtual audio device when Zoom is active. Same pattern as US-09-02 (now built) — `AudioSessionHelper.TryFindProcessRenderDevice` with Zoom PIDs already works. Story should also specifically check for Zoom's virtual audio device (`MMDeviceEnumerator.EnumerateAudioEndPoints` filter by FriendlyName containing "Zoom") as an additional signal alongside the PID-based approach. The `CheckPlatformAudioDevice` in `MeetingOrchestrator` already handles `MeetingPlatform.Zoom` so the overlay wiring is complete — just needs the Zoom-specific device name hint in the message.
+Allow user to draw a snip region instead of capturing the full screen. Spec: overlay shows a darkened full-screen selector window; user drags to select region; that region is passed to the LLM instead of full screenshot. See `EPIC-06-screen-capture.md` for UX spec. Will need a new `RegionSelectorWindow` (WPF full-screen overlay), a hotkey path from `MeetingOrchestrator`, and snip-to-JPEG pipeline.
 
-Other P2 candidates: US-06-04 (Region Selection/Snip, 5 SP), US-06-05 (UIA Teams Captions, 5 SP), US-09-05 (Teams Auto-Captions via UIA, 5 SP), US-10-09 (Auto-Update, 5 SP).
+Other P2 candidates: US-06-05 (UIA Teams Captions, 5 SP), US-09-05 (Teams Auto-Captions via UIA, 5 SP), US-10-09 (Auto-Update, 5 SP), US-10-08 (Crash Reporting, 3 SP).
 
 ---
 

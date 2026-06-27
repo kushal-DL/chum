@@ -205,28 +205,42 @@ public sealed class MeetingOrchestrator : IDisposable
         // Wait for the meeting app to establish its audio session before querying COM
         System.Threading.Thread.Sleep(3000);
 
-        string[] processNames = platform switch
-        {
-            MeetingPlatform.Teams => ["ms-teams", "teams", "teams2"],
-            MeetingPlatform.Zoom  => ["zoom", "zoom.us"],
-            _                     => []
-        };
+        var platformName = MeetingPlatformDetector.FriendlyName(platform);
+        string? deviceId = null;
+        string? deviceName = null;
 
-        var pids = processNames
-            .SelectMany(n => Process.GetProcessesByName(n))
-            .Select(p => p.Id)
-            .ToHashSet();
-
-        if (pids.Count == 0)
+        // Zoom installs a named virtual audio device — check by FriendlyName first.
+        // Fall through to PID-based detection if the virtual device is not present.
+        if (platform == MeetingPlatform.Zoom &&
+            AudioSessionHelper.TryFindRenderDeviceByName("Zoom Audio Device", out deviceId, out deviceName))
         {
-            Serilog.Log.Verbose("CheckPlatformAudioDevice: no {Platform} processes found", platform);
-            return;
+            Serilog.Log.Information("Zoom Audio Device found: '{Device}'", deviceName);
         }
-
-        if (!AudioSessionHelper.TryFindProcessRenderDevice(pids, out var deviceId, out var deviceName))
+        else
         {
-            Serilog.Log.Verbose("CheckPlatformAudioDevice: no WASAPI session found for {Platform}", platform);
-            return;
+            string[] processNames = platform switch
+            {
+                MeetingPlatform.Teams => ["ms-teams", "teams", "teams2"],
+                MeetingPlatform.Zoom  => ["zoom", "zoom.us"],
+                _                     => []
+            };
+
+            var pids = processNames
+                .SelectMany(n => Process.GetProcessesByName(n))
+                .Select(p => p.Id)
+                .ToHashSet();
+
+            if (pids.Count == 0)
+            {
+                Serilog.Log.Verbose("CheckPlatformAudioDevice: no {Platform} processes found", platform);
+                return;
+            }
+
+            if (!AudioSessionHelper.TryFindProcessRenderDevice(pids, out deviceId, out deviceName))
+            {
+                Serilog.Log.Verbose("CheckPlatformAudioDevice: no WASAPI session found for {Platform}", platform);
+                return;
+            }
         }
 
         // Determine which device Chum's loopback is currently capturing from
@@ -240,7 +254,6 @@ public sealed class MeetingOrchestrator : IDisposable
             return;
         }
 
-        var platformName = MeetingPlatformDetector.FriendlyName(platform);
         Serilog.Log.Information(
             "{Platform} is using audio device '{Device}' (id={DeviceId}), differs from Chum loopback",
             platformName, deviceName, deviceId);

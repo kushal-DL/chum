@@ -66,6 +66,42 @@ public static class AudioSessionHelper
         return false;
     }
 
+    /// <summary>
+    /// Searches active WASAPI render endpoints for a device whose FriendlyName contains
+    /// <paramref name="namePattern"/>. Returns true with the first matching device ID and name.
+    /// Used to detect Zoom's virtual audio device ("Zoom Audio Device").
+    /// </summary>
+    public static bool TryFindRenderDeviceByName(
+        string namePattern,
+        out string? deviceId,
+        out string? deviceFriendlyName,
+        StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+    {
+        deviceId = null;
+        deviceFriendlyName = null;
+        try
+        {
+            using var enumerator = new MMDeviceEnumerator();
+            foreach (var device in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+            {
+                using (device)
+                {
+                    if (device.FriendlyName.Contains(namePattern, comparison))
+                    {
+                        deviceId = device.ID;
+                        deviceFriendlyName = device.FriendlyName;
+                        return true;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "AudioSessionHelper: device name search failed for '{Pattern}'", namePattern);
+        }
+        return false;
+    }
+
     /// <summary>Returns the Windows default WASAPI render device ID (multimedia role), or null on error.</summary>
     public static string? GetDefaultRenderDeviceId()
     {
