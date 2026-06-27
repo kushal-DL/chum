@@ -114,6 +114,23 @@ Created the complete product backlog and project infrastructure:
 
 ---
 
+### What Was Done Session 5 (2026-06-27, Part 5)
+
+**Silero VAD implementation — US-01-04 → 🔵 Built:**
+
+- `Chum.Audio/Vad/IVad.cs` (new) — `IVad` interface: `bool IsSpeech(ReadOnlySpan<float> samples)`
+- `Chum.Audio/Vad/SileroVad.cs` (new) — Silero VAD v5 ONNX inference via `Microsoft.ML.OnnxRuntime`; stateful LSTM (h/c tensors [2,1,64]); processes 512-sample chunks at 16 kHz; zero-pads the final partial chunk; hysteresis (start 0.5, end 0.35); `ResetState()` for post-pause cleanup
+- `Chum.Audio/Vad/EnergyVad.cs` — updated to implement `IVad` (one-line change)
+- `Chum.Audio/Pipeline/AudioPipeline.cs` — constructor now accepts `IVad? loopbackVad = null, IVad? micVad = null`; defaults to `new EnergyVad()` if null; `Dispose()` also disposes VAD instances if `IDisposable`
+- `Chum.App/App.xaml.cs` — added `BuildVad()` helper: returns `SileroVad` if `silero_vad.onnx` exists in `%LOCALAPPDATA%\Chum\Models\`, otherwise returns `EnergyVad` and kicks off background download via `ModelDownloadService`; `AudioPipeline` now gets two `BuildVad()` calls (one per stream)
+
+**Decisions made:**
+- Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
+- Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
+- OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
 ## Immediate Next Step: Verify the Build
 
 **The .NET 8 SDK is NOT installed on this machine.** Only the runtime exists at `C:\Program Files\dotnet\` — there is no `sdk/` subdirectory. `dotnet build` will fail until the SDK is installed.
@@ -151,10 +168,8 @@ Next major feature after MVP works end-to-end. Start with:
 - `US-06-07` — Multimodal LLM vision request (already wired in `AnthropicLlmProvider`)
 - `US-06-02` — Clipboard image monitoring (simplest workaround for Teams DRM)
 
-### Priority 4 — Silero VAD (US-01-04 → 🔵 Built)
-Replace `EnergyVad` with proper Silero ONNX model for much better VAD accuracy.
-- Model already has download URL in `ModelDownloadService`
-- ONNX runtime already in `Chum.Audio.csproj`
+### Priority 4 — ~~Silero VAD~~ ✅ Done (Session 5)
+`SileroVad.cs` written; `IVad` interface extracted; `AudioPipeline` accepts injected VAD; fallback to `EnergyVad` with background download on first run.
 
 ---
 

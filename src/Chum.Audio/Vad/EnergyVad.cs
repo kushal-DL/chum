@@ -5,7 +5,7 @@ namespace Chum.Audio.Vad;
 /// Accurate enough for clean office / home-office audio.
 /// Replace with SileroVad (ONNX) for noisy environments — same interface, swap in AudioPipeline.
 /// </summary>
-public sealed class EnergyVad
+public sealed class EnergyVad : IVad
 {
     private readonly float _onThreshold;   // RMS threshold to enter speech
     private readonly float _offThreshold;  // RMS threshold to exit speech (hysteresis)

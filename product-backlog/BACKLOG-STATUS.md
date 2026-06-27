@@ -16,12 +16,12 @@
 | US-01-01 | Capture System Audio Loopback | P0 | 🔵 Built | 5 | LoopbackCapture.cs (WasapiLoopbackCapture) |
 | US-01-02 | Capture Microphone Audio | P0 | 🔵 Built | 3 | MicCapture.cs (WasapiCapture) |
 | US-01-03 | Audio Device Selection | P1 | 🟡 Scaffolded | 3 | DeviceId in AppSettings; no device-picker UI yet |
-| US-01-04 | Voice Activity Detection (Silero VAD) | P0 | 🟡 Scaffolded | 8 | EnergyVad.cs (energy/RMS MVP); Silero ONNX deferred to v0.2 |
+| US-01-04 | Voice Activity Detection (Silero VAD) | P0 | 🔵 Built | 8 | SileroVad.cs (ONNX, stateful LSTM, 512-sample chunks); EnergyVad kept as fallback when model not downloaded |
 | US-01-05 | Audio Ring Buffer | P0 | 🔵 Built | 5 | AudioPipeline.cs: pre-buffer + Channel<AudioChunk> |
 | US-01-06 | Real-time Audio Level Meters | P2 | 🔴 Yet to Start | 2 | |
 | US-01-07 | Automatic Device Failover | P1 | 🔴 Yet to Start | 3 | |
 
-**Epic 01 Total:** 29 SP · 0 Done · 13 Built · 11 Scaffolded · 5 Yet to Start
+**Epic 01 Total:** 29 SP · 0 Done · 21 Built · 3 Scaffolded · 5 Yet to Start
 
 ---
 
@@ -202,8 +202,8 @@
 | P2 Stories | 22 stories · 87 SP |
 | P3 Stories | 5 stories · 21 SP |
 | ✅ Done | 0 SP (0%) |
-| 🔵 Built | 136 SP (41%) |
-| 🟡 Scaffolded | 39 SP (12%) |
+| 🔵 Built | 144 SP (46%) |
+| 🟡 Scaffolded | 31 SP (10%) |
 | 🔴 Yet to Start | 147 SP (47%) |
 
-*Last updated: 2026-06-27 — Session 4: Windows service host (ChumHostSvc), IPC protocol, audit logger, IpcClient*
+*Last updated: 2026-06-27 — Session 5: Silero VAD (SileroVad.cs + IVad interface), AudioPipeline updated to accept IVad*

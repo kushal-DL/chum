@@ -23,8 +23,8 @@ public sealed class AudioPipeline : IDisposable
 
     private readonly IAudioCapture _loopback;
     private readonly IAudioCapture _mic;
-    private readonly EnergyVad _loopbackVad = new();
-    private readonly EnergyVad _micVad = new();
+    private readonly IVad _loopbackVad;
+    private readonly IVad _micVad;
 
     // Pre-buffer: ring of recent raw chunks used to prepend to a new speech segment
     private readonly Queue<(float[] samples, AudioSource src)> _preBuffer = new();
@@ -46,10 +46,13 @@ public sealed class AudioPipeline : IDisposable
     private bool _paused;
     private bool _disposed;
 
-    public AudioPipeline(IAudioCapture loopback, IAudioCapture mic, int outputChannelCapacity = 64)
+    public AudioPipeline(IAudioCapture loopback, IAudioCapture mic,
+        IVad? loopbackVad = null, IVad? micVad = null, int outputChannelCapacity = 64)
     {
         _loopback = loopback;
         _mic = mic;
+        _loopbackVad = loopbackVad ?? new EnergyVad();
+        _micVad = micVad ?? new EnergyVad();
         _maxPreBufferSamples = SampleRate * PreBufferMs / 1000;
         _postSilenceSamples = SampleRate * PostSilenceMs / 1000;
         _maxSegmentSamples = SampleRate * MaxSegmentMs / 1000;
@@ -183,5 +186,7 @@ public sealed class AudioPipeline : IDisposable
         _outputChannel.Writer.TryComplete();
         _loopback.Dispose();
         _mic.Dispose();
+        (_loopbackVad as IDisposable)?.Dispose();
+        (_micVad as IDisposable)?.Dispose();
     }
 }

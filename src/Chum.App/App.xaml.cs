@@ -6,6 +6,7 @@ using Chum.App.ViewModels;
 using Chum.App.Views;
 using Chum.Audio.Capture;
 using Chum.Audio.Pipeline;
+using Chum.Audio.Vad;
 using Chum.Llm;
 using Chum.Transcription;
 using Serilog;
@@ -71,7 +72,7 @@ public partial class App : System.Windows.Application
 
         var loopback = new LoopbackCapture(Settings.Current.LoopbackDeviceId);
         var mic = new MicCapture(Settings.Current.MicDeviceId);
-        var audioPipeline = new AudioPipeline(loopback, mic);
+        var audioPipeline = new AudioPipeline(loopback, mic, BuildVad(), BuildVad());
 
         var modelType = Enum.TryParse<GgmlType>(Settings.Current.WhisperModel, out var gt) ? gt : GgmlType.Small;
         var modelDir = Path.Combine(
@@ -117,6 +118,36 @@ public partial class App : System.Windows.Application
         _hotkeys.RegisterFromString("PrivacyPause", s.PrivacyPauseHotkey);
         _hotkeys.RegisterFromString("HideOverlay", s.HideOverlayHotkey);
         _hotkeys.RegisterFromString("ActionItems", s.ActionItemsHotkey);
+    }
+
+    private IVad BuildVad()
+    {
+        var modelDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Chum", "Models");
+        var sileroPath = Path.Combine(modelDir, "silero_vad.onnx");
+
+        if (File.Exists(sileroPath))
+        {
+            Log.Information("SileroVad model found — using Silero VAD");
+            return new SileroVad(sileroPath);
+        }
+
+        // Model not yet downloaded — start background download for next launch, use EnergyVad now
+        Log.Information("Silero VAD model not found — using EnergyVad; downloading model in background");
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var dl = new ModelDownloadService(new HttpClient());
+                await dl.EnsureSileroAsync();
+                Log.Information("Silero VAD model download complete — will use on next launch");
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Silero VAD model download failed — EnergyVad will be used");
+            }
+        });
+        return new EnergyVad();
     }
 
     private async Task StartCaptureAsync()
