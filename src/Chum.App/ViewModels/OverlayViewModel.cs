@@ -320,6 +320,28 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
     public void ShowDisclosureReminder() => Invoke(() => HasDisclosureReminder = true);
     public void DismissDisclosureReminder() => Invoke(() => HasDisclosureReminder = false);
 
+    // ── Audio device mismatch banner ──────────────────────────────────────
+
+    private bool _hasAudioDeviceMismatch;
+    public bool HasAudioDeviceMismatch
+    {
+        get => _hasAudioDeviceMismatch;
+        private set { if (_hasAudioDeviceMismatch == value) return; _hasAudioDeviceMismatch = value; OnPropertyChanged(); }
+    }
+
+    private string _audioDeviceMismatchMessage = string.Empty;
+    public string AudioDeviceMismatchMessage
+    {
+        get => _audioDeviceMismatchMessage;
+        private set { _audioDeviceMismatchMessage = value; OnPropertyChanged(); }
+    }
+
+    public void ShowAudioDeviceMismatch(string message)
+        => Invoke(() => { AudioDeviceMismatchMessage = message; HasAudioDeviceMismatch = true; });
+
+    public void DismissAudioDeviceMismatch()
+        => Invoke(() => HasAudioDeviceMismatch = false);
+
     // ── INotifyPropertyChanged ────────────────────────────────────────────
 
     public event PropertyChangedEventHandler? PropertyChanged;

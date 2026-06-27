@@ -3,12 +3,15 @@ using System.Drawing;
 using System.Threading.Channels;
 using Chum.App.ViewModels;
 using Timer = System.Threading.Timer;
+using Chum.Audio.Capture;
 using Chum.Audio.Models;
 using Chum.Audio.Pipeline;
 using Chum.Llm;
 using Chum.Transcription;
 
 namespace Chum.App.Services;
+
+public record AudioDeviceMismatchEventArgs(string DeviceId, string DeviceName, string PlatformName);
 
 /// <summary>
 /// Wires together the entire pipeline:
@@ -52,6 +55,8 @@ public sealed class MeetingOrchestrator : IDisposable
     public event EventHandler? MeetingAppOpened;
     /// <summary>Fires when a meeting app is detected closing (known → Unknown).</summary>
     public event EventHandler? MeetingAppClosed;
+    /// <summary>Fires when Teams/Zoom is detected using a different audio device than Chum's current loopback.</summary>
+    public event EventHandler<AudioDeviceMismatchEventArgs>? AudioDeviceMismatchDetected;
     private Task? _transcriptionLoop;
     private bool _disposed;
 
@@ -174,6 +179,12 @@ public sealed class MeetingOrchestrator : IDisposable
         bool isInMeeting  = platform != MeetingPlatform.Unknown;
         _lastPlatform = platform;
 
+        // When Teams or Zoom is newly detected, check in background whether its audio device
+        // matches Chum's current loopback source. Allow 3 s for the meeting app to start audio.
+        if (!wasInMeeting && isInMeeting &&
+            (platform == MeetingPlatform.Teams || platform == MeetingPlatform.Zoom))
+            _ = Task.Run(() => CheckPlatformAudioDevice(platform));
+
         if (!_settings.Current.AutoStartCapture) return;
 
         if (!wasInMeeting && isInMeeting)
@@ -187,6 +198,54 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Information("Meeting app closed — auto-stopping capture");
             MeetingAppClosed?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    private void CheckPlatformAudioDevice(MeetingPlatform platform)
+    {
+        // Wait for the meeting app to establish its audio session before querying COM
+        System.Threading.Thread.Sleep(3000);
+
+        string[] processNames = platform switch
+        {
+            MeetingPlatform.Teams => ["ms-teams", "teams", "teams2"],
+            MeetingPlatform.Zoom  => ["zoom", "zoom.us"],
+            _                     => []
+        };
+
+        var pids = processNames
+            .SelectMany(n => Process.GetProcessesByName(n))
+            .Select(p => p.Id)
+            .ToHashSet();
+
+        if (pids.Count == 0)
+        {
+            Serilog.Log.Verbose("CheckPlatformAudioDevice: no {Platform} processes found", platform);
+            return;
+        }
+
+        if (!AudioSessionHelper.TryFindProcessRenderDevice(pids, out var deviceId, out var deviceName))
+        {
+            Serilog.Log.Verbose("CheckPlatformAudioDevice: no WASAPI session found for {Platform}", platform);
+            return;
+        }
+
+        // Determine which device Chum's loopback is currently capturing from
+        var chumDeviceId = string.IsNullOrEmpty(_settings.Current.LoopbackDeviceId)
+            ? AudioSessionHelper.GetDefaultRenderDeviceId()
+            : _settings.Current.LoopbackDeviceId;
+
+        if (string.Equals(chumDeviceId, deviceId, StringComparison.OrdinalIgnoreCase))
+        {
+            Serilog.Log.Verbose("CheckPlatformAudioDevice: {Platform} audio device matches Chum loopback — no action needed", platform);
+            return;
+        }
+
+        var platformName = MeetingPlatformDetector.FriendlyName(platform);
+        Serilog.Log.Information(
+            "{Platform} is using audio device '{Device}' (id={DeviceId}), differs from Chum loopback",
+            platformName, deviceName, deviceId);
+
+        AudioDeviceMismatchDetected?.Invoke(this, new AudioDeviceMismatchEventArgs(deviceId!, deviceName!, platformName));
     }
 
     public async Task StartAsync()

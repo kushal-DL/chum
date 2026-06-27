@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 74 | 280 SP | 88% |
+| 🔵 Built | 75 | 283 SP | 88% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
-| 🔴 Yet to Start | 10 | 40 SP | 12% |
+| 🔴 Yet to Start | 9 | 37 SP | 12% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -37,9 +37,9 @@
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
 | 07 · Settings & Configuration | 10 | 27 SP | — | 10 (27 SP) | — | — |
 | 08 · Privacy & Security | 11 | 36 SP | — | 11 (36 SP) | — | — |
-| 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
+| 09 · Platform Compatibility | 7 | 27 SP | — | 3 (11 SP) | — | 4 (16 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 7 (29 SP) | — | 3 (11 SP) |
-| **Total** | **84** | **320 SP** | **0** | **74 (280 SP)** | **0** | **10 (40 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **75 (283 SP)** | **0** | **9 (37 SP)** |
 
 ---
 
@@ -224,14 +224,14 @@ Each story is attributed to the project where its primary implementation lives.
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
 | US-09-01 | Meeting Platform Auto-Detection | P1 | 🔵 Built | 5 | MeetingPlatformDetector.cs: polls processes 5s, detects Teams/Zoom/Meet/WebEx; wired in MeetingOrchestrator; FriendlyName passed to PromptBuilder |
-| US-09-02 | Teams-Specific Audio Device Handling | P2 | 🔴 Yet to Start | 3 | Downgraded: WASAPI loopback already platform-agnostic; this is an edge-case config fix |
+| US-09-02 | Teams-Specific Audio Device Handling | P2 | 🔵 Built | 3 | AudioSessionHelper.TryFindProcessRenderDevice enumerates WASAPI sessions by PID; MeetingOrchestrator fires AudioDeviceMismatchDetected; overlay shows Switch/Keep banner |
 | US-09-03 | Zoom Audio Device Handling | P2 | 🔴 Yet to Start | 3 | Downgraded: same reason as US-09-02 |
 | US-09-04 | Screen Share Detection per Platform | P3 | 🔴 Yet to Start | 5 | Downgraded: ScreenShareDetector already polls generically; platform-specific detection adds little |
 | US-09-05 | Teams Auto-Captions Integration | P2 | 🔴 Yet to Start | 5 | Useful fallback when Whisper struggles; Teams-only |
 | US-09-06 | Meeting Start & End Lifecycle | P2 | 🔵 Built | 3 | Auto-start/stop capture on meeting open/close |
 | US-09-07 | Platform Compatibility Testing Matrix | P3 | 🔴 Yet to Start | 3 | Downgraded: DXGI+WASAPI is platform-agnostic; matrix is a QA task not a feature |
 
-**Epic 09 Total:** 27 SP · 0 Done · 8 Built · 0 Scaffolded · 19 Yet to Start
+**Epic 09 Total:** 27 SP · 0 Done · 11 Built · 0 Scaffolded · 16 Yet to Start
 
 ---
 

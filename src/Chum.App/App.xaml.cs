@@ -32,6 +32,7 @@ public partial class App : System.Windows.Application
     private DxgiScreenCapture? _screenCapture;
     private ClipboardMonitor? _clipboardMonitor;
     private bool _started;
+    private string? _pendingMeetingDeviceId;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -158,6 +159,13 @@ public partial class App : System.Windows.Application
         {
             if (!Settings.Current.AutoStartCapture || !_orchestrator.IsRunning) return;
             await _orchestrator.StopAsync();
+        };
+
+        _orchestrator.AudioDeviceMismatchDetected += (_, e) =>
+        {
+            _pendingMeetingDeviceId = e.DeviceId;
+            _overlayVm?.ShowAudioDeviceMismatch(
+                $"⚠ {e.PlatformName} audio is on '{e.DeviceName}'. Switch Chum capture to match?");
         };
 
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
@@ -344,6 +352,23 @@ public partial class App : System.Windows.Application
     {
         var win = new SettingsWindow();
         win.ShowDialog();
+    }
+
+    public void SwitchToTeamsAudioDevice()
+    {
+        if (_pendingMeetingDeviceId is null || _orchestrator is null) return;
+        var deviceId = _pendingMeetingDeviceId;
+        _pendingMeetingDeviceId = null;
+        _overlayVm?.DismissAudioDeviceMismatch();
+        Settings.Update(s => s.LoopbackDeviceId = deviceId);
+        Log.Information("Switching loopback capture to meeting app audio device: {Id}", deviceId);
+        _ = ApplyAudioDevicesAsync();
+    }
+
+    public void DismissAudioDeviceMismatch()
+    {
+        _pendingMeetingDeviceId = null;
+        _overlayVm?.DismissAudioDeviceMismatch();
     }
 
     public void ExportTranscript()

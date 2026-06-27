@@ -208,6 +208,28 @@
                     <TextBlock Text="⚠  Screenshot pending — press Ctrl+Alt+S again to send (5s to cancel)"
                                Foreground="#8B5CF6" FontSize="11" FontWeight="SemiBold"/>
                 </Border>
+                <!-- Audio device mismatch — shown when Teams/Zoom uses a different device than Chum's loopback -->
+                <Border Background="#1F06B6D4" BorderBrush="#06B6D4"
+                        BorderThickness="0,1,0,0" Padding="8,5"
+                        Visibility="{Binding HasAudioDeviceMismatch, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding AudioDeviceMismatchMessage}"
+                                   Foreground="#06B6D4" FontSize="10" TextWrapping="Wrap"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <Button Grid.Column="1" Style="{StaticResource ChumButton}"
+                                Content="Switch" FontSize="10" Margin="0,0,4,0"
+                                Click="AudioSwitch_Click"/>
+                        <Button Grid.Column="2" Style="{StaticResource ChumButton}"
+                                Content="Keep" FontSize="10"
+                                Click="AudioDismiss_Click"/>
+                    </Grid>
+                </Border>
                 <!-- Compact audio level meters — loopback + mic -->
                 <Border Background="#08111111" Padding="8,3,8,3">
                     <Grid>

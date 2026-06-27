@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-10-03 Built — 74/84 stories 🔵 Built (280/320 SP, 88%) — All P0+P1 stories built; Epics 02, 07 fully built
+**Phase:** US-09-02 Built — 75/84 stories 🔵 Built (283/320 SP, 88%) — 9 stories remain (Epic 06: 2, Epic 09: 4, Epic 10: 3)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,33 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 44 (2026-06-28, Part 44)
+
+**Teams-Specific Audio Device Handling — US-09-02 → 🔵 Built:**
+
+**New files:**
+- `Chum.Audio/Capture/AudioSessionHelper.cs` — `TryFindProcessRenderDevice(IReadOnlySet<int> pids, out deviceId, out deviceName)`: enumerates all active WASAPI render endpoints via `MMDeviceEnumerator`, gets `AudioSessionManager.Sessions` per device, compares each session's `GetProcessID` against the set of target PIDs. Returns the first device where a matching session is found. Also exposes `GetDefaultRenderDeviceId()` to get the Windows default render endpoint. COM exceptions per-device are caught/logged at Verbose so a single inaccessible device doesn't abort the scan.
+
+**Modified files:**
+- `Chum.App/Services/MeetingOrchestrator.cs`:
+  - Added `using Chum.Audio.Capture;`.
+  - Added `public record AudioDeviceMismatchEventArgs(string DeviceId, string DeviceName, string PlatformName)` at namespace level.
+  - Added `public event EventHandler<AudioDeviceMismatchEventArgs>? AudioDeviceMismatchDetected`.
+  - `OnPlatformChanged`: when platform transitions to Teams or Zoom (newly detected), fires `Task.Run(() => CheckPlatformAudioDevice(platform))` — background check with 3s settle delay.
+  - `CheckPlatformAudioDevice`: Gets PIDs of Teams/Zoom processes by name; calls `AudioSessionHelper.TryFindProcessRenderDevice`; compares result with Chum's current loopback device (null → Windows default via `GetDefaultRenderDeviceId`). Fires `AudioDeviceMismatchDetected` if they differ.
+- `Chum.App/ViewModels/OverlayViewModel.cs` — Added `HasAudioDeviceMismatch` bool property + `AudioDeviceMismatchMessage` string property + `ShowAudioDeviceMismatch(string)` and `DismissAudioDeviceMismatch()` methods.
+- `Chum.App/Views/OverlayWindow.xaml` — Added cyan banner (colour `#06B6D4`) showing `{AudioDeviceMismatchMessage}` with "Switch" and "Keep" buttons. Inserted after the screen-capture-pending banner in the notification StackPanel.
+- `Chum.App/Views/OverlayWindow.xaml.cs` — Added `AudioSwitch_Click` (delegates to `App.SwitchToTeamsAudioDevice()`) and `AudioDismiss_Click` (delegates to `App.DismissAudioDeviceMismatch()`).
+- `Chum.App/App.xaml.cs`:
+  - Added `_pendingMeetingDeviceId` field.
+  - `BuildAndWireComponentsAsync`: subscribes to `_orchestrator.AudioDeviceMismatchDetected`; stores device ID in `_pendingMeetingDeviceId` and calls `_overlayVm.ShowAudioDeviceMismatch(...)`.
+  - Added `SwitchToTeamsAudioDevice()`: updates `Settings.LoopbackDeviceId`, calls `_overlayVm.DismissAudioDeviceMismatch()`, calls `ApplyAudioDevicesAsync()`.
+  - Added `DismissAudioDeviceMismatch()`: clears stored device ID and dismisses the banner.
+
+**Build:** 0 errors, 6 pre-existing warnings (unchanged).
 
 ---
 
@@ -922,11 +949,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-09-02 — Platform-Specific Audio Handling (P2, 3 SP):**
+**US-09-03 — Zoom Audio Device Handling (P2, 3 SP):**
 
-Handle edge cases where WASAPI loopback fails (e.g., devices in exclusive mode). Current implementation shows a basic error. This story should: detect when loopback fails with an ACCESS_DENIED / device-busy error, prompt the user to install VB-Cable (or similar virtual audio device), and provide a fallback path. See EPIC-09-platform-compatibility.md for details.
+Detect the "Zoom Audio Device" virtual audio device when Zoom is active. Same pattern as US-09-02 (now built) — `AudioSessionHelper.TryFindProcessRenderDevice` with Zoom PIDs already works. Story should also specifically check for Zoom's virtual audio device (`MMDeviceEnumerator.EnumerateAudioEndPoints` filter by FriendlyName containing "Zoom") as an additional signal alongside the PID-based approach. The `CheckPlatformAudioDevice` in `MeetingOrchestrator` already handles `MeetingPlatform.Zoom` so the overlay wiring is complete — just needs the Zoom-specific device name hint in the message.
 
-Other P2 candidates: US-06-04 (Region Selection/Snip, 5 SP), US-06-05 (UIA Teams Captions, 5 SP), US-09-05 (Teams Auto-Captions via UIA, 5 SP).
+Other P2 candidates: US-06-04 (Region Selection/Snip, 5 SP), US-06-05 (UIA Teams Captions, 5 SP), US-09-05 (Teams Auto-Captions via UIA, 5 SP), US-10-09 (Auto-Update, 5 SP).
 
 ---
 

@@ -167,4 +167,10 @@ public partial class OverlayWindow : Window
         ((OverlayViewModel)DataContext).DismissDisclosureReminder();
         ((App)Application.Current).Settings.Update(s => s.ShowDisclosureReminder = false);
     }
+
+    private void AudioSwitch_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).SwitchToTeamsAudioDevice();
+
+    private void AudioDismiss_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).DismissAudioDeviceMismatch();
 }
