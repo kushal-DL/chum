@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 60 | 237 SP | 74% |
+| 🔵 Built | 61 | 240 SP | 75% |
 | 🟡 Scaffolded | 1 | 5 SP | 2% |
-| 🔴 Yet to Start | 23 | 78 SP | 24% |
+| 🔴 Yet to Start | 22 | 75 SP | 23% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -36,9 +36,9 @@
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
 | 07 · Settings & Configuration | 10 | 27 SP | — | 8 (23 SP) | — | 2 (4 SP) |
 | 08 · Privacy & Security | 11 | 36 SP | — | 9 (29 SP) | 1 (5 SP) | 1 (2 SP) |
-| 09 · Platform Compatibility | 7 | 27 SP | — | 1 (5 SP) | — | 6 (22 SP) |
+| 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 4 (18 SP) | — | 6 (22 SP) |
-| **Total** | **84** | **320 SP** | **0** | **59 (235 SP)** | **1 (5 SP)** | **24 (80 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **60 (238 SP)** | **1 (5 SP)** | **23 (77 SP)** |
 
 ---
 
@@ -54,7 +54,7 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/02/04/05 | 43 | 158 SP | 38 (143 SP) | — | 5 (15 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 2 (10 SP) | — | 12 (44 SP) |
-| **Total** | | **84** | **320 SP** | **60 (237 SP)** | **1 (5 SP)** | **23 (78 SP)** |
+| **Total** | | **84** | **320 SP** | **61 (240 SP)** | **1 (5 SP)** | **22 (75 SP)** |
 
 ---
 
@@ -64,7 +64,7 @@ Each story is attributed to the project where its primary implementation lives.
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
 | P1 — High | 34 | 125 SP | 33 (120 SP) | 1 (5 SP) | — |
-| P2 — Medium | 27 | 91 SP | 11 (36 SP) | — | 16 (55 SP) |
+| P2 — Medium | 27 | 91 SP | 12 (39 SP) | — | 15 (52 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
 | **Total** | **84** | **320 SP** | **59 (234 SP)** | **1 (5 SP)** | **24 (81 SP)** |
 
@@ -227,7 +227,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-09-03 | Zoom Audio Device Handling | P2 | 🔴 Yet to Start | 3 | Downgraded: same reason as US-09-02 |
 | US-09-04 | Screen Share Detection per Platform | P3 | 🔴 Yet to Start | 5 | Downgraded: ScreenShareDetector already polls generically; platform-specific detection adds little |
 | US-09-05 | Teams Auto-Captions Integration | P2 | 🔴 Yet to Start | 5 | Useful fallback when Whisper struggles; Teams-only |
-| US-09-06 | Meeting Start & End Lifecycle | P2 | 🔴 Yet to Start | 3 | Auto-start/stop capture on meeting open/close |
+| US-09-06 | Meeting Start & End Lifecycle | P2 | 🔵 Built | 3 | Auto-start/stop capture on meeting open/close |
 | US-09-07 | Platform Compatibility Testing Matrix | P3 | 🔴 Yet to Start | 3 | Downgraded: DXGI+WASAPI is platform-agnostic; matrix is a QA task not a feature |
 
 **Epic 09 Total:** 27 SP · 0 Done · 5 Built · 0 Scaffolded · 22 Yet to Start

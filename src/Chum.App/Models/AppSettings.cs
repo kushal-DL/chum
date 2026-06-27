@@ -38,6 +38,8 @@ public sealed class AppSettings
     public bool StartMinimisedToTray { get; set; } = true;
     public bool StartCapturingOnLaunch { get; set; } = true;
     public bool AutoHideOnScreenShare { get; set; } = true;
+    // Auto-start/stop capture when a meeting app (Teams, Zoom, Meet) opens/closes
+    public bool AutoStartCapture { get; set; } = false;
 
     // --- Overlay capture privacy ---
     // Applies SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE) to hide the overlay from screen

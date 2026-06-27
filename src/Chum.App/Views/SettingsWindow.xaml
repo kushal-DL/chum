@@ -152,6 +152,10 @@
                       Content="Require confirmation before sending screenshot to AI"
                       Margin="0,4"
                       ToolTip="When enabled, the first Ctrl+Alt+S shows a banner. Press again within 5 seconds to actually send the screenshot. Prevents accidental capture of sensitive content."/>
+            <CheckBox x:Name="AutoStartCaptureBox"
+                      Content="Auto-start capture when Teams, Zoom, or Google Meet is detected"
+                      Margin="0,4"
+                      ToolTip="Chum checks for running meeting apps every 5 seconds. Capture starts automatically when one is found and stops when it closes. Overrides the 'Start capturing on launch' setting during that session."/>
 
             <!-- ── Local Processing ── -->
             <Label Content="LOCAL PROCESSING (OLLAMA)" Style="{StaticResource SectionHeader}"/>

@@ -118,6 +118,17 @@ public partial class App : System.Windows.Application
         _orchestrator.DeviceDisconnected += async (_, _) =>
             await FallbackToDefaultAudioAsync();
 
+        _orchestrator.MeetingAppOpened += async (_, _) =>
+        {
+            if (!Settings.Current.AutoStartCapture || _orchestrator.IsRunning) return;
+            await _orchestrator.StartAsync();
+        };
+        _orchestrator.MeetingAppClosed += async (_, _) =>
+        {
+            if (!Settings.Current.AutoStartCapture || !_orchestrator.IsRunning) return;
+            await _orchestrator.StopAsync();
+        };
+
         // Opacity binding
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
         Settings.SettingsChanged += (_, _) =>

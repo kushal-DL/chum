@@ -38,10 +38,17 @@ public sealed class MeetingOrchestrator : IDisposable
     private Timer? _gcTimer;
     private Timer? _latencyLogTimer;
     private readonly PipelineLatencyTracker _latencyTracker = new();
-    private CancellationTokenSource _cts = new();
+    private CancellationTokenSource? _cts;
+    private MeetingPlatform _lastPlatform = MeetingPlatform.Unknown;
+
+    public bool IsRunning => _cts != null;
 
     /// <summary>Fires when a capture device unexpectedly disconnects. App should rebuild the audio pipeline.</summary>
     public event EventHandler? DeviceDisconnected;
+    /// <summary>Fires when a meeting app is detected opening (Unknown → known platform).</summary>
+    public event EventHandler? MeetingAppOpened;
+    /// <summary>Fires when a meeting app is detected closing (known → Unknown).</summary>
+    public event EventHandler? MeetingAppClosed;
     private Task? _transcriptionLoop;
     private bool _disposed;
 
@@ -87,8 +94,9 @@ public sealed class MeetingOrchestrator : IDisposable
             else _overlay.Show();
         };
 
-        // Detect meeting platform for prompt context
+        // Detect meeting platform for prompt context; fire lifecycle events for auto-start/stop
         _platformDetector = new MeetingPlatformDetector();
+        _platformDetector.PlatformChanged += OnPlatformChanged;
 
         // Wire device disconnect → notify App to rebuild pipeline
         _audio.CaptureDisconnected += (_, _) =>
@@ -135,6 +143,27 @@ public sealed class MeetingOrchestrator : IDisposable
         };
     }
 
+    private void OnPlatformChanged(object? sender, MeetingPlatform platform)
+    {
+        bool wasInMeeting = _lastPlatform != MeetingPlatform.Unknown;
+        bool isInMeeting  = platform != MeetingPlatform.Unknown;
+        _lastPlatform = platform;
+
+        if (!_settings.Current.AutoStartCapture) return;
+
+        if (!wasInMeeting && isInMeeting)
+        {
+            Serilog.Log.Information("Meeting app detected ({Platform}) — auto-starting capture",
+                MeetingPlatformDetector.FriendlyName(platform));
+            MeetingAppOpened?.Invoke(this, EventArgs.Empty);
+        }
+        else if (wasInMeeting && !isInMeeting)
+        {
+            Serilog.Log.Information("Meeting app closed — auto-stopping capture");
+            MeetingAppClosed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     public async Task StartAsync()
     {
         _cts = new CancellationTokenSource();
@@ -170,12 +199,14 @@ public sealed class MeetingOrchestrator : IDisposable
 
     public async Task StopAsync()
     {
+        if (_cts is null) return;
         _gcTimer?.Dispose();
         _gcTimer = null;
         _latencyLogTimer?.Dispose();
         _latencyLogTimer = null;
         _audio.Stop();
         await _cts.CancelAsync();
+        _cts = null;
         if (_transcriptionLoop is not null)
             await _transcriptionLoop.ConfigureAwait(false);
         _overlay.SetStatus(OverlayStatus.Idle, "Stopped");
@@ -284,12 +315,13 @@ public sealed class MeetingOrchestrator : IDisposable
     // Streams with exponential-backoff retry on LlmException (max 3 attempts: 1s, 2s, 4s gaps).
     private async Task StreamWithRetryAsync(LlmRequest request)
     {
+        var ct = _cts?.Token ?? CancellationToken.None;
         int[] retryDelaysMs = [1000, 2000, 4000];
         for (int attempt = 0; attempt <= retryDelaysMs.Length; attempt++)
         {
             try
             {
-                await foreach (var token in _llm.StreamResponseAsync(request, _cts.Token))
+                await foreach (var token in _llm.StreamResponseAsync(request, ct))
                     _overlay.AppendResponseToken(token);
                 return;
             }
@@ -299,7 +331,7 @@ public sealed class MeetingOrchestrator : IDisposable
                 int delayMs = retryDelaysMs[attempt];
                 Serilog.Log.Warning(ex, "LLM call failed (attempt {A}) — retrying in {D}ms", attempt + 1, delayMs);
                 _overlay.SetStatus(OverlayStatus.Thinking, $"Retrying… ({attempt + 1}/{retryDelaysMs.Length})");
-                await Task.Delay(delayMs, _cts.Token);
+                await Task.Delay(delayMs, ct);
             }
             // Final attempt: LlmException propagates to caller
         }
@@ -540,8 +572,8 @@ public sealed class MeetingOrchestrator : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        _cts.Cancel();
-        _cts.Dispose();
+        _cts?.Cancel();
+        _cts?.Dispose();
         _captureConfirmTimer?.Dispose();
         _gcTimer?.Dispose();
         _latencyLogTimer?.Dispose();

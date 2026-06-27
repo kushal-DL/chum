@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-05-08 Built — 60/84 stories 🔵 Built (237/320 SP, 74%); Epic 05 (Overlay UI) is 100% Built
+**Phase:** US-09-06 Built — 61/84 stories 🔵 Built (240/320 SP, 75%)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,31 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 30 (2026-06-27, Part 30)
+
+**Meeting Start & End Lifecycle — US-09-06 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/Models/AppSettings.cs` — Added `AutoStartCapture` (bool, default false). User opt-in so the app doesn't auto-capture surprise calls on first launch.
+- `Chum.App/Services/MeetingOrchestrator.cs`:
+  - `_cts` field changed from `= new()` to `= null` (nullable). Orchestrator starts in stopped state.
+  - Added `public bool IsRunning => _cts != null` property.
+  - Added `public event EventHandler? MeetingAppOpened` and `MeetingAppClosed` events.
+  - Added `_lastPlatform` field (tracks previous platform to detect Unknown↔known transitions).
+  - Added `OnPlatformChanged` handler: subscribes to `_platformDetector.PlatformChanged`; fires `MeetingAppOpened` on Unknown→known transition and `MeetingAppClosed` on known→Unknown, only when `AutoStartCapture` is enabled.
+  - `StopAsync()`: added early-return `if (_cts is null) return;` guard; sets `_cts = null` after `CancelAsync()`.
+  - `Dispose()`: changed `_cts.Cancel()` / `_cts.Dispose()` to null-safe `_cts?.Cancel()` / `_cts?.Dispose()`.
+  - `StreamWithRetryAsync`: captures `ct = _cts?.Token ?? CancellationToken.None` at method entry to avoid null-ref if `_cts` is cleared during an active stream.
+- `Chum.App/App.xaml.cs` — Wired `_orchestrator.MeetingAppOpened` and `MeetingAppClosed` in `BuildAndWireComponents()`. Each handler checks the setting and `IsRunning` guard before calling `StartAsync`/`StopAsync`.
+- `Chum.App/Views/SettingsWindow.xaml` — Added `AutoStartCaptureBox` checkbox in BEHAVIOUR section.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — Load/save `AutoStartCapture` in `LoadCurrentSettings` and `SaveSettings_Click`.
+
+**Architecture note:** Mirrors the existing `DeviceDisconnected` / `FallbackToDefaultAudioAsync` event pattern. The orchestrator fires the event; App owns the async start/stop. No threading issues — `PlatformChanged` fires on the timer thread (ThreadPool); the event handler kicks off an async Task that marshals itself correctly.
+
+**Build:** 0 errors, same 8 pre-existing warnings.
 
 ---
 
@@ -591,14 +616,16 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-09-06 — Meeting Start & End Lifecycle (P2, 3 SP):**
+**US-07-10 — About & Diagnostics Panel (P2, 2 SP):**
 
-Auto-start capture when a supported meeting app (Teams, Zoom, Google Meet) opens, and optionally auto-stop when it exits. `MeetingPlatformDetector` already polls processes every 5s (`CurrentPlatform` property, `PlatformChanged` event). Need to:
-1. Add `AppSettings.AutoStartCapture` (bool, default false) — user opt-in.
-2. In `MeetingOrchestrator.cs`: subscribe to `_platformDetector.PlatformChanged`. When platform changes from `Unknown` → a known platform and `AutoStartCapture` is true, call `StartAsync()`. When platform changes back to `Unknown` and currently running, call `StopAsync()`.
-3. Add a checkbox to `SettingsWindow.xaml`: "Auto-start capture when a meeting app is detected".
+Surface `PipelineLatencyTracker.GetPercentiles()` (p50/p90/p99) and basic app info in a lightweight About dialog. Accessible from the ⚙ Settings window or a tray menu item.
 
-Alternative next story: **US-07-10 — About & Diagnostics Panel (P2, 2 SP)** — show PipelineLatencyTracker percentiles (p50/p90/p99) and app version in a small About dialog.
+Implementation plan:
+1. Add an "About & Diagnostics" button to `SettingsWindow.xaml`.
+2. Create `AboutWindow.xaml` — shows: app version, build date, `PipelineLatencyTracker.SegmentsRecorded`, p50/p90/p99 STT latency, active LLM provider + model, overlay window handle, and a "Copy diagnostics" button.
+3. `App.xaml.cs` must expose `_orchestrator` (or a `GetDiagnostics()` method) so `AboutWindow` can read the tracker.
+
+Alternative: **US-02-02 — Cloud STT Fallback (P2, 5 SP)** — Whisper Cloud / OpenAI Whisper API as fallback when local model is slow or unavailable.
 
 ---
 
