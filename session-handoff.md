@@ -114,6 +114,26 @@ Created the complete product backlog and project infrastructure:
 
 ---
 
+### What Was Done Session 6 (2026-06-27, Part 6)
+
+**DXGI Desktop Duplication screen capture — US-06-01 + US-06-07 → 🔵 Built:**
+
+**Architecture decision recorded:**
+- `WDA_EXCLUDEFROMCAPTURE` blocks DXGI Desktop Duplication for Teams call window too (extended by Microsoft in Windows 10 2004+). DXGI is NOT a bypass for Teams DRM. It captures everything else (slides in Chrome/Edge, Zoom, other apps, non-call windows) correctly.
+- Epic 09 reprioritised: US-09-02/03 → P2, US-09-04/07 → P3. WASAPI loopback and DXGI cover audio + screen capture in a platform-agnostic way. US-09-01 (auto-detection for prompt context) and US-09-05/06 kept.
+
+**New files:**
+- `Chum.App/Services/DxgiScreenCapture.cs` — `TryCreate()` pattern (returns false in VMs/RDP/headless); creates D3D11 hardware device; `OpenPrimaryDuplication()` creates a fresh `IDXGIOutputDuplication` per capture call (first `AcquireNextFrame` on a fresh duplicator returns current desktop immediately); copies to CPU staging texture; encodes as JPEG (max 1280px wide, quality 85) via `System.Drawing`; `Marshal.Copy` for row-pitch-aware pixel copy
+
+**Modified files:**
+- `Chum.App/Chum.App.csproj` — added `Vortice.Direct3D11 3.5.0` and `Vortice.DXGI 3.5.0` (verify version on NuGet if restore fails)
+- `Chum.App/Services/MeetingOrchestrator.cs` — added `DxgiScreenCapture? _screenCapture` field + optional constructor param; added `HandleScreenCaptureQueryAsync` — runs capture on `Task.Run`, sends base64 JPEG + transcript context to LLM, shows helpful Teams-specific error if frame is unavailable
+- `Chum.App/App.xaml.cs` — calls `DxgiScreenCapture.TryCreate(out _screenCapture)`; passes to orchestrator; disposes in `OnExit`
+
+**Epic 06 change:** US-06-01 renamed from "WGC API" to "DXGI Desktop Duplication" in all backlog files.
+
+---
+
 ### What Was Done Session 5 (2026-06-27, Part 5)
 
 **Silero VAD implementation — US-01-04 → 🔵 Built:**
@@ -131,7 +151,24 @@ Created the complete product backlog and project infrastructure:
 
 ---
 
-## Immediate Next Step: Verify the Build
+## Immediate Next Step
+
+**1. Verify the build** — .NET 8 SDK required; see below.
+
+**2. Next story to build:** US-06-02 — Clipboard Image Monitoring (P1, 3 SP)
+- Wire `WM_CLIPBOARDUPDATE` via `HwndSource` to detect when user copies an image
+- On image detected: show overlay prompt "Image in clipboard — press [hotkey] to analyse, dismiss otherwise"
+- On confirm: pass clipboard image to LLM same path as DXGI capture
+- This closes the Teams call window gap (user uses Win+Shift+S on a non-Teams area, or drags from phone)
+
+**3. After that:** US-06-03 — Image File Drop Target (P2, 3 SP)
+- `AllowDrop="True"` on the overlay; handle `Drop` event; read file, compress, send to LLM
+
+---
+
+## Build Verification
+
+**Build Verification Notes**
 
 **The .NET 8 SDK is NOT installed on this machine.** Only the runtime exists at `C:\Program Files\dotnet\` — there is no `sdk/` subdirectory. `dotnet build` will fail until the SDK is installed.
 

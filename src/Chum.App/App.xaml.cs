@@ -25,6 +25,7 @@ public partial class App : System.Windows.Application
     private OverlayWindow? _overlayWindow;
     private OverlayViewModel? _overlayVm;
     private NotifyIcon? _trayIcon;
+    private DxgiScreenCapture? _screenCapture;
     private bool _started;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -89,9 +90,11 @@ public partial class App : System.Windows.Application
         RegisterHotkeys();
         _hotkeys.Install();
 
+        DxgiScreenCapture.TryCreate(out _screenCapture);
+
         _orchestrator = new MeetingOrchestrator(
             audioPipeline, stt, transcriptBuffer, contextExtractor,
-            llm, _hotkeys, _overlayVm, Settings);
+            llm, _hotkeys, _overlayVm, Settings, _screenCapture);
 
         // Opacity binding
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
@@ -206,6 +209,7 @@ public partial class App : System.Windows.Application
         if (_orchestrator is not null)
             await _orchestrator.StopAsync();
         _orchestrator?.Dispose();
+        _screenCapture?.Dispose();
         Log.CloseAndFlush();
         base.OnExit(e);
     }

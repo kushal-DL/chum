@@ -102,15 +102,15 @@
 
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
-| US-06-01 | Primary Screen Capture (WGC API) | P1 | 🔴 Yet to Start | 8 | |
+| US-06-01 | Primary Screen Capture (DXGI Duplication) | P1 | 🔵 Built | 8 | DxgiScreenCapture.cs — captures primary monitor at GPU output level; Teams call tiles appear black (WDA_EXCLUDEFROMCAPTURE applies to DXGI too on Win10 2004+); all other content captured correctly |
 | US-06-02 | Clipboard Image Monitoring | P1 | 🔴 Yet to Start | 3 | |
 | US-06-03 | Image File Drop Target | P2 | 🔴 Yet to Start | 3 | |
 | US-06-04 | Region Selection / Snip Mode | P2 | 🔴 Yet to Start | 5 | |
 | US-06-05 | UIA Text Extraction (Teams Captions) | P2 | 🔴 Yet to Start | 5 | |
 | US-06-06 | Image Preprocessing Pipeline | P1 | 🔴 Yet to Start | 3 | |
-| US-06-07 | Multimodal LLM Vision Request | P1 | 🔴 Yet to Start | 3 | |
+| US-06-07 | Multimodal LLM Vision Request | P1 | 🔵 Built | 3 | HandleScreenCaptureQueryAsync in MeetingOrchestrator — DXGI frame → base64 JPEG → AnthropicLlmProvider with image + transcript context |
 
-**Epic 06 Total:** 30 SP · 0 Done · 0 Built · 0 Scaffolded · 30 Yet to Start
+**Epic 06 Total:** 30 SP · 0 Done · 11 Built · 0 Scaffolded · 19 Yet to Start
 
 ---
 
@@ -160,13 +160,13 @@
 
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
-| US-09-01 | Meeting Platform Auto-Detection | P1 | 🔴 Yet to Start | 5 | |
-| US-09-02 | Teams-Specific Audio Device Handling | P1 | 🔴 Yet to Start | 3 | |
-| US-09-03 | Zoom Audio Device Handling | P1 | 🔴 Yet to Start | 3 | |
-| US-09-04 | Screen Share Detection per Platform | P1 | 🔴 Yet to Start | 5 | |
-| US-09-05 | Teams Auto-Captions Integration | P2 | 🔴 Yet to Start | 5 | |
-| US-09-06 | Meeting Start & End Lifecycle | P2 | 🔴 Yet to Start | 3 | |
-| US-09-07 | Platform Compatibility Testing Matrix | P2 | 🔴 Yet to Start | 3 | |
+| US-09-01 | Meeting Platform Auto-Detection | P1 | 🔴 Yet to Start | 5 | Useful for prompt context + lifecycle; kept at P1 |
+| US-09-02 | Teams-Specific Audio Device Handling | P2 | 🔴 Yet to Start | 3 | Downgraded: WASAPI loopback already platform-agnostic; this is an edge-case config fix |
+| US-09-03 | Zoom Audio Device Handling | P2 | 🔴 Yet to Start | 3 | Downgraded: same reason as US-09-02 |
+| US-09-04 | Screen Share Detection per Platform | P3 | 🔴 Yet to Start | 5 | Downgraded: ScreenShareDetector already polls generically; platform-specific detection adds little |
+| US-09-05 | Teams Auto-Captions Integration | P2 | 🔴 Yet to Start | 5 | Useful fallback when Whisper struggles; Teams-only |
+| US-09-06 | Meeting Start & End Lifecycle | P2 | 🔴 Yet to Start | 3 | Auto-start/stop capture on meeting open/close |
+| US-09-07 | Platform Compatibility Testing Matrix | P3 | 🔴 Yet to Start | 3 | Downgraded: DXGI+WASAPI is platform-agnostic; matrix is a QA task not a feature |
 
 **Epic 09 Total:** 27 SP · 0 Done · 0 Built · 0 Scaffolded · 27 Yet to Start
 
@@ -202,8 +202,8 @@
 | P2 Stories | 22 stories · 87 SP |
 | P3 Stories | 5 stories · 21 SP |
 | ✅ Done | 0 SP (0%) |
-| 🔵 Built | 144 SP (46%) |
+| 🔵 Built | 155 SP (50%) |
 | 🟡 Scaffolded | 31 SP (10%) |
-| 🔴 Yet to Start | 147 SP (47%) |
+| 🔴 Yet to Start | 136 SP (44%) |
 
-*Last updated: 2026-06-27 — Session 5: Silero VAD (SileroVad.cs + IVad interface), AudioPipeline updated to accept IVad*
+*Last updated: 2026-06-27 — Session 6: DXGI screen capture (US-06-01 + US-06-07), Epic 09 priorities revised*

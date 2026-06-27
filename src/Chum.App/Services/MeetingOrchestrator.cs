@@ -25,6 +25,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private readonly HotkeyService _hotkeys;
     private readonly OverlayViewModel _overlay;
     private readonly SettingsService _settings;
+    private readonly DxgiScreenCapture? _screenCapture;
 
     private readonly ScreenShareDetector _shareDetector;
     private CancellationTokenSource _cts = new();
@@ -39,7 +40,8 @@ public sealed class MeetingOrchestrator : IDisposable
         ILlmProvider llm,
         HotkeyService hotkeys,
         OverlayViewModel overlay,
-        SettingsService settings)
+        SettingsService settings,
+        DxgiScreenCapture? screenCapture = null)
     {
         _audio = audio;
         _stt = stt;
@@ -49,6 +51,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _hotkeys = hotkeys;
         _overlay = overlay;
         _settings = settings;
+        _screenCapture = screenCapture;
 
         // Wire transcript segments to buffer
         _stt.SegmentTranscribed += (_, seg) =>
@@ -83,6 +86,8 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             if (actionId == "ActionItems")
                 await HandleActionItemsQueryAsync();
+            else if (actionId == "ScreenCapture")
+                await HandleScreenCaptureQueryAsync();
             else if (actionId == "PrivacyPause")
                 TogglePause();
             else if (actionId == "HideOverlay")
@@ -219,6 +224,69 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             _overlay.ShowError($"Error: {ex.Message}");
             Serilog.Log.Error(ex, "Error in action items query");
+        }
+    }
+
+    private async Task HandleScreenCaptureQueryAsync()
+    {
+        if (_screenCapture is null)
+        {
+            _overlay.ShowError("Screen capture is not available on this system (VM, RDP, or unsupported GPU).");
+            return;
+        }
+
+        _overlay.SetStatus(OverlayStatus.Thinking, "Capturing screen...");
+        _overlay.StartNewResponse();
+
+        string? imageBase64;
+        try
+        {
+            imageBase64 = await Task.Run(() =>
+                _screenCapture.CaptureAsJpegBase64(maxWidthPx: 1280, jpegQuality: 85));
+        }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Screen capture failed — check logs");
+            Serilog.Log.Error(ex, "Screen capture exception");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+
+        if (imageBase64 is null)
+        {
+            _overlay.ShowError("Could not capture a frame. If Teams call content appears black, this is expected — try Win+Shift+S and drop the image onto the overlay instead.");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+
+        _overlay.SetStatus(OverlayStatus.Thinking, "Analysing screen...");
+
+        try
+        {
+            var contextText = _context.BuildContext(DateTimeOffset.UtcNow, _settings.Current.MaxResponseTokens);
+            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName);
+            var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
+            var request = new LlmRequest(system, user,
+                ImageBase64: imageBase64,
+                ImageMediaType: "image/jpeg",
+                MaxTokens: _settings.Current.MaxResponseTokens);
+
+            await foreach (var token in _llm.StreamResponseAsync(request, _cts.Token))
+                _overlay.AppendResponseToken(token);
+
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (LlmException ex)
+        {
+            _overlay.ShowError($"AI error: {ex.Message}");
+            Serilog.Log.Error(ex, "LLM error during screen capture query");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Unexpected error — check logs");
+            Serilog.Log.Error(ex, "Unexpected error in screen capture query");
         }
     }
 

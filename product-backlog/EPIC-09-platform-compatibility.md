@@ -5,12 +5,12 @@
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
 | US-09-01 | Meeting Platform Auto-Detection | P1 — High | 🔴 Yet to Start | 5 |
-| US-09-02 | Teams-Specific Audio Device Handling | P1 — High | 🔴 Yet to Start | 3 |
-| US-09-03 | Zoom Audio Device Handling | P1 — High | 🔴 Yet to Start | 3 |
-| US-09-04 | Screen Share Detection per Platform | P1 — High | 🔴 Yet to Start | 5 |
+| US-09-02 | Teams-Specific Audio Device Handling | P2 — Medium | 🔴 Yet to Start | 3 |
+| US-09-03 | Zoom Audio Device Handling | P2 — Medium | 🔴 Yet to Start | 3 |
+| US-09-04 | Screen Share Detection per Platform | P3 — Low | 🔴 Yet to Start | 5 |
 | US-09-05 | Teams Auto-Captions Integration | P2 — Medium | 🔴 Yet to Start | 5 |
 | US-09-06 | Meeting Start & End Lifecycle | P2 — Medium | 🔴 Yet to Start | 3 |
-| US-09-07 | Platform Compatibility Testing Matrix | P2 — Medium | 🔴 Yet to Start | 3 |
+| US-09-07 | Platform Compatibility Testing Matrix | P3 — Low | 🔴 Yet to Start | 3 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)
