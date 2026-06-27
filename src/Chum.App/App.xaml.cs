@@ -305,6 +305,7 @@ public partial class App : System.Windows.Application
         _orchestrator?.Dispose();
         _screenCapture?.Dispose();
         _clipboardMonitor?.Dispose();
+        Settings.Save(); // persist overlay position and runtime setting changes
         Log.CloseAndFlush();
         base.OnExit(e);
     }

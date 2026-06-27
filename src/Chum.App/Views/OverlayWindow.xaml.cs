@@ -53,12 +53,15 @@ public partial class OverlayWindow : Window
         InitializeComponent();
         DataContext = viewModel;
 
-        // Auto-scroll response area when new tokens arrive
         viewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(OverlayViewModel.ResponseText))
                 Dispatcher.InvokeAsync(() => ResponseScroller.ScrollToBottom());
         };
+
+        // Persist position across sessions so overlay stays on the user's chosen monitor
+        LocationChanged += (_, _) => PersistWindowBounds();
+        SizeChanged += (_, _) => PersistWindowBounds();
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -87,10 +90,42 @@ public partial class OverlayWindow : Window
 
     private void PositionInBottomRight()
     {
-        var screen = System.Windows.Forms.Screen.PrimaryScreen?.WorkingArea
+        var app = (App)Application.Current;
+        var s = app.Settings.Current;
+
+        // Restore last-known position when it falls on a connected screen
+        if (s.OverlayLeft >= 0 && s.OverlayTop >= 0 &&
+            IsPositionVisible(s.OverlayLeft, s.OverlayTop))
+        {
+            Left = s.OverlayLeft;
+            Top  = s.OverlayTop;
+            if (s.OverlayWidth  > 0) Width  = s.OverlayWidth;
+            if (s.OverlayHeight > 0) Height = s.OverlayHeight;
+            return;
+        }
+
+        // Default: bottom-right corner of primary screen
+        var wa = System.Windows.Forms.Screen.PrimaryScreen?.WorkingArea
             ?? new System.Drawing.Rectangle(0, 0, 1920, 1080);
-        Left = screen.Right - Width - 20;
-        Top = screen.Bottom - Height - 20;
+        Left = wa.Right  - Width  - 20;
+        Top  = wa.Bottom - Height - 20;
+    }
+
+    // Check whether (left, top) falls within any connected screen's working area,
+    // using a point 50px in from the corner so a partially-offscreen window still counts.
+    private static bool IsPositionVisible(double left, double top)
+    {
+        var probe = new System.Drawing.Point((int)left + 50, (int)top + 20);
+        return System.Windows.Forms.Screen.AllScreens.Any(s => s.WorkingArea.Contains(probe));
+    }
+
+    private void PersistWindowBounds()
+    {
+        var s = ((App)Application.Current).Settings.Current;
+        s.OverlayLeft   = Left;
+        s.OverlayTop    = Top;
+        s.OverlayWidth  = ActualWidth;
+        s.OverlayHeight = ActualHeight;
     }
 
     private void Header_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)

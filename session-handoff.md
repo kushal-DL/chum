@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-05-09 Built — 59/84 stories 🔵 Built (234/320 SP, 73%); next: US-05-08 (Multi-monitor) or US-09-06 (Meeting lifecycle)
+**Phase:** US-05-08 Built — 60/84 stories 🔵 Built (237/320 SP, 74%); Epic 05 (Overlay UI) is 100% Built
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,27 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 29 (2026-06-27, Part 29)
+
+**Multi-monitor Support — US-05-08 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/Views/OverlayWindow.xaml.cs`:
+  - `PositionInBottomRight()` updated to first check `AppSettings.OverlayLeft/Top` (sentinel = -1). If a saved position exists and its top-left corner (+50, +20 probe point) lands within any connected screen's working area, the saved Left/Top/Width/Height are restored. If the saved monitor is gone (probe fails), falls back to primary screen bottom-right. This handles the "monitor removed" acceptance criterion automatically.
+  - Added `IsPositionVisible(double left, double top)` — static helper using `Screen.AllScreens.Any(s => s.WorkingArea.Contains(probe))`.
+  - Added `PersistWindowBounds()` — writes `Left`, `Top`, `ActualWidth`, `ActualHeight` into `Settings.Current` (in-memory only; persisted to disk on exit).
+  - Constructor: added `LocationChanged` and `SizeChanged` event subscriptions that both call `PersistWindowBounds()`.
+- `Chum.App/App.xaml.cs` — `OnExit` now calls `Settings.Save()` before `Log.CloseAndFlush()` to persist the in-memory `OverlayLeft/Top/Width/Height` to `settings.json`.
+
+**Architecture notes:**
+- `AppSettings.OverlayLeft/Top/Width/Height` were already defined with sentinel -1 — no model changes needed.
+- Position is saved in-memory on every drag/resize, written to disk once on exit. No per-drag disk write → no I/O overhead during dragging.
+- The `IsPositionVisible` probe point is (+50px, +20px) inside the top-left corner — a window that's slightly off-screen on one edge still counts as visible if most of it is on-screen.
+
+**Build:** 0 errors, same 8 pre-existing warnings.
 
 ---
 
@@ -570,14 +591,14 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-05-08 — Multi-monitor Support (P2, 3 SP):**
+**US-09-06 — Meeting Start & End Lifecycle (P2, 3 SP):**
 
-Currently `PositionInBottomRight()` uses `Screen.PrimaryScreen` only. Need to:
-- Add a setting or auto-detection to position on the screen where the active meeting app window is
-- Or: let the user drag the overlay anywhere (already drag-enabled via DragMove), and remember last position in settings
-- Simplest viable: remember last window position in settings (Left/Top) and restore on next launch
+Auto-start capture when a supported meeting app (Teams, Zoom, Google Meet) opens, and optionally auto-stop when it exits. `MeetingPlatformDetector` already polls processes every 5s (`CurrentPlatform` property, `PlatformChanged` event). Need to:
+1. Add `AppSettings.AutoStartCapture` (bool, default false) — user opt-in.
+2. In `MeetingOrchestrator.cs`: subscribe to `_platformDetector.PlatformChanged`. When platform changes from `Unknown` → a known platform and `AutoStartCapture` is true, call `StartAsync()`. When platform changes back to `Unknown` and currently running, call `StopAsync()`.
+3. Add a checkbox to `SettingsWindow.xaml`: "Auto-start capture when a meeting app is detected".
 
-After that: **US-09-06** (Meeting start/end lifecycle), **US-07-10** (About & Diagnostics panel).
+Alternative next story: **US-07-10 — About & Diagnostics Panel (P2, 2 SP)** — show PipelineLatencyTracker percentiles (p50/p90/p99) and app version in a small About dialog.
 
 ---
 

@@ -11,7 +11,7 @@
 | US-05-05 | System Tray Integration | P1 — High | 🔵 Built | 5 |
 | US-05-06 | Overlay Theme & Opacity Config | P2 — Medium | 🔵 Built | 3 |
 | US-05-07 | Auto-hide During Screen Share | P1 — High | 🔵 Built | 8 |
-| US-05-08 | Multi-monitor Support | P2 — Medium | 🔴 Yet to Start | 3 |
+| US-05-08 | Multi-monitor Support | P2 — Medium | 🔵 Built | 3 |
 | US-05-09 | Response Copy & Share | P2 — Medium | 🔵 Built | 2 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
