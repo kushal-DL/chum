@@ -18,7 +18,7 @@ namespace Chum.App.Services;
 /// </summary>
 public sealed class MeetingOrchestrator : IDisposable
 {
-    private readonly AudioPipeline _audio;
+    private AudioPipeline _audio;
     private readonly WhisperSttEngine _stt;
     private readonly TranscriptBuffer _transcript;
     private readonly ContextExtractor _context;
@@ -129,6 +129,12 @@ public sealed class MeetingOrchestrator : IDisposable
             await _transcriptionLoop.ConfigureAwait(false);
         _overlay.SetStatus(OverlayStatus.Idle, "Stopped");
         Serilog.Log.Information("MeetingOrchestrator stopped");
+    }
+
+    public void ReplaceAudio(AudioPipeline newPipeline)
+    {
+        _audio.Dispose();
+        _audio = newPipeline;
     }
 
     public void Pause()

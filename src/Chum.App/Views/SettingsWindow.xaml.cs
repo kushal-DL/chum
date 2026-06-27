@@ -1,6 +1,9 @@
 using System.Windows;
 using Chum.App.Services;
+using Chum.Audio.Capture;
 using Application = System.Windows.Application;
+using ComboBox = System.Windows.Controls.ComboBox;
+using ComboBoxItem = System.Windows.Controls.ComboBoxItem;
 
 namespace Chum.App.Views;
 
@@ -33,6 +36,9 @@ public partial class SettingsWindow : Window
             if (item.Tag?.ToString() == s.WhisperModel)
                 WhisperModelCombo.SelectedItem = item;
         }
+
+        PopulateDeviceCombo(LoopbackDeviceCombo, AudioDeviceEnumerator.GetRenderDevices(), s.LoopbackDeviceId);
+        PopulateDeviceCombo(MicDeviceCombo, AudioDeviceEnumerator.GetCaptureDevices(), s.MicDeviceId);
 
         HoldToAskBox.Text = s.HoldToAskHotkey;
         ScreenCapBox.Text = s.ScreenCaptureHotkey;
@@ -91,15 +97,21 @@ public partial class SettingsWindow : Window
         }
     }
 
-    private void SaveSettings_Click(object sender, RoutedEventArgs e)
+    private async void SaveSettings_Click(object sender, RoutedEventArgs e)
     {
+        string? oldLoopback = _settings.Current.LoopbackDeviceId;
+        string? oldMic = _settings.Current.MicDeviceId;
+
         _settings.Update(s =>
         {
-            if (ModelCombo.SelectedItem is System.Windows.Controls.ComboBoxItem modelItem)
+            if (ModelCombo.SelectedItem is ComboBoxItem modelItem)
                 s.LlmModel = modelItem.Tag?.ToString() ?? s.LlmModel;
 
-            if (WhisperModelCombo.SelectedItem is System.Windows.Controls.ComboBoxItem whisperItem)
+            if (WhisperModelCombo.SelectedItem is ComboBoxItem whisperItem)
                 s.WhisperModel = whisperItem.Tag?.ToString() ?? s.WhisperModel;
+
+            s.LoopbackDeviceId = (LoopbackDeviceCombo.SelectedItem as ComboBoxItem)?.Tag as string;
+            s.MicDeviceId = (MicDeviceCombo.SelectedItem as ComboBoxItem)?.Tag as string;
 
             s.HoldToAskHotkey = HoldToAskBox.Text.Trim();
             s.ScreenCaptureHotkey = ScreenCapBox.Text.Trim();
@@ -112,14 +124,37 @@ public partial class SettingsWindow : Window
             s.ExcludeFromScreenCapture = ExcludeFromCaptureBox.IsChecked == true;
         });
 
-        // Re-register hotkeys immediately
         ((App)Application.Current).ReapplyHotkeys();
-
-        // Apply capture-exclusion change live — no restart needed
         ((App)Application.Current).ApplyCaptureExclusionToOverlay();
+
+        bool devicesChanged = _settings.Current.LoopbackDeviceId != oldLoopback
+                           || _settings.Current.MicDeviceId != oldMic;
+        if (devicesChanged)
+            await ((App)Application.Current).ApplyAudioDevicesAsync();
 
         DialogResult = true;
         Close();
+    }
+
+    private static void PopulateDeviceCombo(ComboBox combo, IReadOnlyList<AudioDeviceInfo> devices, string? selectedId)
+    {
+        combo.Items.Clear();
+        var defaultItem = new ComboBoxItem { Content = "Windows Default", Tag = null };
+        combo.Items.Add(defaultItem);
+
+        ComboBoxItem? toSelect = null;
+        foreach (var dev in devices)
+        {
+            var item = new ComboBoxItem
+            {
+                Content = dev.IsDefault ? $"{dev.Name}  (default)" : dev.Name,
+                Tag = dev.Id
+            };
+            combo.Items.Add(item);
+            if (dev.Id == selectedId) toSelect = item;
+        }
+
+        combo.SelectedItem = toSelect ?? defaultItem;
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e)

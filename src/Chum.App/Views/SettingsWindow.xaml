@@ -78,6 +78,17 @@
                 <ComboBoxItem Content="Claude Sonnet 4.6 — Higher quality, vision" Tag="claude-sonnet-4-6"/>
             </ComboBox>
 
+            <!-- ── Audio Devices ── -->
+            <Label Content="AUDIO DEVICES" Style="{StaticResource SectionHeader}"/>
+            <TextBlock Text="Loopback source (meeting audio)" Foreground="#999" FontSize="11" Margin="0,0,0,2"/>
+            <ComboBox x:Name="LoopbackDeviceCombo"/>
+            <TextBlock Text="Captures all audio playing through this output device."
+                       Foreground="#555" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
+            <TextBlock Text="Microphone source" Foreground="#999" FontSize="11" Margin="0,8,0,2"/>
+            <ComboBox x:Name="MicDeviceCombo"/>
+            <TextBlock Text="Captures your own voice. Use a USB or 3.5mm headset for best transcription quality."
+                       Foreground="#555" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
+
             <!-- ── Transcription ── -->
             <Label Content="TRANSCRIPTION" Style="{StaticResource SectionHeader}"/>
             <TextBlock Text="Whisper model size" Foreground="#999" FontSize="11" Margin="0,0,0,2"/>

@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-07-08 Built — 42/84 stories 🔵 Built (174/320 SP, 54%); next: US-07-02 / US-01-03 (Audio Device Selection)
+**Phase:** US-01-03 + US-07-02 Built — 44/84 stories 🔵 Built (180/320 SP, 56%); next: US-03-02 (OpenAI API Integration)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -194,6 +194,26 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 14 (2026-06-27, Part 14)
+
+**Audio Device Selection — US-01-03 + US-07-02 → 🔵 Built:**
+
+**New files:**
+- `Chum.Audio/Capture/AudioDeviceEnumerator.cs` — static class with `GetRenderDevices()` and `GetCaptureDevices()`; returns `AudioDeviceInfo(Id, Name, IsDefault)` records using `MMDeviceEnumerator`; must be called on an STA thread (safe from WPF UI thread).
+
+**Modified files:**
+- `Chum.App/Services/MeetingOrchestrator.cs` — changed `_audio` from `readonly` to mutable; added `ReplaceAudio(AudioPipeline newPipeline)` that disposes the old pipeline and assigns the new one. This allows the app to hot-swap the audio capture pipeline without rebuilding the orchestrator.
+- `Chum.App/App.xaml.cs` — added `public async Task ApplyAudioDevicesAsync()`: stops the orchestrator (if running), creates new `LoopbackCapture` + `MicCapture` + `AudioPipeline` from current settings, calls `ReplaceAudio`, then restarts if was running.
+- `Chum.App/Views/SettingsWindow.xaml` — added AUDIO DEVICES section with `LoopbackDeviceCombo` and `MicDeviceCombo`.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — added `PopulateDeviceCombo` helper (inserts "Windows Default" as first item, marks current default device); populates combos in `LoadCurrentSettings`; saves device IDs on save and calls `ApplyAudioDevicesAsync()` only if the selected device changed; added `using ComboBox = ...` and `using ComboBoxItem = ...` aliases for WinForms/WPF namespace conflict.
+
+**Decisions:**
+- Device changes apply immediately (hot-swap the pipeline) rather than requiring full app restart or just saving settings.
+- `ReplaceAudio` disposes the old pipeline completely (stops captures, completes the channel); `StartAsync()` then reads from the new pipeline's channel — no channel-reader state leak.
+- Build: 0 errors, 4 pre-existing warnings (unchanged).
+
+---
+
 ### What Was Done Session 13 (2026-06-27, Part 13)
 
 **Data Retention & Privacy Settings — US-07-08 → 🔵 Built:**
@@ -273,17 +293,15 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ## Immediate Next Step
 
-**US-07-02 + US-01-03 — Audio Device Configuration (P1, 3 SP each):**
+**US-03-02 — OpenAI API Integration (P1, 3 SP):**
 
-Both stories share the same feature: a device picker UI. `DeviceId` (loopback) and `MicDeviceId` (mic) already exist in `AppSettings`; the SettingsWindow just has no ComboBoxes for them yet.
+`ILlmProvider` is ready. Need `OpenAiLlmProvider.cs` in `Chum.Llm/`:
+- SSE streaming from `https://api.openai.com/v1/chat/completions` with `stream: true`
+- `LlmRequest.ImageBase64` → `content[{type: image_url}]` when present
+- `CredentialService.GetOpenAiKey()` to retrieve key (already stubbed in `CredentialService`)
+- Register in `App.xaml.cs` when `LlmProvider == "OpenAI"` setting
 
-What needs to be built:
-- Two `ComboBox` controls in SettingsWindow (Loopback Device, Microphone Device), populated with NAudio `WasapiCapture.GetDefaultCaptureDevice` / `DirectSoundDeviceEnumerator` or `MMDeviceEnumerator` at window open.
-- "Use Windows Default" as first option in each list.
-- `LoopbackCapture` and `MicCapture` to accept an optional device ID and open the specified device instead of the default.
-- Wiring in `App.xaml.cs` to pass selected device IDs into the pipeline on settings save.
-
-After that: **US-03-02 — OpenAI API Integration (P1, 3 SP)** — `ILlmProvider` is ready, just needs `OpenAiLlmProvider.cs`.
+After that: **US-03-06 — Response History (P1, 3 SP)** — store past LLM responses in-memory (ring buffer) so user can scroll back through earlier answers.
 
 ---
 

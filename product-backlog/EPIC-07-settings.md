@@ -5,7 +5,7 @@
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
 | US-07-01 | API Key Management | P0 — MVP | 🔵 Built | 5 |
-| US-07-02 | Audio Device Configuration | P1 — High | 🟡 Scaffolded | 3 |
+| US-07-02 | Audio Device Configuration | P1 — High | 🔵 Built | 3 |
 | US-07-03 | LLM Provider & Model Selection | P1 — High | 🔵 Built | 3 |
 | US-07-04 | Transcription Configuration | P1 — High | 🔵 Built | 3 |
 | US-07-05 | Hotkey Configuration | P1 — High | 🔵 Built | 3 |

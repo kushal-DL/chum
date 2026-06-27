@@ -120,6 +120,26 @@ public partial class App : System.Windows.Application
         _overlayWindow?.SetCaptureExclusion(Settings.Current.ExcludeFromScreenCapture);
     }
 
+    public async Task ApplyAudioDevicesAsync()
+    {
+        if (_orchestrator is null) return;
+        var wasStarted = _started;
+        if (wasStarted)
+        {
+            await _orchestrator.StopAsync();
+            _started = false;
+        }
+
+        var s = Settings.Current;
+        var newLoopback = new LoopbackCapture(s.LoopbackDeviceId);
+        var newMic = new MicCapture(s.MicDeviceId);
+        var newPipeline = new AudioPipeline(newLoopback, newMic, BuildVad(), BuildVad());
+        _orchestrator.ReplaceAudio(newPipeline);
+
+        if (wasStarted)
+            await StartCaptureAsync();
+    }
+
     private void RegisterHotkeys()
     {
         var s = Settings.Current;

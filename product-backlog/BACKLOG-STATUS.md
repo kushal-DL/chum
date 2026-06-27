@@ -15,8 +15,8 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 42 | 174 SP | 54% |
-| 🟡 Scaffolded | 5 | 16 SP | 5% |
+| 🔵 Built | 44 | 180 SP | 56% |
+| 🟡 Scaffolded | 3 | 10 SP | 3% |
 | 🔴 Yet to Start | 37 | 130 SP | 41% |
 | **Total** | **84** | **320 SP** | |
 
@@ -28,17 +28,17 @@
 
 | Epic | Stories | Total SP | ✅ Done | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |------|---------|----------|---------|----------|--------------|-----------------|
-| 01 · Core Audio Engine | 7 | 29 SP | — | 4 (21 SP) | 1 (3 SP) | 2 (5 SP) |
+| 01 · Core Audio Engine | 7 | 29 SP | — | 5 (24 SP) | — | 2 (5 SP) |
 | 02 · Transcription & Context | 8 | 33 SP | — | 4 (21 SP) | 1 (2 SP) | 3 (10 SP) |
 | 03 · LLM Integration | 8 | 30 SP | — | 3 (13 SP) | — | 5 (17 SP) |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 6 (23 SP) | 1 (3 SP) | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 7 (37 SP) | — | 2 (5 SP) |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
-| 07 · Settings & Configuration | 10 | 27 SP | — | 7 (20 SP) | 1 (3 SP) | 2 (4 SP) |
+| 07 · Settings & Configuration | 10 | 27 SP | — | 8 (23 SP) | — | 2 (4 SP) |
 | 08 · Privacy & Security | 11 | 36 SP | — | 6 (19 SP) | 1 (5 SP) | 4 (12 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | — | — | 7 (27 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | — | — | 10 (40 SP) |
-| **Total** | **84** | **320 SP** | **0** | **42 (174 SP)** | **5 (16 SP)** | **37 (130 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **44 (180 SP)** | **3 (10 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -48,13 +48,13 @@ Each story is attributed to the project where its primary implementation lives.
 
 | Project | Primary Scope | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |---------|--------------|---------|----------|----------|--------------|-----------------|
-| Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 5 (24 SP) | 1 (3 SP) | 2 (5 SP) |
+| Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 6 (27 SP) | — | 2 (5 SP) |
 | Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 5 (24 SP) | 1 (2 SP) | 3 (10 SP) |
 | Chum.Llm | Epic 03 | 8 | 30 SP | 3 (13 SP) | — | 5 (17 SP) |
-| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 27 (106 SP) | 2 (6 SP) | 9 (26 SP) |
+| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 28 (109 SP) | 1 (3 SP) | 9 (26 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 | 18 | 72 SP | — | — | 18 (72 SP) |
-| **Total** | | **84** | **320 SP** | **42 (174 SP)** | **5 (16 SP)** | **37 (130 SP)** |
+| **Total** | | **84** | **320 SP** | **44 (180 SP)** | **3 (10 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -63,10 +63,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 34 | 125 SP | 20 (73 SP) | 4 (13 SP) | 10 (39 SP) |
+| P1 — High | 34 | 125 SP | 22 (79 SP) | 2 (7 SP) | 10 (39 SP) |
 | P2 — Medium | 27 | 91 SP | 5 (15 SP) | 1 (3 SP) | 21 (73 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **42 (174 SP)** | **5 (16 SP)** | **37 (130 SP)** |
+| **Total** | **84** | **320 SP** | **44 (180 SP)** | **3 (10 SP)** | **37 (130 SP)** |
 
 ---
 
@@ -77,13 +77,13 @@ Each story is attributed to the project where its primary implementation lives.
 |----------|-------|----------|--------|----|-------|
 | US-01-01 | Capture System Audio Loopback | P0 | 🔵 Built | 5 | LoopbackCapture.cs (WasapiLoopbackCapture) |
 | US-01-02 | Capture Microphone Audio | P0 | 🔵 Built | 3 | MicCapture.cs (WasapiCapture) |
-| US-01-03 | Audio Device Selection | P1 | 🟡 Scaffolded | 3 | DeviceId in AppSettings; no device-picker UI yet |
+| US-01-03 | Audio Device Selection | P1 | 🔵 Built | 3 | AudioDeviceEnumerator.cs (MMDeviceEnumerator); LoopbackCapture + MicCapture already accept deviceId |
 | US-01-04 | Voice Activity Detection (Silero VAD) | P0 | 🔵 Built | 8 | SileroVad.cs (ONNX, stateful LSTM, 512-sample chunks); EnergyVad kept as fallback when model not downloaded |
 | US-01-05 | Audio Ring Buffer | P0 | 🔵 Built | 5 | AudioPipeline.cs: pre-buffer + Channel<AudioChunk> |
 | US-01-06 | Real-time Audio Level Meters | P2 | 🔴 Yet to Start | 2 | |
 | US-01-07 | Automatic Device Failover | P1 | 🔴 Yet to Start | 3 | |
 
-**Epic 01 Total:** 29 SP · 0 Done · 21 Built · 3 Scaffolded · 5 Yet to Start
+**Epic 01 Total:** 29 SP · 0 Done · 24 Built · 0 Scaffolded · 5 Yet to Start
 
 ---
 
@@ -182,7 +182,7 @@ Each story is attributed to the project where its primary implementation lives.
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
 | US-07-01 | API Key Management (Credential Manager) | P0 | 🔵 Built | 5 | CredentialService.cs (AdysTech DPAPI) + SettingsWindow save/test |
-| US-07-02 | Audio Device Configuration | P1 | 🟡 Scaffolded | 3 | DeviceId in AppSettings; no device-picker combo in UI yet |
+| US-07-02 | Audio Device Configuration | P1 | 🔵 Built | 3 | LoopbackDeviceCombo + MicDeviceCombo in SettingsWindow; live apply via MeetingOrchestrator.ReplaceAudio |
 | US-07-03 | LLM Provider & Model Selection | P1 | 🔵 Built | 3 | ModelCombo in SettingsWindow; persisted via SettingsService |
 | US-07-04 | Transcription Configuration | P1 | 🔵 Built | 3 | WhisperModelCombo in SettingsWindow |
 | US-07-05 | Hotkey Configuration | P1 | 🔵 Built | 3 | HoldToAsk/ScreenCap/PrivacyPause TextBoxes in SettingsWindow |
@@ -192,7 +192,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-07-09 | Settings Import & Export | P3 | 🔴 Yet to Start | 2 | |
 | US-07-10 | About & Diagnostics Panel | P2 | 🔴 Yet to Start | 2 | |
 
-**Epic 07 Total:** 27 SP · 0 Done · 20 Built · 3 Scaffolded · 4 Yet to Start
+**Epic 07 Total:** 27 SP · 0 Done · 23 Built · 0 Scaffolded · 4 Yet to Start
 
 ---
 
@@ -265,8 +265,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P2 Stories | 27 stories · 91 SP |
 | P3 Stories | 7 stories · 20 SP |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 42 stories · 174 SP (54%) |
-| 🟡 Scaffolded | 5 stories · 16 SP (5%) |
+| 🔵 Built | 44 stories · 180 SP (56%) |
+| 🟡 Scaffolded | 3 stories · 10 SP (3%) |
 | 🔴 Yet to Start | 37 stories · 130 SP (41%) |
 
-*Last updated: 2026-06-27 — Session 12c: US-07-08 (Data Retention & Privacy Settings) built — retention slider in SettingsWindow*
+*Last updated: 2026-06-27 — Session 13: US-01-03 + US-07-02 (Audio Device Configuration) built — device pickers in SettingsWindow with live pipeline swap*
