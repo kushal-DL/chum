@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
 using System.Runtime.InteropServices;
 using Serilog;
 using Vortice.Direct3D;
@@ -153,8 +152,6 @@ public sealed class DxgiScreenCapture : IDisposable
 
     private static string EncodeAsJpeg(nint dataPtr, int width, int height, int rowPitch, int maxWidth, int quality)
     {
-        int targetWidth = Math.Min(width, maxWidth);
-        int targetHeight = (int)Math.Round((double)height * targetWidth / width);
         int stride = width * 4; // 4 bytes per BGRA pixel
 
         // Copy pixel rows from DXGI (which may have row-pitch padding) into a flat buffer
@@ -167,17 +164,7 @@ public sealed class DxgiScreenCapture : IDisposable
         try { Marshal.Copy(pixels, 0, bits.Scan0, pixels.Length); }
         finally { bmp.UnlockBits(bits); }
 
-        // Resize if wider than maxWidthPx to keep base64 payload manageable for the LLM
-        using Bitmap toEncode = targetWidth < width
-            ? new Bitmap(bmp, new Size(targetWidth, targetHeight))
-            : bmp;
-
-        using var ms = new MemoryStream();
-        var codec = ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
-        using var ep = new EncoderParameters(1);
-        ep.Param[0] = new EncoderParameter(Encoder.Quality, (long)quality);
-        toEncode.Save(ms, codec, ep);
-        return Convert.ToBase64String(ms.ToArray());
+        return ImagePreprocessor.ToJpegBase64(bmp, maxWidth, quality);
     }
 
     public void Dispose()

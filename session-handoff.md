@@ -194,14 +194,31 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 9 (2026-06-27, Part 9)
+
+**Image Preprocessing Pipeline — US-06-06 → 🔵 Built:**
+
+**New files:**
+- `Chum.App/Services/ImagePreprocessor.cs` — Static class with two overloads of `ToJpegBase64`: one accepting a WPF `BitmapSource` (used by ClipboardMonitor) and one accepting a GDI+ `Bitmap` (used by DxgiScreenCapture). Both overloads resize if wider than `maxWidthPx` (default 1280) and encode at `jpegQuality` (default 85). The GDI+ overload creates a temporary resized `Bitmap` and disposes only that copy — caller owns the original. No EXIF metadata is written (WPF encoder receives no metadata argument; GDI+ screenshot bitmaps carry no EXIF).
+
+**Modified files:**
+- `Chum.App/Services/ClipboardMonitor.cs` — `TryTakeImageAsJpegBase64` now delegates resize+encode to `ImagePreprocessor.ToJpegBase64`. Removed `System.IO` and `System.Windows.Media` imports (now unused).
+- `Chum.App/Services/DxgiScreenCapture.cs` — Private `EncodeAsJpeg` method now delegates resize+encode to `ImagePreprocessor.ToJpegBase64` after building the GDI+ `Bitmap` from DXGI pixels. Removed `System.IO` import (now unused).
+
+**Decisions made:**
+- Two static overloads rather than a generic method — the two imaging stacks (WPF vs GDI+) require fundamentally different code paths; overloads keep the call sites readable without a type-check dispatch.
+- JPEG quality (85) and max-width (1280) constants are `public const` on `ImagePreprocessor` so callers that want to override can reference `ImagePreprocessor.DefaultMaxWidthPx` / `DefaultJpegQuality`.
+- Build: 0 errors, 6 pre-existing warnings (unchanged).
+
+---
+
 ## Immediate Next Step
 
-**US-06-06 — Image Preprocessing Pipeline (P1, 3 SP)** — next in Epic 06
+**US-06-03 — Image File Drop Target (P2, 3 SP)** — next in Epic 06
 
-This is the pre-send image processing step: resize-to-fit (already done inline in ClipboardMonitor + DxgiScreenCapture), strip EXIF, convert to appropriate format. Consider whether this should be a shared helper used by both capture paths rather than separate inline code in each. May be a quick story since basic resizing + JPEG encoding is already in both ClipboardMonitor and DxgiScreenCapture — the main value is extracting it into a shared `ImagePreprocessor` so the logic lives in one place.
+`AllowDrop="True"` on the overlay; handle `Drop` event; validate that the dropped file is an image; load via `BitmapImage`, call `ImagePreprocessor.ToJpegBase64`, send to LLM via `HandleScreenCaptureQueryAsync` (same path as clipboard).
 
-**After that:** US-06-03 — Image File Drop Target (P2, 3 SP)
-- `AllowDrop="True"` on the overlay; handle `Drop` event; read file, compress, send to LLM
+**After that:** US-09-01 — Meeting Platform Auto-Detection (P1, 5 SP) or sweep the Scaffolded P1 hotkey/settings stories (US-04-06 audio beep, US-08-05 privacy pause indicator).
 
 ---
 
@@ -232,10 +249,7 @@ Build is clean. All 16 P0 MVP stories are 🔵 Built. Next steps in priority ord
 4. Right-click tray icon → Start Capture → audio pipeline starts
 5. Speak → transcription should appear in overlay
 
-### Step 2 — US-06-06: Image Preprocessing Pipeline (P1, 3 SP) ← Next story
-Extract the inline resize/encode logic that's currently duplicated in `ClipboardMonitor.cs` and `DxgiScreenCapture.cs` into a shared `ImagePreprocessor` service. Ensures consistent output quality, adds EXIF strip, and keeps a single place to tune JPEG quality/max-width settings.
-
-### Step 3 — US-06-03: Image File Drop Target (P2, 3 SP)
+### Step 2 — US-06-03: Image File Drop Target (P2, 3 SP) ← Next story
 `AllowDrop="True"` on overlay; `Drop` event handler; validate image file; send to LLM.
 
 ### Step 4 — P1 Scaffolded → Built sweep

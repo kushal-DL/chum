@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 34 | 153 SP | 48% |
+| 🔵 Built | 35 | 156 SP | 49% |
 | 🟡 Scaffolded | 11 | 31 SP | 10% |
-| 🔴 Yet to Start | 39 | 136 SP | 43% |
+| 🔴 Yet to Start | 38 | 133 SP | 42% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -33,12 +33,12 @@
 | 03 · LLM Integration | 8 | 30 SP | — | 3 (13 SP) | — | 5 (17 SP) |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 2 (13 SP) | 5 (13 SP) | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 7 (37 SP) | — | 2 (5 SP) |
-| 06 · Screen Capture & Vision | 7 | 30 SP | — | 3 (14 SP) | — | 4 (16 SP) |
+| 06 · Screen Capture & Vision | 7 | 30 SP | — | 4 (17 SP) | — | 3 (13 SP) |
 | 07 · Settings & Configuration | 10 | 27 SP | — | 6 (18 SP) | 2 (5 SP) | 2 (4 SP) |
 | 08 · Privacy & Security | 11 | 36 SP | — | 5 (16 SP) | 2 (8 SP) | 4 (12 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | — | — | 7 (27 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | — | — | 10 (40 SP) |
-| **Total** | **84** | **320 SP** | **0** | **33 (150 SP)** | **11 (31 SP)** | **40 (139 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **35 (156 SP)** | **11 (31 SP)** | **38 (133 SP)** |
 
 ---
 
@@ -51,10 +51,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 5 (24 SP) | 1 (3 SP) | 2 (5 SP) |
 | Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 5 (24 SP) | 1 (2 SP) | 3 (10 SP) |
 | Chum.Llm | Epic 03 | 8 | 30 SP | 3 (13 SP) | — | 5 (17 SP) |
-| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 19 (85 SP) | 8 (21 SP) | 11 (32 SP) |
+| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 20 (88 SP) | 8 (21 SP) | 10 (29 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 | 18 | 72 SP | — | — | 18 (72 SP) |
-| **Total** | | **84** | **320 SP** | **33 (150 SP)** | **11 (31 SP)** | **40 (139 SP)** |
+| **Total** | | **84** | **320 SP** | **35 (156 SP)** | **11 (31 SP)** | **38 (133 SP)** |
 
 ---
 
@@ -63,10 +63,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 34 | 125 SP | 13 (55 SP) | 10 (28 SP) | 11 (42 SP) |
+| P1 — High | 34 | 125 SP | 14 (58 SP) | 10 (28 SP) | 10 (39 SP) |
 | P2 — Medium | 27 | 91 SP | 4 (12 SP) | 1 (3 SP) | 22 (76 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **33 (150 SP)** | **11 (31 SP)** | **40 (139 SP)** |
+| **Total** | **84** | **320 SP** | **35 (156 SP)** | **11 (31 SP)** | **38 (133 SP)** |
 
 ---
 
@@ -169,10 +169,10 @@ Each story is attributed to the project where its primary implementation lives.
 | US-06-03 | Image File Drop Target | P2 | 🔴 Yet to Start | 3 | |
 | US-06-04 | Region Selection / Snip Mode | P2 | 🔴 Yet to Start | 5 | |
 | US-06-05 | UIA Text Extraction (Teams Captions) | P2 | 🔴 Yet to Start | 5 | |
-| US-06-06 | Image Preprocessing Pipeline | P1 | 🔴 Yet to Start | 3 | |
+| US-06-06 | Image Preprocessing Pipeline | P1 | 🔵 Built | 3 | ImagePreprocessor.cs — shared WPF BitmapSource + GDI+ Bitmap → JPEG base64 encoder; replaces inline logic in ClipboardMonitor + DxgiScreenCapture |
 | US-06-07 | Multimodal LLM Vision Request | P1 | 🔵 Built | 3 | HandleScreenCaptureQueryAsync in MeetingOrchestrator — DXGI frame → base64 JPEG → AnthropicLlmProvider with image + transcript context |
 
-**Epic 06 Total:** 30 SP · 0 Done · 14 Built · 0 Scaffolded · 16 Yet to Start
+**Epic 06 Total:** 30 SP · 0 Done · 17 Built · 0 Scaffolded · 13 Yet to Start
 
 ---
 
@@ -265,8 +265,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P2 Stories | 27 stories · 91 SP |
 | P3 Stories | 7 stories · 20 SP |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 34 stories · 153 SP (48%) |
+| 🔵 Built | 35 stories · 156 SP (49%) |
 | 🟡 Scaffolded | 11 stories · 31 SP (10%) |
-| 🔴 Yet to Start | 39 stories · 136 SP (43%) |
+| 🔴 Yet to Start | 38 stories · 133 SP (42%) |
 
-*Last updated: 2026-06-27 — Session 8: US-06-02 Clipboard Image Monitoring 🔵 Built*
+*Last updated: 2026-06-27 — Session 9: US-06-06 Image Preprocessing Pipeline 🔵 Built*

@@ -1,7 +1,5 @@
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace Chum.App.Services;
@@ -64,20 +62,8 @@ public sealed class ClipboardMonitor : IDisposable
         var bmp = System.Windows.Clipboard.GetImage();
         if (bmp is null) return null;
 
-        BitmapSource source = bmp;
-        if (bmp.PixelWidth > maxWidthPx)
-        {
-            double scale = (double)maxWidthPx / bmp.PixelWidth;
-            source = new TransformedBitmap(bmp, new ScaleTransform(scale, scale));
-        }
-
-        var encoder = new JpegBitmapEncoder { QualityLevel = jpegQuality };
-        encoder.Frames.Add(BitmapFrame.Create(source));
-        using var ms = new MemoryStream();
-        encoder.Save(ms);
-
         HasPendingImage = false;
-        return Convert.ToBase64String(ms.ToArray());
+        return ImagePreprocessor.ToJpegBase64(bmp, maxWidthPx, jpegQuality);
     }
 
     public void Dispose()
