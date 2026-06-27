@@ -272,6 +272,18 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
         Invoke(() => HasPendingScreenCapture = pending);
     }
 
+    // ── Disclosure reminder banner ────────────────────────────────────────
+
+    private bool _hasDisclosureReminder;
+    public bool HasDisclosureReminder
+    {
+        get => _hasDisclosureReminder;
+        private set { if (_hasDisclosureReminder == value) return; _hasDisclosureReminder = value; OnPropertyChanged(); }
+    }
+
+    public void ShowDisclosureReminder() => Invoke(() => HasDisclosureReminder = true);
+    public void DismissDisclosureReminder() => Invoke(() => HasDisclosureReminder = false);
+
     // ── INotifyPropertyChanged ────────────────────────────────────────────
 
     public event PropertyChangedEventHandler? PropertyChanged;

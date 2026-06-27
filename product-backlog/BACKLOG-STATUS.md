@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 68 | 262 SP | 82% |
+| 🔵 Built | 69 | 264 SP | 82% |
 | 🟡 Scaffolded | 1 | 5 SP | 2% |
-| 🔴 Yet to Start | 15 | 53 SP | 17% |
+| 🔴 Yet to Start | 14 | 51 SP | 16% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -35,10 +35,10 @@
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 9 (42 SP) | — | — |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
 | 07 · Settings & Configuration | 10 | 27 SP | — | 9 (25 SP) | — | 1 (2 SP) |
-| 08 · Privacy & Security | 11 | 36 SP | — | 9 (29 SP) | 1 (5 SP) | 1 (2 SP) |
+| 08 · Privacy & Security | 11 | 36 SP | — | 10 (31 SP) | 1 (5 SP) | — |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 6 (24 SP) | — | 4 (16 SP) |
-| **Total** | **84** | **320 SP** | **0** | **68 (262 SP)** | **1 (5 SP)** | **15 (53 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **69 (264 SP)** | **1 (5 SP)** | **14 (51 SP)** |
 
 ---
 
@@ -204,7 +204,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-08-01 | Local-only Processing Mode | P1 | 🔵 Built | 5 | OllamaLlmProvider.cs (NDJSON streaming); LocalOnlyMode setting; bypasses cloud key check |
 | US-08-02 | Audio Buffer Auto-Purge | P0 | 🔵 Built | 3 | Array.Clear() in AudioPipeline.FlushSegment() + WhisperSttEngine |
 | US-08-03 | Transcript Retention Controls | P1 | 🔵 Built | 3 | TranscriptBuffer auto-eviction by retention window |
-| US-08-04 | Meeting Participant Disclosure Reminder | P2 | 🔴 Yet to Start | 2 | |
+| US-08-04 | Meeting Participant Disclosure Reminder | P2 | 🔵 Built | 2 | Amber banner on capture start; "Got it" auto-clears and saves setting |
 | US-08-05 | Privacy Pause Mode | P1 | 🔵 Built | 3 | IsPaused bool on OverlayViewModel; red "⏸ Audio capture PAUSED" banner in overlay (same row as clipboard notification, stacked via StackPanel); dismisses automatically on Resume() |
 | US-08-06 | Secure API Key Storage | P0 | 🔵 Built | 3 | CredentialService via Windows Credential Manager (DPAPI) |
 | US-08-07 | Screen Capture Privacy Safeguards | P1 | 🔵 Built | 2 | ConfirmScreenCapture setting; TryHandleScreenCaptureAsync two-press confirmation with 5s timer + overlay banner |

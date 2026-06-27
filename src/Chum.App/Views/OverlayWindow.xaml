@@ -168,8 +168,26 @@
                 </Grid>
             </Border>
 
-            <!-- ── Notification banners (paused + clipboard) ── -->
+            <!-- ── Notification banners (disclosure + paused + clipboard) ── -->
             <StackPanel Grid.Row="3">
+                <!-- Disclosure reminder — shown once on first capture start; dismissed with "Got it" -->
+                <Border Background="#1FF59E0B" BorderBrush="#F59E0B"
+                        BorderThickness="0,1,0,0" Padding="8,5"
+                        Visibility="{Binding HasDisclosureReminder, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="ℹ Chum transcribes audio. Inform participants you're using AI assistance."
+                                   Foreground="#F59E0B" FontSize="10" TextWrapping="Wrap"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <Button Grid.Column="1" Style="{StaticResource ChumButton}"
+                                Content="Got it" FontSize="10"
+                                Click="DismissDisclosure_Click"/>
+                    </Grid>
+                </Border>
                 <Border Background="#1FEF4444" BorderBrush="#EF4444"
                         BorderThickness="0,1,0,0" Padding="10,6"
                         Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}">

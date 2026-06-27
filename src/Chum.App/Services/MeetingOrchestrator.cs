@@ -195,6 +195,8 @@ public sealed class MeetingOrchestrator : IDisposable
         _platformDetector.Start();
         _transcriptionLoop = RunTranscriptionLoopAsync(_cts.Token);
         _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        if (_settings.Current.ShowDisclosureReminder)
+            _overlay.ShowDisclosureReminder();
         Serilog.Log.Information("MeetingOrchestrator started");
 
         // Periodic Gen2 GC every 10 min to reclaim memory after transcription bursts

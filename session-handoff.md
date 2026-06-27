@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-10-07 Built — 68/84 stories 🔵 Built (262/320 SP, 82%)
+**Phase:** US-08-04 Built — 69/84 stories 🔵 Built (264/320 SP, 82%) — Epic 08 (Privacy) fully built
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,27 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 38 (2026-06-28, Part 38)
+
+**Meeting Participant Disclosure Reminder — US-08-04 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/Models/AppSettings.cs` — Added `ShowDisclosureReminder = true`. Set to `false` automatically after first dismissal; persisted in `settings.json`.
+- `Chum.App/ViewModels/OverlayViewModel.cs` — Added `HasDisclosureReminder` bool property + `ShowDisclosureReminder()` and `DismissDisclosureReminder()` methods (both dispatch-safe via `Invoke`).
+- `Chum.App/Views/OverlayWindow.xaml` — Added amber disclosure banner at top of the banners StackPanel (Row 3): two-column grid with "ℹ Chum transcribes audio..." text and a "Got it" button. Uses existing `BoolToVisibilityConverter` bound to `HasDisclosureReminder`.
+- `Chum.App/Views/OverlayWindow.xaml.cs` — Added `DismissDisclosure_Click`: calls `vm.DismissDisclosureReminder()` and `Settings.Update(s => s.ShowDisclosureReminder = false)`.
+- `Chum.App/Services/MeetingOrchestrator.cs` — In `StartAsync()`: if `_settings.Current.ShowDisclosureReminder`, calls `_overlay.ShowDisclosureReminder()` after starting the audio pipeline.
+- `Chum.App/Views/SettingsWindow.xaml` — Added `DisclosureReminderBox` checkbox in PRIVACY section with description.
+- `Chum.App/Views/SettingsWindow.xaml.cs` — Load/save `ShowDisclosureReminder` to/from the checkbox.
+
+**Behaviour:** First capture start shows the amber banner. User clicks "Got it" → banner dismissed, setting saved to false (won't show again). User can re-enable via Settings → PRIVACY → "Show disclosure reminder when capture starts".
+
+**Note:** Epic 08 (Privacy & Security) is now fully built — all 11 stories at 🔵 Built or 🟡 Scaffolded (US-08-10 Windows Service Installer still Scaffolded).
+
+**Build:** 0 errors, 6 pre-existing warnings (unchanged).
 
 ---
 
@@ -783,11 +804,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-08-04 — Meeting Participant Disclosure Reminder (P2, 2 SP):**
+**US-01-06 — Real-time Audio Level Meters (P2, 2 SP):**
 
-When Chum starts capturing audio, show a one-time reminder that the user should disclose to meeting participants that AI assistance is in use. Small amber banner in the overlay with a "Got it" dismiss button.
+Show live RMS level meters for loopback and mic in the overlay (or settings window) so the user can confirm audio is being captured. Two thin horizontal bars (green/amber/red) bound to current audio level.
 
-Other P2 candidates: US-01-06 (Real-time Audio Level Meters, 2 SP), US-10-03 (GPU Acceleration for Whisper, 5 SP), US-10-09 (Auto-Update Mechanism, 5 SP).
+Other P2 candidates: US-10-03 (GPU Acceleration for Whisper, 5 SP), US-10-09 (Auto-Update Mechanism, 5 SP).
 
 ---
 

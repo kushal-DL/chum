@@ -58,6 +58,7 @@ public partial class SettingsWindow : Window
         ConfirmScreenCaptureBox.IsChecked = s.ConfirmScreenCapture;
         AutoStartCaptureBox.IsChecked = s.AutoStartCapture;
         SpendThresholdBox.Text = s.SpendThresholdDollars.ToString("G");
+        DisclosureReminderBox.IsChecked = s.ShowDisclosureReminder;
 
         // Populate template combo
         if (_templateService is not null)
@@ -171,6 +172,7 @@ public partial class SettingsWindow : Window
             s.AutoStartCapture = AutoStartCaptureBox.IsChecked == true;
             if (decimal.TryParse(SpendThresholdBox.Text, out var thresh) && thresh >= 0)
                 s.SpendThresholdDollars = thresh;
+            s.ShowDisclosureReminder = DisclosureReminderBox.IsChecked == true;
             if (ActiveTemplateCombo.SelectedItem is string tName)
                 s.ActiveTemplateName = tName;
             s.CloudSttFallback = CloudSttFallbackBox.IsChecked == true;

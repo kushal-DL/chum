@@ -68,4 +68,9 @@ public sealed class AppSettings
 
     // --- Prompt templates ---
     public string ActiveTemplateName { get; set; } = "Default";
+
+    // --- Privacy disclosure ---
+    // Show a reminder banner when capture starts to inform participants of AI assistance.
+    // After the user dismisses it the first time, this is set to false automatically.
+    public bool ShowDisclosureReminder { get; set; } = true;
 }

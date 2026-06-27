@@ -158,4 +158,10 @@ public partial class OverlayWindow : Window
         if (!string.IsNullOrEmpty(vm.ResponseText))
             System.Windows.Clipboard.SetText(vm.ResponseText);
     }
+
+    private void DismissDisclosure_Click(object sender, RoutedEventArgs e)
+    {
+        ((OverlayViewModel)DataContext).DismissDisclosureReminder();
+        ((App)Application.Current).Settings.Update(s => s.ShowDisclosureReminder = false);
+    }
 }

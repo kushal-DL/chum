@@ -236,6 +236,11 @@
             </Grid>
             <TextBlock Text="Transcript segments older than this are purged from memory automatically."
                        Foreground="#555" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
+            <CheckBox x:Name="DisclosureReminderBox"
+                      Content="Show disclosure reminder when capture starts"
+                      Foreground="#AAAAAA" Margin="0,8,0,0"/>
+            <TextBlock Text="Reminds you to inform meeting participants that AI assistance is active."
+                       Foreground="#555" FontSize="10" Margin="16,2,0,0" TextWrapping="Wrap"/>
 
             <!-- ── Buttons ── -->
             <Grid Margin="0,20,0,0">

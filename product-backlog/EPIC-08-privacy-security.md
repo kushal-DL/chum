@@ -7,7 +7,7 @@
 | US-08-01 | Local-only Processing Mode | P1 — High | 🔵 Built | 5 |
 | US-08-02 | Audio Buffer Auto-Purge | P0 — MVP | 🔵 Built | 3 |
 | US-08-03 | Transcript Retention Controls | P1 — High | 🔵 Built | 3 |
-| US-08-04 | Meeting Participant Disclosure Reminder | P2 — Medium | 🔴 Yet to Start | 2 |
+| US-08-04 | Meeting Participant Disclosure Reminder | P2 — Medium | 🔵 Built | 2 |
 | US-08-05 | Privacy Pause Mode | P1 — High | 🔵 Built | 3 |
 | US-08-06 | Secure API Key Storage | P0 — MVP | 🔵 Built | 3 |
 | US-08-07 | Screen Capture Privacy Safeguards | P1 — High | 🔵 Built | 2 |
