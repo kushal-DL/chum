@@ -1,0 +1,24 @@
+# Normalise all text files to LF in the repo; convert to CRLF on Windows checkout
+* text=auto eol=lf
+
+# Explicitly mark common text file types
+*.cs    text eol=lf
+*.xaml  text eol=lf
+*.csproj text eol=lf
+*.sln   text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.ps1   text eol=lf
+*.sh    text eol=lf
+*.txt   text eol=lf
+
+# Binary files — never normalise
+*.ico   binary
+*.png   binary
+*.jpg   binary
+*.gif   binary
+*.bin   binary
+*.gguf  binary
+*.onnx  binary
+*.dll   binary
+*.exe   binary
