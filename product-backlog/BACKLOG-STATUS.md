@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 64 | 250 SP | 78% |
+| 🔵 Built | 65 | 253 SP | 79% |
 | 🟡 Scaffolded | 1 | 5 SP | 2% |
-| 🔴 Yet to Start | 19 | 65 SP | 20% |
+| 🔴 Yet to Start | 18 | 62 SP | 19% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -37,8 +37,8 @@
 | 07 · Settings & Configuration | 10 | 27 SP | — | 9 (25 SP) | — | 1 (2 SP) |
 | 08 · Privacy & Security | 11 | 36 SP | — | 9 (29 SP) | 1 (5 SP) | 1 (2 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
-| 10 · Performance & Reliability | 10 | 40 SP | — | 4 (18 SP) | — | 6 (22 SP) |
-| **Total** | **84** | **320 SP** | **0** | **64 (250 SP)** | **1 (5 SP)** | **19 (65 SP)** |
+| 10 · Performance & Reliability | 10 | 40 SP | — | 5 (21 SP) | — | 5 (19 SP) |
+| **Total** | **84** | **320 SP** | **0** | **65 (253 SP)** | **1 (5 SP)** | **18 (62 SP)** |
 
 ---
 
@@ -54,7 +54,7 @@ Each story is attributed to the project where its primary implementation lives.
 | Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/02/04/05 | 43 | 158 SP | 39 (145 SP) | — | 4 (13 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
 | Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 2 (10 SP) | — | 12 (44 SP) |
-| **Total** | | **84** | **320 SP** | **64 (250 SP)** | **1 (5 SP)** | **19 (65 SP)** |
+| **Total** | | **84** | **320 SP** | **65 (253 SP)** | **1 (5 SP)** | **18 (62 SP)** |
 
 ---
 
@@ -64,9 +64,9 @@ Each story is attributed to the project where its primary implementation lives.
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
 | P1 — High | 34 | 125 SP | 33 (120 SP) | 1 (5 SP) | — |
-| P2 — Medium | 27 | 91 SP | 15 (49 SP) | — | 12 (42 SP) |
+| P2 — Medium | 27 | 91 SP | 16 (52 SP) | — | 11 (39 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **64 (250 SP)** | **1 (5 SP)** | **19 (65 SP)** |
+| **Total** | **84** | **320 SP** | **65 (253 SP)** | **1 (5 SP)** | **18 (62 SP)** |
 
 ---
 
@@ -244,13 +244,13 @@ Each story is attributed to the project where its primary implementation lives.
 | US-10-03 | GPU Acceleration for Whisper | P2 | 🔴 Yet to Start | 5 | |
 | US-10-04 | Memory Management for Long Meetings | P1 | 🔵 Built | 5 | Response history capped 20→10; periodic GC.Collect(Gen2) every 10 min in MeetingOrchestrator with WorkingSet logging; transcript/audio buffers already bounded |
 | US-10-05 | Graceful Error Recovery | P1 | 🔵 Built | 5 | Global exception handlers (AppDomain/Dispatcher/UnobservedTask); LLM retry with backoff (1s/2s/4s, 3 attempts); transcription loop auto-restart; emergency transcript export on crash |
-| US-10-06 | End-to-End Latency Benchmark | P2 | 🔴 Yet to Start | 3 | |
+| US-10-06 | End-to-End Latency Benchmark | P2 | 🔵 Built | 3 | LLM first-token latency tracking |
 | US-10-07 | App Startup Performance | P2 | 🔴 Yet to Start | 3 | |
 | US-10-08 | Crash Reporting (Opt-in) | P3 | 🔴 Yet to Start | 3 | |
 | US-10-09 | Auto-Update Mechanism | P2 | 🔴 Yet to Start | 5 | |
 | US-10-10 | Low-Power Mode | P3 | 🔴 Yet to Start | 3 | |
 
-**Epic 10 Total:** 40 SP · 0 Done · 18 Built · 0 Scaffolded · 22 Yet to Start
+**Epic 10 Total:** 40 SP · 0 Done · 21 Built · 0 Scaffolded · 19 Yet to Start
 
 ---
 
@@ -265,8 +265,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P2 Stories | 27 stories · 91 SP |
 | P3 Stories | 7 stories · 20 SP |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 55 stories · 219 SP (68%) |
+| 🔵 Built | 65 stories · 253 SP (79%) |
 | 🟡 Scaffolded | 1 story · 5 SP (2%) |
-| 🔴 Yet to Start | 28 stories · 96 SP (30%) |
+| 🔴 Yet to Start | 18 stories · 62 SP (19%) |
 
-*Last updated: 2026-06-27 — Session 28: US-05-09 (Response Copy) built — ⧉ button in overlay header*
+*Last updated: 2026-06-28 — Session 34: US-10-06 (LLM first-token latency tracking) built*

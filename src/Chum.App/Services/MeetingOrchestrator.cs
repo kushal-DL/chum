@@ -190,11 +190,20 @@ public sealed class MeetingOrchestrator : IDisposable
         var latencyInterval = TimeSpan.FromMinutes(5);
         _latencyLogTimer = new Timer(_ =>
         {
-            if (_latencyTracker.SegmentsRecorded == 0) return;
-            var (p50, p90, p99) = _latencyTracker.GetPercentiles();
-            Serilog.Log.Information(
-                "STT latency (last {N} segments) — p50={P50:F1}s p90={P90:F1}s p99={P99:F1}s",
-                _latencyTracker.SegmentsRecorded, p50, p90, p99);
+            if (_latencyTracker.SegmentsRecorded > 0)
+            {
+                var (p50, p90, p99) = _latencyTracker.GetPercentiles();
+                Serilog.Log.Information(
+                    "STT latency (last {N} segments) — p50={P50:F1}s p90={P90:F1}s p99={P99:F1}s",
+                    _latencyTracker.SegmentsRecorded, p50, p90, p99);
+            }
+            if (_latencyTracker.LlmQueriesRecorded > 0)
+            {
+                var (lp50, lp90, lp99) = _latencyTracker.GetLlmPercentiles();
+                Serilog.Log.Information(
+                    "LLM first-token latency (last {N} queries) — p50={P50:F0}ms p90={P90:F0}ms p99={P99:F0}ms",
+                    _latencyTracker.LlmQueriesRecorded, lp50, lp90, lp99);
+            }
         }, null, latencyInterval, latencyInterval);
 
         await Task.CompletedTask;
@@ -346,7 +355,8 @@ public sealed class MeetingOrchestrator : IDisposable
     }
 
     // Streams with exponential-backoff retry on LlmException (max 3 attempts: 1s, 2s, 4s gaps).
-    private async Task StreamWithRetryAsync(LlmRequest request)
+    // onFirstToken fires with elapsed time at the moment the first token is received.
+    private async Task StreamWithRetryAsync(LlmRequest request, Action<TimeSpan>? onFirstToken = null)
     {
         var ct = _cts?.Token ?? CancellationToken.None;
         int[] retryDelaysMs = [1000, 2000, 4000];
@@ -354,8 +364,17 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             try
             {
+                var sw = Stopwatch.StartNew();
+                bool firstToken = true;
                 await foreach (var token in _llm.StreamResponseAsync(request, ct))
+                {
+                    if (firstToken)
+                    {
+                        onFirstToken?.Invoke(sw.Elapsed);
+                        firstToken = false;
+                    }
                     _overlay.AppendResponseToken(token);
+                }
                 return;
             }
             catch (OperationCanceledException) { throw; }
@@ -370,10 +389,13 @@ public sealed class MeetingOrchestrator : IDisposable
         }
     }
 
-    public (int Segments, double P50Ms, double P90Ms, double P99Ms) GetLatencyStats()
+    public (int Segments, double SttP50Ms, double SttP90Ms, double SttP99Ms,
+            int LlmQueries, double LlmP50Ms, double LlmP90Ms, double LlmP99Ms) GetLatencyStats()
     {
         var (p50, p90, p99) = _latencyTracker.GetPercentiles();
-        return (_latencyTracker.SegmentsRecorded, p50, p90, p99);
+        var (lp50, lp90, lp99) = _latencyTracker.GetLlmPercentiles();
+        return (_latencyTracker.SegmentsRecorded, p50 * 1000, p90 * 1000, p99 * 1000,
+                _latencyTracker.LlmQueriesRecorded, lp50, lp90, lp99);
     }
 
     public string GetTranscriptExportText()
@@ -408,7 +430,7 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=AudioQuery",
                 _llm.ProviderName, _llm.ModelId);
 
-            await StreamWithRetryAsync(request);
+            await StreamWithRetryAsync(request, t => _latencyTracker.RecordLlmLatency(t));
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -454,7 +476,7 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ActionItems",
                 _llm.ProviderName, _llm.ModelId);
 
-            await StreamWithRetryAsync(request);
+            await StreamWithRetryAsync(request, t => _latencyTracker.RecordLlmLatency(t));
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -512,7 +534,7 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ImageDrop",
                 _llm.ProviderName, _llm.ModelId);
 
-            await StreamWithRetryAsync(request);
+            await StreamWithRetryAsync(request, t => _latencyTracker.RecordLlmLatency(t));
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -593,7 +615,7 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ScreenCapture",
                 _llm.ProviderName, _llm.ModelId);
 
-            await StreamWithRetryAsync(request);
+            await StreamWithRetryAsync(request, t => _latencyTracker.RecordLlmLatency(t));
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }

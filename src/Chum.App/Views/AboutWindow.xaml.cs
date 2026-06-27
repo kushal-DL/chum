@@ -29,23 +29,37 @@ public partial class AboutWindow : Window
 
         if (app.Orchestrator is { } orch)
         {
-            var (segments, p50, p90, p99) = orch.GetLatencyStats();
+            var (segments, sttP50, sttP90, sttP99, llmQueries, llmP50, llmP90, llmP99) = orch.GetLatencyStats();
             SegmentsLabel.Text = segments.ToString("N0");
             if (segments > 0)
             {
-                P50Label.Text = FormatMs(p50);
-                P90Label.Text = FormatMs(p90);
-                P99Label.Text = FormatMs(p99);
+                P50Label.Text = FormatMs(sttP50);
+                P90Label.Text = FormatMs(sttP90);
+                P99Label.Text = FormatMs(sttP99);
             }
             else
             {
                 P50Label.Text = P90Label.Text = P99Label.Text = "—  (no data yet)";
+            }
+
+            LlmQueriesLabel.Text = llmQueries.ToString("N0");
+            if (llmQueries > 0)
+            {
+                LlmP50Label.Text = FormatMs(llmP50);
+                LlmP90Label.Text = FormatMs(llmP90);
+                LlmP99Label.Text = FormatMs(llmP99);
+            }
+            else
+            {
+                LlmP50Label.Text = LlmP90Label.Text = LlmP99Label.Text = "—  (no queries yet)";
             }
         }
         else
         {
             SegmentsLabel.Text = "—";
             P50Label.Text = P90Label.Text = P99Label.Text = "—";
+            LlmQueriesLabel.Text = "—";
+            LlmP50Label.Text = LlmP90Label.Text = LlmP99Label.Text = "—";
         }
 
         var logDir = System.IO.Path.Combine(
@@ -74,11 +88,15 @@ public partial class AboutWindow : Window
 
         if (orch is not null)
         {
-            var (segments, p50ms, p90ms, p99ms) = orch.GetLatencyStats();
+            var (segments, sttP50, sttP90, sttP99, llmQ, llmP50, llmP90, llmP99) = orch.GetLatencyStats();
             sb.AppendLine($"Segments     : {segments}");
-            sb.AppendLine($"STT p50      : {FormatMs(p50ms)}");
-            sb.AppendLine($"STT p90      : {FormatMs(p90ms)}");
-            sb.AppendLine($"STT p99      : {FormatMs(p99ms)}");
+            sb.AppendLine($"STT p50      : {FormatMs(sttP50)}");
+            sb.AppendLine($"STT p90      : {FormatMs(sttP90)}");
+            sb.AppendLine($"STT p99      : {FormatMs(sttP99)}");
+            sb.AppendLine($"LLM queries  : {llmQ}");
+            sb.AppendLine($"LLM p50      : {FormatMs(llmP50)}");
+            sb.AppendLine($"LLM p90      : {FormatMs(llmP90)}");
+            sb.AppendLine($"LLM p99      : {FormatMs(llmP99)}");
         }
 
         sb.AppendLine($"OS           : {Environment.OSVersion}");

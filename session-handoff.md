@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-02-05 Built — 64/84 stories 🔵 Built (250/320 SP, 78%)
+**Phase:** US-10-06 Built — 65/84 stories 🔵 Built (253/320 SP, 79%)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,37 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 34 (2026-06-28, Part 34)
+
+**End-to-End Latency Benchmark — US-10-06 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.App/Services/PipelineLatencyTracker.cs`:
+  - Renamed STT buffer fields: `_head` → `_sttHead`, `_count` → `_sttCount` (STT-specific naming to pair with new LLM buffer).
+  - Added `_llmMs[1000]` circular buffer, `_llmHead`, `_llmCount` for LLM first-token latency.
+  - Added `RecordLlmLatency(TimeSpan firstTokenDelay)` writing `TotalMilliseconds` to the LLM buffer.
+  - Added `GetLlmPercentiles()` returning `(double P50, double P90, double P99)` in ms.
+  - Added `int LlmQueriesRecorded` property (thread-safe read of `_llmCount`).
+- `Chum.App/Services/MeetingOrchestrator.cs`:
+  - `StreamWithRetryAsync` now accepts optional `Action<TimeSpan>? onFirstToken` callback.
+  - Internal `Stopwatch` started before the streaming loop; `onFirstToken` fired on the very first token received.
+  - All 4 `StreamWithRetryAsync` call sites now pass `t => _latencyTracker.RecordLlmLatency(t)`.
+  - 5-minute latency log timer extended to also log LLM p50/p90/p99 when `LlmQueriesRecorded > 0`.
+  - `GetLatencyStats()` return type expanded to 8-tuple: `(int Segments, double SttP50Ms, double SttP90Ms, double SttP99Ms, int LlmQueries, double LlmP50Ms, double LlmP90Ms, double LlmP99Ms)`.
+- `Chum.App/Views/AboutWindow.xaml`:
+  - Window height 360 → 480 to fit 4 additional rows.
+  - Added 4 rows to the diagnostics grid: LLM queries made, LLM first-token p50/p90/p99.
+- `Chum.App/Views/AboutWindow.xaml.cs`:
+  - Updated to unpack 8-tuple from `GetLatencyStats()`.
+  - LLM label rows populated with `FormatMs()` or "— (no queries yet)" fallback.
+  - `BuildDiagnosticsText` includes LLM stats in the clipboard dump.
+
+**Architecture note:** LLM buffer stores ms directly (first-token delay is a short TimeSpan); STT buffer stores seconds (for the 15s slow-alert threshold comparison). Both are capped at 1000 samples and use the same ring-overwrite pattern.
+
+**Build:** 0 errors, same 8 pre-existing warnings.
 
 ---
 
@@ -692,7 +723,7 @@ Implementation plan:
 4. `PromptBuilder.BuildSystemPrompt` accepts a `ResponseTemplate?` and appends `SystemPromptSuffix`.
 5. Settings window: dropdown to select template.
 
-Alternative next story: **US-10-06 — End-to-End Latency Benchmark (P2, 3 SP)** — log the full pipeline latency (audio capture → transcription → LLM first token) and surface it in the About dialog.
+Other P2 candidates: US-10-07 (App Startup Performance, 3 SP), US-03-08 (Prompt Templates Library, 3 SP).
 
 ---
 

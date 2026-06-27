@@ -3,9 +3,9 @@ using System.Diagnostics;
 namespace Chum.App.Services;
 
 /// <summary>
-/// Rolling buffer of per-segment STT latency measurements.
-/// Computes p50/p90/p99 over the last 1000 segments.
-/// Fires SlowTranscriptionDetected when 3+ consecutive segments exceed 15s.
+/// Rolling buffers for STT and LLM first-token latency.
+/// Computes p50/p90/p99 over the last 1000 samples.
+/// Fires SlowTranscriptionDetected when 3+ consecutive STT segments exceed 15s.
 /// </summary>
 public sealed class PipelineLatencyTracker
 {
@@ -13,10 +13,17 @@ public sealed class PipelineLatencyTracker
     private const double SlowThresholdSeconds = 15.0;
     private const int SlowAlertThreshold = 3;
 
+    // STT buffer
     private readonly double[] _sttSeconds = new double[BufferCapacity];
-    private int _head;
-    private int _count;
+    private int _sttHead;
+    private int _sttCount;
     private int _consecutiveSlowCount;
+
+    // LLM first-token buffer
+    private readonly double[] _llmMs = new double[BufferCapacity];
+    private int _llmHead;
+    private int _llmCount;
+
     private readonly Lock _lock = new();
 
     /// <summary>Fires when STT latency exceeds 15s for 3 or more consecutive segments.</summary>
@@ -26,9 +33,9 @@ public sealed class PipelineLatencyTracker
     {
         lock (_lock)
         {
-            _sttSeconds[_head] = sttDuration.TotalSeconds;
-            _head = (_head + 1) % BufferCapacity;
-            if (_count < BufferCapacity) _count++;
+            _sttSeconds[_sttHead] = sttDuration.TotalSeconds;
+            _sttHead = (_sttHead + 1) % BufferCapacity;
+            if (_sttCount < BufferCapacity) _sttCount++;
 
             if (sttDuration.TotalSeconds > SlowThresholdSeconds)
             {
@@ -42,21 +49,46 @@ public sealed class PipelineLatencyTracker
         }
     }
 
+    public void RecordLlmLatency(TimeSpan firstTokenDelay)
+    {
+        lock (_lock)
+        {
+            _llmMs[_llmHead] = firstTokenDelay.TotalMilliseconds;
+            _llmHead = (_llmHead + 1) % BufferCapacity;
+            if (_llmCount < BufferCapacity) _llmCount++;
+        }
+    }
+
     public (double P50, double P90, double P99) GetPercentiles()
     {
         lock (_lock)
         {
-            if (_count == 0) return (0, 0, 0);
-            var sorted = new double[_count];
-            int start = _count < BufferCapacity ? 0 : _head;
-            for (int i = 0; i < _count; i++)
+            if (_sttCount == 0) return (0, 0, 0);
+            var sorted = new double[_sttCount];
+            int start = _sttCount < BufferCapacity ? 0 : _sttHead;
+            for (int i = 0; i < _sttCount; i++)
                 sorted[i] = _sttSeconds[(start + i) % BufferCapacity];
             Array.Sort(sorted);
             return (Percentile(sorted, 0.50), Percentile(sorted, 0.90), Percentile(sorted, 0.99));
         }
     }
 
-    public int SegmentsRecorded { get { lock (_lock) return _count; } }
+    public (double P50, double P90, double P99) GetLlmPercentiles()
+    {
+        lock (_lock)
+        {
+            if (_llmCount == 0) return (0, 0, 0);
+            var sorted = new double[_llmCount];
+            int start = _llmCount < BufferCapacity ? 0 : _llmHead;
+            for (int i = 0; i < _llmCount; i++)
+                sorted[i] = _llmMs[(start + i) % BufferCapacity];
+            Array.Sort(sorted);
+            return (Percentile(sorted, 0.50), Percentile(sorted, 0.90), Percentile(sorted, 0.99));
+        }
+    }
+
+    public int SegmentsRecorded { get { lock (_lock) return _sttCount; } }
+    public int LlmQueriesRecorded { get { lock (_lock) return _llmCount; } }
 
     private static double Percentile(double[] sorted, double p)
     {
