@@ -38,6 +38,10 @@ public partial class App : System.Windows.Application
         ConfigureLogging();
         Log.Information("Chum starting up");
 
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
         Settings.Load();
 
         // Local-only mode bypasses cloud API key requirement
@@ -301,6 +305,54 @@ public partial class App : System.Windows.Application
         _clipboardMonitor?.Dispose();
         Log.CloseAndFlush();
         base.OnExit(e);
+    }
+
+    private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        var ex = (Exception)e.ExceptionObject;
+        Log.Fatal(ex, "Unhandled exception — terminating={Terminating}", e.IsTerminating);
+        var transcriptPath = ExportEmergencyTranscript();
+        if (!e.IsTerminating) return;
+        var detail = transcriptPath is not null
+            ? $"Transcript saved to:\n{transcriptPath}\n\n"
+            : string.Empty;
+        System.Windows.MessageBox.Show(
+            $"Chum encountered an unexpected error and must close.\n\n{detail}Error: {ex.Message}",
+            "Chum — Unexpected Error", MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+
+    private void OnDispatcherUnhandledException(object sender,
+        System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+    {
+        Log.Error(e.Exception, "Unhandled exception on UI thread — recovering");
+        _overlayVm?.ShowError($"UI error — check logs: {e.Exception.Message}");
+        e.Handled = true;
+    }
+
+    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        Log.Warning(e.Exception, "Unobserved task exception");
+        e.SetObserved();
+    }
+
+    private string? ExportEmergencyTranscript()
+    {
+        if (_orchestrator is null) return null;
+        try
+        {
+            var text = _orchestrator.GetTranscriptExportText();
+            if (string.IsNullOrEmpty(text)) return null;
+            var path = Path.Combine(Path.GetTempPath(),
+                $"chum_transcript_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+            File.WriteAllText(path, text);
+            Log.Information("Emergency transcript exported: {Path}", path);
+            return path;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to export emergency transcript");
+            return null;
+        }
     }
 
     private static void ConfigureLogging()

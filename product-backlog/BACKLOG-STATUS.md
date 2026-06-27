@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 53 | 209 SP | 65% |
+| 🔵 Built | 55 | 219 SP | 68% |
 | 🟡 Scaffolded | 1 | 5 SP | 2% |
-| 🔴 Yet to Start | 30 | 106 SP | 33% |
+| 🔴 Yet to Start | 28 | 96 SP | 30% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -30,15 +30,15 @@
 |------|---------|----------|---------|----------|--------------|-----------------|
 | 01 · Core Audio Engine | 7 | 29 SP | — | 6 (27 SP) | — | 1 (2 SP) |
 | 02 · Transcription & Context | 8 | 33 SP | — | 5 (23 SP) | — | 3 (10 SP) |
-| 03 · LLM Integration | 8 | 30 SP | — | 5 (19 SP) | — | 3 (11 SP) |
+| 03 · LLM Integration | 8 | 30 SP | — | 6 (24 SP) | — | 2 (6 SP) |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 7 (26 SP) | — | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 7 (37 SP) | — | 2 (5 SP) |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
 | 07 · Settings & Configuration | 10 | 27 SP | — | 8 (23 SP) | — | 2 (4 SP) |
 | 08 · Privacy & Security | 11 | 36 SP | — | 9 (29 SP) | 1 (5 SP) | 1 (2 SP) |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 1 (5 SP) | — | 6 (22 SP) |
-| 10 · Performance & Reliability | 10 | 40 SP | — | — | — | 10 (40 SP) |
-| **Total** | **84** | **320 SP** | **0** | **53 (209 SP)** | **1 (5 SP)** | **30 (106 SP)** |
+| 10 · Performance & Reliability | 10 | 40 SP | — | 1 (5 SP) | — | 9 (35 SP) |
+| **Total** | **84** | **320 SP** | **0** | **55 (219 SP)** | **1 (5 SP)** | **28 (96 SP)** |
 
 ---
 
@@ -50,11 +50,11 @@ Each story is attributed to the project where its primary implementation lives.
 |---------|--------------|---------|----------|----------|--------------|-----------------|
 | Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 7 (30 SP) | — | 1 (2 SP) |
 | Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 6 (26 SP) | — | 3 (10 SP) |
-| Chum.Llm | Epic 03 | 8 | 30 SP | 4 (16 SP) | — | 4 (14 SP) |
-| Chum.App | Epics 04–07 + US-08-04…08 | 38 | 138 SP | 32 (120 SP) | — | 6 (18 SP) |
+| Chum.Llm | Epic 03 | 8 | 30 SP | 5 (21 SP) | — | 3 (9 SP) |
+| Chum.App | Epics 04–07 + US-08-04…08 + US-10-05 | 39 | 143 SP | 33 (125 SP) | — | 6 (18 SP) |
 | Chum.Service | US-08-09, 08-10, 08-11 | 3 | 12 SP | 2 (7 SP) | 1 (5 SP) | — |
-| Cross-cutting | US-08-01 + Epics 09–10 | 18 | 72 SP | 2 (10 SP) | — | 16 (62 SP) |
-| **Total** | | **84** | **320 SP** | **53 (209 SP)** | **1 (5 SP)** | **30 (106 SP)** |
+| Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-05) | 17 | 67 SP | 2 (10 SP) | — | 15 (57 SP) |
+| **Total** | | **84** | **320 SP** | **55 (219 SP)** | **1 (5 SP)** | **28 (96 SP)** |
 
 ---
 
@@ -63,10 +63,10 @@ Each story is attributed to the project where its primary implementation lives.
 | Priority | Stories | Total SP | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |----------|---------|----------|----------|--------------|-----------------|
 | P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 34 | 125 SP | 30 (107 SP) | 1 (5 SP) | 3 (13 SP) |
-| P2 — Medium | 27 | 91 SP | 7 (21 SP) | — | 20 (70 SP) |
+| P1 — High | 34 | 125 SP | 31 (112 SP) | 1 (5 SP) | 2 (8 SP) |
+| P2 — Medium | 27 | 91 SP | 8 (26 SP) | — | 19 (65 SP) |
 | P3 — Low | 7 | 20 SP | 1 (2 SP) | — | 6 (18 SP) |
-| **Total** | **84** | **320 SP** | **53 (209 SP)** | **1 (5 SP)** | **30 (106 SP)** |
+| **Total** | **84** | **320 SP** | **55 (219 SP)** | **1 (5 SP)** | **28 (96 SP)** |
 
 ---
 
@@ -112,14 +112,14 @@ Each story is attributed to the project where its primary implementation lives.
 |----------|-------|----------|--------|----|-------|
 | US-03-01 | Anthropic Claude API Integration | P0 | 🔵 Built | 5 | AnthropicLlmProvider.cs (HttpClient + SSE streaming) |
 | US-03-02 | OpenAI API Integration | P1 | 🔵 Built | 3 | OpenAiLlmProvider.cs (SSE streaming, vision via image_url); provider inferred from model name in App.BuildLlmProvider |
-| US-03-03 | Local LLM via Ollama | P2 | 🔴 Yet to Start | 5 | |
+| US-03-03 | Local LLM via Ollama | P2 | 🔵 Built | 5 | OllamaLlmProvider.cs — implemented as part of US-08-01 (local-only mode); NDJSON streaming, vision via images array |
 | US-03-04 | Meeting-Optimised System Prompt | P0 | 🔵 Built | 5 | PromptBuilder.cs (≤150 word rule, no preamble) |
 | US-03-05 | Streaming Response Display | P0 | 🔵 Built | 3 | AppendResponseToken → OverlayViewModel → OverlayWindow |
 | US-03-06 | Response History | P1 | 🔵 Built | 3 | OverlayViewModel: _history ring buffer (max 20), NavigateBack/Forward, HasHistory/CanGoBack/CanGoForward; OverlayWindow: ◀/▶ nav strip in Row 2 |
 | US-03-07 | Cost Estimation & Token Tracking | P2 | 🔴 Yet to Start | 3 | |
 | US-03-08 | Prompt Templates Library | P2 | 🔴 Yet to Start | 3 | |
 
-**Epic 03 Total:** 30 SP · 0 Done · 19 Built · 0 Scaffolded · 11 Yet to Start
+**Epic 03 Total:** 30 SP · 0 Done · 24 Built · 0 Scaffolded · 6 Yet to Start
 
 ---
 
@@ -243,14 +243,14 @@ Each story is attributed to the project where its primary implementation lives.
 | US-10-02 | CPU Usage Optimisation | P1 | 🔴 Yet to Start | 5 | |
 | US-10-03 | GPU Acceleration for Whisper | P2 | 🔴 Yet to Start | 5 | |
 | US-10-04 | Memory Management for Long Meetings | P1 | 🔴 Yet to Start | 5 | |
-| US-10-05 | Graceful Error Recovery | P1 | 🔴 Yet to Start | 5 | |
+| US-10-05 | Graceful Error Recovery | P1 | 🔵 Built | 5 | Global exception handlers (AppDomain/Dispatcher/UnobservedTask); LLM retry with backoff (1s/2s/4s, 3 attempts); transcription loop auto-restart; emergency transcript export on crash |
 | US-10-06 | End-to-End Latency Benchmark | P2 | 🔴 Yet to Start | 3 | |
 | US-10-07 | App Startup Performance | P2 | 🔴 Yet to Start | 3 | |
 | US-10-08 | Crash Reporting (Opt-in) | P3 | 🔴 Yet to Start | 3 | |
 | US-10-09 | Auto-Update Mechanism | P2 | 🔴 Yet to Start | 5 | |
 | US-10-10 | Low-Power Mode | P3 | 🔴 Yet to Start | 3 | |
 
-**Epic 10 Total:** 40 SP · 0 Done · 0 Built · 0 Scaffolded · 40 Yet to Start
+**Epic 10 Total:** 40 SP · 0 Done · 5 Built · 0 Scaffolded · 35 Yet to Start
 
 ---
 
@@ -265,8 +265,8 @@ Each story is attributed to the project where its primary implementation lives.
 | P2 Stories | 27 stories · 91 SP |
 | P3 Stories | 7 stories · 20 SP |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 46 stories · 186 SP (58%) |
-| 🟡 Scaffolded | 3 stories · 10 SP (3%) |
-| 🔴 Yet to Start | 35 stories · 124 SP (39%) |
+| 🔵 Built | 55 stories · 219 SP (68%) |
+| 🟡 Scaffolded | 1 story · 5 SP (2%) |
+| 🔴 Yet to Start | 28 stories · 96 SP (30%) |
 
-*Last updated: 2026-06-27 — Session 16: US-03-06 (Response History) built — ring buffer in OverlayViewModel + ◀/▶ nav strip in overlay*
+*Last updated: 2026-06-27 — Session 24: US-10-05 (Graceful Error Recovery) + US-03-03 (Local LLM via Ollama) marked Built*

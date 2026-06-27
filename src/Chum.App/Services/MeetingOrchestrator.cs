@@ -201,6 +201,26 @@ public sealed class MeetingOrchestrator : IDisposable
 
     private async Task RunTranscriptionLoopAsync(CancellationToken ct)
     {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await RunTranscriptionCycleAsync(ct);
+                break; // Channel completed normally (stop was called)
+            }
+            catch (OperationCanceledException) { break; }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Transcription loop crashed — restarting in 2s");
+                _overlay.SetStatus(OverlayStatus.Initialising, "Transcription restarting...");
+                try { await Task.Delay(2000, ct); }
+                catch (OperationCanceledException) { break; }
+            }
+        }
+    }
+
+    private async Task RunTranscriptionCycleAsync(CancellationToken ct)
+    {
         if (!_stt.IsReady)
         {
             _overlay.SetStatus(OverlayStatus.Initialising, "Loading Whisper model...");
@@ -223,10 +243,46 @@ public sealed class MeetingOrchestrator : IDisposable
         }
     }
 
+    // Streams with exponential-backoff retry on LlmException (max 3 attempts: 1s, 2s, 4s gaps).
+    private async Task StreamWithRetryAsync(LlmRequest request)
+    {
+        int[] retryDelaysMs = [1000, 2000, 4000];
+        for (int attempt = 0; attempt <= retryDelaysMs.Length; attempt++)
+        {
+            try
+            {
+                await foreach (var token in _llm.StreamResponseAsync(request, _cts.Token))
+                    _overlay.AppendResponseToken(token);
+                return;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (LlmException ex) when (attempt < retryDelaysMs.Length)
+            {
+                int delayMs = retryDelaysMs[attempt];
+                Serilog.Log.Warning(ex, "LLM call failed (attempt {A}) — retrying in {D}ms", attempt + 1, delayMs);
+                _overlay.SetStatus(OverlayStatus.Thinking, $"Retrying… ({attempt + 1}/{retryDelaysMs.Length})");
+                await Task.Delay(delayMs, _cts.Token);
+            }
+            // Final attempt: LlmException propagates to caller
+        }
+    }
+
+    public string GetTranscriptExportText()
+    {
+        var segments = _transcript.GetAll();
+        if (segments.Count == 0) return string.Empty;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"Chum Emergency Transcript — {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss}");
+        sb.AppendLine(new string('-', 60));
+        foreach (var seg in segments)
+            sb.AppendLine($"[{seg.Timestamp:HH:mm:ss}] {seg.SpeakerLabel}: {seg.Text}");
+        return sb.ToString();
+    }
+
     private async Task HandleAudioQueryAsync(DateTimeOffset holdStart, DateTimeOffset holdEnd)
     {
         _overlay.SetListeningState(false);
-        _overlay.SetStatus(OverlayStatus.Thinking, "Thinking...");
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Asking {_llm.ProviderName}…");
         _overlay.StartNewResponse();
 
         try
@@ -239,8 +295,10 @@ public sealed class MeetingOrchestrator : IDisposable
                 MaxTokens: _settings.Current.MaxResponseTokens,
                 Temperature: _settings.Current.Temperature);
 
-            await foreach (var token in _llm.StreamResponseAsync(request, _cts.Token))
-                _overlay.AppendResponseToken(token);
+            Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=AudioQuery",
+                _llm.ProviderName, _llm.ModelId);
+
+            await StreamWithRetryAsync(request);
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -260,7 +318,7 @@ public sealed class MeetingOrchestrator : IDisposable
 
     private async Task HandleActionItemsQueryAsync()
     {
-        _overlay.SetStatus(OverlayStatus.Thinking, "Extracting action items...");
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Extracting action items via {_llm.ProviderName}…");
         _overlay.StartNewResponse();
 
         try
@@ -282,15 +340,25 @@ public sealed class MeetingOrchestrator : IDisposable
             var user = $"Extract all action items, decisions, and owners from this meeting transcript. Format as a bulleted list with owner names where identifiable.\n\n{sb}";
             var request = new LlmRequest(system, user, MaxTokens: 1024);
 
-            await foreach (var token in _llm.StreamResponseAsync(request, _cts.Token))
-                _overlay.AppendResponseToken(token);
+            Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ActionItems",
+                _llm.ProviderName, _llm.ModelId);
 
+            await StreamWithRetryAsync(request);
+
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (OperationCanceledException) { }
+        catch (LlmException ex)
+        {
+            _overlay.ShowError($"AI error: {ex.Message}");
+            Serilog.Log.Error(ex, "LLM error in action items query");
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
         catch (Exception ex)
         {
-            _overlay.ShowError($"Error: {ex.Message}");
+            _overlay.ShowError("Unexpected error — check logs");
             Serilog.Log.Error(ex, "Error in action items query");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
     }
 
@@ -316,7 +384,7 @@ public sealed class MeetingOrchestrator : IDisposable
             return;
         }
 
-        _overlay.SetStatus(OverlayStatus.Thinking, "Analysing image...");
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Analysing image via {_llm.ProviderName}…");
 
         try
         {
@@ -329,8 +397,10 @@ public sealed class MeetingOrchestrator : IDisposable
                 ImageMediaType: "image/jpeg",
                 MaxTokens: _settings.Current.MaxResponseTokens);
 
-            await foreach (var token in _llm.StreamResponseAsync(request, _cts.Token))
-                _overlay.AppendResponseToken(token);
+            Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ImageDrop",
+                _llm.ProviderName, _llm.ModelId);
+
+            await StreamWithRetryAsync(request);
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -394,7 +464,7 @@ public sealed class MeetingOrchestrator : IDisposable
             }
         }
 
-        _overlay.SetStatus(OverlayStatus.Thinking, "Analysing screen...");
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Analysing screen via {_llm.ProviderName}…");
 
         try
         {
@@ -407,8 +477,10 @@ public sealed class MeetingOrchestrator : IDisposable
                 ImageMediaType: "image/jpeg",
                 MaxTokens: _settings.Current.MaxResponseTokens);
 
-            await foreach (var token in _llm.StreamResponseAsync(request, _cts.Token))
-                _overlay.AppendResponseToken(token);
+            Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ScreenCapture",
+                _llm.ProviderName, _llm.ModelId);
+
+            await StreamWithRetryAsync(request);
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }

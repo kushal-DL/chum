@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-27  
-**Phase:** US-08-08 Built — 53/84 stories 🔵 Built (209/320 SP, 65%); next: US-03-03 (mark Built — Ollama already done) then remaining P1 Yet-to-Start stories
+**Phase:** US-10-05 Built — 55/84 stories 🔵 Built (219/320 SP, 68%); next: US-10-01 (Audio Latency Profiling, P1) or US-10-04 (Memory Management, P1)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,37 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 24 (2026-06-27, Part 24)
+
+**Graceful Error Recovery — US-10-05 → 🔵 Built:**
+**Local LLM via Ollama — US-03-03 → 🔵 Built (status correction, no new code):**
+
+US-03-03: `OllamaLlmProvider.cs` was already written as part of US-08-01. Status corrected from 🔴 Yet to Start → 🔵 Built.
+
+US-10-05 code changes:
+
+**Modified files:**
+- `Chum.App/App.xaml.cs` — Three global exception handlers registered in `OnStartup` (after `ConfigureLogging()`):
+  1. `AppDomain.CurrentDomain.UnhandledException` → logs fatal, exports emergency transcript, shows MessageBox (only on terminating exceptions)
+  2. `DispatcherUnhandledException` → logs error, shows error in overlay, sets `e.Handled = true` to prevent crash
+  3. `TaskScheduler.UnobservedTaskException` → logs warning, calls `e.SetObserved()` to prevent .NET rethrowing
+  Added `ExportEmergencyTranscript()`: calls `_orchestrator.GetTranscriptExportText()`, writes to `%TEMP%\chum_transcript_{timestamp}.txt`.
+- `Chum.App/Services/MeetingOrchestrator.cs`:
+  - `RunTranscriptionLoopAsync` now wraps a new `RunTranscriptionCycleAsync` in a while-retry loop: on any non-cancellation exception, logs the crash, sets overlay to "Transcription restarting...", waits 2s, then restarts from fresh state.
+  - `StreamWithRetryAsync(LlmRequest)` — new private helper used by all 4 query handlers: retries on `LlmException` up to 3 times with 1s/2s/4s delays, shows "Retrying… (n/3)" in overlay between attempts. `OperationCanceledException` is never retried. On the 4th failure, `LlmException` propagates to the caller's existing catch block.
+  - All 4 query handlers (`HandleAudioQueryAsync`, `HandleActionItemsQueryAsync`, `HandleDroppedImageQueryAsync`, `HandleScreenCaptureQueryAsync`) now call `await StreamWithRetryAsync(request)` instead of `await foreach` directly.
+  - `HandleActionItemsQueryAsync` catch block upgraded to separately handle `LlmException` (user-friendly) vs general `Exception` (generic error message).
+  - `GetTranscriptExportText()` — new public method: formats all segments from `TranscriptBuffer` as timestamped text with a header line.
+
+**Build:** 0 errors (unchanged 6 pre-existing warnings).
+
+**Decisions:**
+- Retry only on `LlmException` (network/API failures) — not general `Exception`. Avoids masking real bugs by endlessly retrying logic errors.
+- Transcription loop restart uses a 2s delay to avoid tight restart loops on persistent model failures.
+- Emergency transcript goes to `%TEMP%` (not `%APPDATA%`) so it's accessible even if the data directory is corrupted.
 
 ---
 
@@ -465,13 +496,13 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-03-03 — Local LLM via Ollama (P2, 5 SP) — mark Built, no new code needed:**
+**US-10-04 — Memory Management for Long Meetings (P1, 5 SP):**
 
-`OllamaLlmProvider.cs` was written as part of US-08-01. Read BACKLOG-STATUS.md to find the 3 remaining P1 Yet-to-Start stories (13 SP total) and build the highest-priority one. Candidates likely include:
-- **US-10-XX** Performance epic stories
-- **US-05-XX** Overlay UI stories still 🔴
+- Periodic `GC.Collect()` every 10 min after heavy transcription burst (timer in MeetingOrchestrator)
+- Verify TranscriptBuffer eviction works correctly for long meetings
+- Tighten response history ring buffer from 20 → 10 in OverlayViewModel
 
-After clearing remaining P1 work, pick next P2 story: **US-09-02** (Teams audio device handling), **US-09-03** (Zoom audio device handling), **US-01-06** (audio level meters).
+After that: **US-10-01** (Audio Latency Profiling, P1, 3 SP), then **US-10-02** (CPU Optimisation, P1, 5 SP).
 
 ---
 
