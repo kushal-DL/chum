@@ -94,6 +94,24 @@ Created the complete product backlog and project infrastructure:
 
 **BACKLOG-STATUS.md updated:** 116 SP 🔵 Built · 34 SP 🟡 Scaffolded · 160 SP 🔴 Yet to Start
 
+### What Was Done Session 3 (2026-06-27, Part 3)
+
+**Overlay capture exclusion + screen-share auto-hide:**
+
+- `OverlayWindow.xaml.cs` — `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` applied to overlay HWND after window is created. Overlay is now invisible in all screen captures, recordings, and share streams while remaining visible on the physical display. Toggle settable at runtime via new `ApplyCaptureExclusionToOverlay()` on `App`.
+- `AppSettings.cs` — Added `ExcludeFromScreenCapture` (default `true`).
+- `SettingsWindow.xaml` + `.cs` — New checkbox "Hide overlay from screen captures and recordings". Applies live on save.
+- `ScreenShareDetector.cs` (new) — Polls Win32 `EnumWindows` every 2s for Teams/Zoom/browser screen-share toolbar windows. Fires `SharingStateChanged` event.
+- `MeetingOrchestrator.cs` — Wires `ScreenShareDetector` to `_overlay.Hide()`/`Show()` when `AutoHideOnScreenShare` is enabled.
+- `.gitignore` — Fixed: `models/` glob was incorrectly ignoring `src/*/Models/` source directories; replaced with extension-specific rules for binary model files.
+
+**Backlog/docs clarifications added:**
+- `EPIC-08-privacy-security.md` — Added explicit "Non-Goals" section: process-hiding, anti-proctoring, EDR evasion, rootkit/injection techniques are permanently out of scope. Rationale documented.
+- `EPIC-05-overlay-ui.md` — Added `WDA_EXCLUDEFROMCAPTURE` implementation notes to US-05-07.
+- `session-handoff.md` — Added Non-Goals section.
+
+**BACKLOG-STATUS.md updated:** 124 SP 🔵 Built · 34 SP 🟡 Scaffolded · 152 SP 🔴 Yet to Start
+
 ---
 
 ## Immediate Next Step: Verify the Build
@@ -202,7 +220,8 @@ src/
     │   └── SettingsWindow.xaml + .cs
     ├── Assets/chum.ico                (placeholder 32×32 blue dot)
     ├── App.xaml                       (ShutdownMode=OnExplicitShutdown)
-    └── App.xaml.cs                    (DI wiring, tray icon, startup logic)
+    ├── App.xaml.cs                    (DI wiring, tray icon, startup logic)
+    └── Services/ScreenShareDetector.cs (Win32 window polling, 2s interval)
 ```
 
 ---
@@ -215,4 +234,4 @@ src/
 4. Kushal is in a corporate environment, Windows 11, primary meeting app is Microsoft Teams
 5. Repo: `https://github.com/kushal-DL/chum`
 
-*Last updated: 2026-06-27 by Claude (Session 2 — complete MVP source code written)*
+*Last updated: 2026-06-27 by Claude (Session 3 — overlay capture exclusion, screen-share auto-hide, non-goals boundary)*
