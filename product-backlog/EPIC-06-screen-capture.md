@@ -7,7 +7,7 @@
 | US-06-01 | Primary Screen Capture (DXGI Duplication) | P1 — High | 🔵 Built | 8 |
 | US-06-02 | Clipboard Image Monitoring | P1 — High | 🔵 Built | 3 |
 | US-06-03 | Image File Drop Target | P2 — Medium | 🔵 Built | 3 |
-| US-06-04 | Region Selection (Snip Mode) | P2 — Medium | 🔴 Yet to Start | 5 |
+| US-06-04 | Region Selection (Snip Mode) | P2 — Medium | 🔵 Built | 5 |
 | US-06-05 | UIA Text Extraction (Teams Captions) | P2 — Medium | 🔴 Yet to Start | 5 |
 | US-06-06 | Image Preprocessing Pipeline | P1 — High | 🔵 Built | 3 |
 | US-06-07 | Multimodal LLM Vision Request | P1 — High | 🔵 Built | 3 |

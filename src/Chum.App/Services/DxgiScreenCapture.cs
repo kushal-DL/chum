@@ -74,6 +74,17 @@ public sealed class DxgiScreenCapture : IDisposable
     /// Teams call video tiles will appear black — inform the user via the overlay.
     /// </summary>
     public string? CaptureAsJpegBase64(int maxWidthPx = 1280, int jpegQuality = 85)
+        => CaptureCore(null, maxWidthPx, jpegQuality);
+
+    /// <summary>
+    /// Captures only the specified physical-pixel region of the primary display.
+    /// <paramref name="region"/> coordinates are physical screen pixels (not WPF logical units).
+    /// Returns null on failure; empty string if the region falls outside the captured frame.
+    /// </summary>
+    public string? CaptureRegionAsJpegBase64(Rectangle region, int maxWidthPx = 1280, int jpegQuality = 85)
+        => CaptureCore(region, maxWidthPx, jpegQuality);
+
+    private string? CaptureCore(Rectangle? cropRegion, int maxWidthPx, int jpegQuality)
     {
         if (_disposed) return null;
 
@@ -120,7 +131,7 @@ public sealed class DxgiScreenCapture : IDisposable
             try
             {
                 return EncodeAsJpeg(mapped.DataPointer, desc.Width, desc.Height,
-                    mapped.RowPitch, maxWidthPx, jpegQuality);
+                    mapped.RowPitch, maxWidthPx, jpegQuality, cropRegion);
             }
             finally
             {
@@ -150,7 +161,8 @@ public sealed class DxgiScreenCapture : IDisposable
         return output1.DuplicateOutput(device);
     }
 
-    private static string EncodeAsJpeg(nint dataPtr, int width, int height, int rowPitch, int maxWidth, int quality)
+    private static string EncodeAsJpeg(nint dataPtr, int width, int height, int rowPitch,
+        int maxWidth, int quality, Rectangle? cropRegion = null)
     {
         int stride = width * 4; // 4 bytes per BGRA pixel
 
@@ -159,12 +171,18 @@ public sealed class DxgiScreenCapture : IDisposable
         for (int row = 0; row < height; row++)
             Marshal.Copy(dataPtr + (nint)(row * rowPitch), pixels, row * stride, stride);
 
-        using var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-        var bits = bmp.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+        using var fullBmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+        var bits = fullBmp.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
         try { Marshal.Copy(pixels, 0, bits.Scan0, pixels.Length); }
-        finally { bmp.UnlockBits(bits); }
+        finally { fullBmp.UnlockBits(bits); }
 
-        return ImagePreprocessor.ToJpegBase64(bmp, maxWidth, quality);
+        if (cropRegion is null)
+            return ImagePreprocessor.ToJpegBase64(fullBmp, maxWidth, quality);
+
+        var safeRegion = Rectangle.Intersect(cropRegion.Value, new Rectangle(0, 0, width, height));
+        if (safeRegion.IsEmpty) return string.Empty;
+        using var cropped = fullBmp.Clone(safeRegion, PixelFormat.Format32bppArgb);
+        return ImagePreprocessor.ToJpegBase64(cropped, maxWidth, quality);
     }
 
     public void Dispose()

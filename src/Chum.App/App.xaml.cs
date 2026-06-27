@@ -168,6 +168,17 @@ public partial class App : System.Windows.Application
                 $"⚠ {e.PlatformName} audio is on '{e.DeviceName}'. Switch Chum capture to match?");
         };
 
+        _orchestrator.SnipModeRequested += (_, _) =>
+        {
+            _ = Dispatcher.InvokeAsync(async () =>
+            {
+                var snip = new Chum.App.Views.SnipOverlayWindow();
+                var region = await snip.ShowAndGetSelectionAsync();
+                if (region is not null && _orchestrator is not null)
+                    await _orchestrator.HandleSnipCaptureAsync(region.Value);
+            });
+        };
+
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
         Settings.SettingsChanged += (_, _) =>
             Dispatcher.InvokeAsync(() => _overlayWindow.Opacity = Settings.Current.OverlayOpacity);
@@ -232,6 +243,11 @@ public partial class App : System.Windows.Application
         _hotkeys.RegisterFromString("PrivacyPause", s.PrivacyPauseHotkey);
         _hotkeys.RegisterFromString("HideOverlay", s.HideOverlayHotkey);
         _hotkeys.RegisterFromString("ActionItems", s.ActionItemsHotkey);
+
+        // Snip mode: Ctrl+Alt+Shift+S (fixed — subset of ScreenCapture but with Shift)
+        var snipMods = System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Alt
+                     | System.Windows.Input.ModifierKeys.Shift;
+        _hotkeys.Register("SnipCapture", System.Windows.Input.Key.S, snipMods);
 
         // Template selection: Ctrl+Alt+1..5 (fixed, not user-configurable)
         var templateMods = System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Alt;

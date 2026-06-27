@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-09-03 Built — 76/84 stories 🔵 Built (286/320 SP, 89%) — 8 stories remain (Epic 06: 2, Epic 09: 3, Epic 10: 3)
+**Phase:** US-06-04 Built — 77/84 stories 🔵 Built (291/320 SP, 91%) — 7 stories remain (Epic 06: 1, Epic 09: 3, Epic 10: 3)
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,23 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 46 (2026-06-28, Part 46)
+
+**Region Selection / Snip Mode — US-06-04 → 🔵 Built:**
+
+**New files:**
+- `Chum.App/Views/SnipOverlayWindow.xaml` — Full-screen transparent `WindowStyle=None, AllowsTransparency=True` window positioned at `SystemParameters.VirtualScreenLeft/Top/Width/Height` to cover all monitors. Grid root: semi-transparent dark background + hint TextBlock + Canvas layer for the selection border. Cursor is `Cross`. Key bindings for ESC and mouse events.
+- `Chum.App/Views/SnipOverlayWindow.xaml.cs` — `ShowAndGetSelectionAsync()` returns `Task<DrawingRect?>` via `TaskCompletionSource`. `OnSourceInitialized` reads DPI scale from `PresentationSource.CompositionTarget.TransformToDevice`. Mouse down starts selection; MouseMove draws the green selection `Border` on `Canvas` via `Canvas.SetLeft/SetTop`; MouseUp converts WPF logical coordinates to physical pixels (multiplying by DPI scale + adding window origin) and completes the task. ESC or <10px selection → null. Uses `using` type aliases to resolve `KeyEventArgs`/`MouseEventArgs` WPF/WinForms ambiguity (same pattern as other overlay files).
+
+**Modified files:**
+- `Chum.App/Services/DxgiScreenCapture.cs` — Refactored: `CaptureAsJpegBase64` and new `CaptureRegionAsJpegBase64(Rectangle region, ...)` both delegate to private `CaptureCore(Rectangle? cropRegion, ...)`. `EncodeAsJpeg` now accepts `Rectangle? cropRegion`; if set, calls `fullBmp.Clone(safeRegion, ...)` after the BGRA pixel copy. `safeRegion = Rectangle.Intersect(cropRegion, fullFrameRect)` prevents out-of-bounds crop.
+- `Chum.App/Services/MeetingOrchestrator.cs` — Added `public event EventHandler? SnipModeRequested`. Added `"SnipCapture"` branch in `HotkeyTapped`: fires `SnipModeRequested`. Added `HandleSnipCaptureAsync(DrawingRect region)`: calls `_screenCapture.CaptureRegionAsJpegBase64(region)` on `Task.Run`, then sends JPEG to LLM via `StreamWithRetryAsync`.
+- `Chum.App/App.xaml.cs` — `RegisterHotkeys`: registers `"SnipCapture"` as `Ctrl+Alt+Shift+S`. `BuildAndWireComponentsAsync`: subscribes to `_orchestrator.SnipModeRequested`; on event, `Dispatcher.InvokeAsync` creates `SnipOverlayWindow`, awaits `ShowAndGetSelectionAsync()`, calls `HandleSnipCaptureAsync(region)` if region non-null.
+
+**Build:** 0 errors, 6 pre-existing warnings (unchanged).
 
 ---
 
@@ -961,11 +978,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-06-04 — Region Selection/Snip Mode (P2, 5 SP):**
+**US-06-05 — UIA Text Extraction / Teams Captions (P2, 5 SP):**
 
-Allow user to draw a snip region instead of capturing the full screen. Spec: overlay shows a darkened full-screen selector window; user drags to select region; that region is passed to the LLM instead of full screenshot. See `EPIC-06-screen-capture.md` for UX spec. Will need a new `RegionSelectorWindow` (WPF full-screen overlay), a hotkey path from `MeetingOrchestrator`, and snip-to-JPEG pipeline.
+Read Teams auto-caption text via Windows UI Automation (`IUIAutomation`) without needing audio capture. When Teams captions are active, poll `CaptionLabel` elements every 100ms and feed text into the transcript buffer as a supplementary source. Requires `System.Windows.Automation` reference (built-in .NET). The Teams window handle comes from `Process.GetProcessesByName("ms-teams")` + `MainWindowHandle`. Main challenge: navigating the UIA tree to find the caption panel (requires exploration with inspect.exe on a real Teams call).
 
-Other P2 candidates: US-06-05 (UIA Teams Captions, 5 SP), US-09-05 (Teams Auto-Captions via UIA, 5 SP), US-10-09 (Auto-Update, 5 SP), US-10-08 (Crash Reporting, 3 SP).
+Other P2 candidates: US-09-05 (Teams Auto-Captions Integration, 5 SP — similar concept but specifically for Teams built-in auto-captions flowing into Chum's transcript), US-10-09 (Auto-Update, 5 SP).
 
 ---
 

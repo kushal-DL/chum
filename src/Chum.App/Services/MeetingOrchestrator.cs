@@ -57,6 +57,8 @@ public sealed class MeetingOrchestrator : IDisposable
     public event EventHandler? MeetingAppClosed;
     /// <summary>Fires when Teams/Zoom is detected using a different audio device than Chum's current loopback.</summary>
     public event EventHandler<AudioDeviceMismatchEventArgs>? AudioDeviceMismatchDetected;
+    /// <summary>Fires when the user invokes the snip-mode hotkey — subscriber (App) should show the snip UI.</summary>
+    public event EventHandler? SnipModeRequested;
     private Task? _transcriptionLoop;
     private bool _disposed;
 
@@ -163,6 +165,8 @@ public sealed class MeetingOrchestrator : IDisposable
                 await HandleActionItemsQueryAsync();
             else if (actionId == "ScreenCapture")
                 await TryHandleScreenCaptureAsync();
+            else if (actionId == "SnipCapture")
+                SnipModeRequested?.Invoke(this, EventArgs.Empty);
             else if (actionId == "PrivacyPause")
                 TogglePause();
             else if (actionId == "HideOverlay")
@@ -767,6 +771,78 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             _overlay.ShowError("Unexpected error — check logs");
             Serilog.Log.Error(ex, "Unexpected error in screen capture query");
+        }
+    }
+
+    /// <summary>
+    /// Called by App after the snip overlay returns a user-selected region.
+    /// Captures just that region from DXGI and sends it to the LLM.
+    /// </summary>
+    public async Task HandleSnipCaptureAsync(System.Drawing.Rectangle region)
+    {
+        _overlay.SetStatus(OverlayStatus.Thinking, "Capturing selected region…");
+        _overlay.StartNewResponse();
+
+        if (_screenCapture is null)
+        {
+            _overlay.ShowError("Screen capture is not available on this system.");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+
+        string? imageBase64 = null;
+        try
+        {
+            imageBase64 = await Task.Run(() =>
+                _screenCapture.CaptureRegionAsJpegBase64(region, maxWidthPx: 1280, jpegQuality: 85));
+        }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Region capture failed — check logs");
+            Serilog.Log.Error(ex, "Snip region capture exception");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(imageBase64))
+        {
+            _overlay.ShowError("Could not capture selected region — region may be outside primary display.");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Analysing region via {_llm.ProviderName}…");
+
+        try
+        {
+            var contextText = _context.BuildContext(DateTimeOffset.UtcNow, _settings.Current.MaxResponseTokens);
+            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
+                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
+                _stt.DetectedLanguage,
+                _templateService?.GetByName(_settings.Current.ActiveTemplateName));
+            var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
+            var request = new LlmRequest(system, user,
+                ImageBase64: imageBase64,
+                ImageMediaType: "image/jpeg",
+                MaxTokens: _settings.Current.MaxResponseTokens);
+
+            Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=SnipCapture region={Region}",
+                _llm.ProviderName, _llm.ModelId, region);
+
+            await StreamWithRetryAsync(request, t => _latencyTracker.RecordLlmLatency(t));
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (LlmException ex)
+        {
+            _overlay.ShowError($"AI error: {ex.Message}");
+            Serilog.Log.Error(ex, "LLM error during snip capture query");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Unexpected error — check logs");
+            Serilog.Log.Error(ex, "Unexpected error in snip capture query");
         }
     }
 

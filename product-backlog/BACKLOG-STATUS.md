@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 76 | 286 SP | 89% |
+| 🔵 Built | 77 | 291 SP | 91% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
-| 🔴 Yet to Start | 8 | 34 SP | 11% |
+| 🔴 Yet to Start | 7 | 29 SP | 9% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -34,12 +34,12 @@
 | 03 · LLM Integration | 8 | 30 SP | — | 8 (30 SP) | — | — |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 7 (26 SP) | — | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 9 (42 SP) | — | — |
-| 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
+| 06 · Screen Capture & Vision | 7 | 30 SP | — | 6 (25 SP) | — | 1 (5 SP) |
 | 07 · Settings & Configuration | 10 | 27 SP | — | 10 (27 SP) | — | — |
 | 08 · Privacy & Security | 11 | 36 SP | — | 11 (36 SP) | — | — |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 4 (14 SP) | — | 3 (13 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 7 (29 SP) | — | 3 (11 SP) |
-| **Total** | **84** | **320 SP** | **0** | **76 (286 SP)** | **0** | **8 (34 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **77 (291 SP)** | **0** | **7 (29 SP)** |
 
 ---
 
@@ -168,12 +168,12 @@ Each story is attributed to the project where its primary implementation lives.
 | US-06-01 | Primary Screen Capture (DXGI Duplication) | P1 | 🔵 Built | 8 | DxgiScreenCapture.cs — captures primary monitor at GPU output level; Teams call tiles appear black (WDA_EXCLUDEFROMCAPTURE applies to DXGI too on Win10 2004+); all other content captured correctly |
 | US-06-02 | Clipboard Image Monitoring | P1 | 🔵 Built | 3 | ClipboardMonitor.cs — WM_CLIPBOARDUPDATE via HWND_MESSAGE; JPEG encoding; notification banner in overlay; hotkey path prefers clipboard over DXGI |
 | US-06-03 | Image File Drop Target | P2 | 🔵 Built | 3 | AllowDrop on OverlayWindow; ImageFileDropped event; HandleDroppedImageQueryAsync in MeetingOrchestrator — GDI+ Bitmap load on Task.Run, ImagePreprocessor.ToJpegBase64, same LLM vision path as clipboard |
-| US-06-04 | Region Selection / Snip Mode | P2 | 🔴 Yet to Start | 5 | |
+| US-06-04 | Region Selection / Snip Mode | P2 | 🔵 Built | 5 | SnipOverlayWindow (full-screen transparent, Canvas rectangle selection); DxgiScreenCapture.CaptureRegionAsJpegBase64 (crops BGRA frame); MeetingOrchestrator.HandleSnipCaptureAsync; Ctrl+Alt+Shift+S hotkey |
 | US-06-05 | UIA Text Extraction (Teams Captions) | P2 | 🔴 Yet to Start | 5 | |
 | US-06-06 | Image Preprocessing Pipeline | P1 | 🔵 Built | 3 | ImagePreprocessor.cs — shared WPF BitmapSource + GDI+ Bitmap → JPEG base64 encoder; replaces inline logic in ClipboardMonitor + DxgiScreenCapture |
 | US-06-07 | Multimodal LLM Vision Request | P1 | 🔵 Built | 3 | HandleScreenCaptureQueryAsync in MeetingOrchestrator — DXGI frame → base64 JPEG → AnthropicLlmProvider with image + transcript context |
 
-**Epic 06 Total:** 30 SP · 0 Done · 20 Built · 0 Scaffolded · 10 Yet to Start
+**Epic 06 Total:** 30 SP · 0 Done · 25 Built · 0 Scaffolded · 5 Yet to Start
 
 ---
 
