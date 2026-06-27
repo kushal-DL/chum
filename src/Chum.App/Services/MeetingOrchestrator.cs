@@ -113,6 +113,8 @@ public sealed class MeetingOrchestrator : IDisposable
             DeviceDisconnected?.Invoke(this, EventArgs.Empty);
         };
 
+        WireLevelMonitor(_audio);
+
         _latencyTracker.SlowTranscriptionDetected += (_, _) =>
             _overlay.ShowError("⚠ Transcription is slow (>15s) — consider using the 'base' Whisper model.");
 
@@ -251,6 +253,19 @@ public sealed class MeetingOrchestrator : IDisposable
     {
         _audio.Dispose();
         _audio = newPipeline;
+        WireLevelMonitor(_audio);
+    }
+
+    private void WireLevelMonitor(AudioPipeline pipeline)
+    {
+        pipeline.LevelChanged += (_, e) =>
+        {
+            var pct = Math.Clamp((e.LevelDbFs + 60f) / 60f, 0d, 1d);
+            if (e.Source == AudioSource.Loopback)
+                _overlay.UpdateLoopbackLevel(pct, e.IsSpeech);
+            else
+                _overlay.UpdateMicLevel(pct, e.IsSpeech);
+        };
     }
 
     public void Pause()

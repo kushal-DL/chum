@@ -15,9 +15,9 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 69 | 264 SP | 82% |
+| 🔵 Built | 70 | 266 SP | 83% |
 | 🟡 Scaffolded | 1 | 5 SP | 2% |
-| 🔴 Yet to Start | 14 | 51 SP | 16% |
+| 🔴 Yet to Start | 13 | 49 SP | 15% |
 | **Total** | **84** | **320 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
@@ -28,7 +28,7 @@
 
 | Epic | Stories | Total SP | ✅ Done | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
 |------|---------|----------|---------|----------|--------------|-----------------|
-| 01 · Core Audio Engine | 7 | 29 SP | — | 6 (27 SP) | — | 1 (2 SP) |
+| 01 · Core Audio Engine | 7 | 29 SP | — | 7 (29 SP) | — | — |
 | 02 · Transcription & Context | 8 | 33 SP | — | 7 (31 SP) | — | 1 (2 SP) |
 | 03 · LLM Integration | 8 | 30 SP | — | 8 (30 SP) | — | — |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 7 (26 SP) | — | — |
@@ -38,7 +38,7 @@
 | 08 · Privacy & Security | 11 | 36 SP | — | 10 (31 SP) | 1 (5 SP) | — |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 6 (24 SP) | — | 4 (16 SP) |
-| **Total** | **84** | **320 SP** | **0** | **69 (264 SP)** | **1 (5 SP)** | **14 (51 SP)** |
+| **Total** | **84** | **320 SP** | **0** | **70 (266 SP)** | **1 (5 SP)** | **13 (49 SP)** |
 
 ---
 
@@ -80,7 +80,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-01-03 | Audio Device Selection | P1 | 🔵 Built | 3 | AudioDeviceEnumerator.cs (MMDeviceEnumerator); LoopbackCapture + MicCapture already accept deviceId |
 | US-01-04 | Voice Activity Detection (Silero VAD) | P0 | 🔵 Built | 8 | SileroVad.cs (ONNX, stateful LSTM, 512-sample chunks); EnergyVad kept as fallback when model not downloaded |
 | US-01-05 | Audio Ring Buffer | P0 | 🔵 Built | 5 | AudioPipeline.cs: pre-buffer + Channel<AudioChunk> |
-| US-01-06 | Real-time Audio Level Meters | P2 | 🔴 Yet to Start | 2 | |
+| US-01-06 | Real-time Audio Level Meters | P2 | 🔵 Built | 2 | RMS dBFS computed in AudioPipeline; compact LB/MIC ProgressBar meters in overlay |
 | US-01-07 | Automatic Device Failover | P1 | 🔵 Built | 3 | Disconnected event on IAudioCapture/AudioPipeline; DeviceDisconnected event on MeetingOrchestrator; FallbackToDefaultAudioAsync in App |
 
 **Epic 01 Total:** 29 SP · 0 Done · 24 Built · 0 Scaffolded · 5 Yet to Start

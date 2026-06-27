@@ -9,7 +9,7 @@
 | US-01-03 | Audio Device Selection | P1 — High | 🔵 Built | 3 |
 | US-01-04 | Voice Activity Detection | P0 — MVP | 🔵 Built | 8 |
 | US-01-05 | Audio Ring Buffer | P0 — MVP | 🔵 Built | 5 |
-| US-01-06 | Real-time Audio Level Meters | P2 — Medium | 🔴 Yet to Start | 2 |
+| US-01-06 | Real-time Audio Level Meters | P2 — Medium | 🔵 Built | 2 |
 | US-01-07 | Automatic Device Failover | P1 — High | 🔵 Built | 3 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  

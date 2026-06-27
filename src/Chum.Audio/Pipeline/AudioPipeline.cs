@@ -46,6 +46,9 @@ public sealed class AudioPipeline : IDisposable
     /// <summary>Fires when either capture device disconnects unexpectedly. At most once per pipeline instance.</summary>
     public event EventHandler? CaptureDisconnected;
 
+    /// <summary>Fires for every raw audio chunk after VAD classification. Rate ≈ WASAPI callback rate (~20–100 Hz).</summary>
+    public event EventHandler<AudioLevelEventArgs>? LevelChanged;
+
     private bool _paused;
     private bool _disposed;
     private int _disconnectFired; // interlocked flag — ensures CaptureDisconnected fires at most once
@@ -91,6 +94,14 @@ public sealed class AudioPipeline : IDisposable
             CaptureDisconnected?.Invoke(this, EventArgs.Empty);
     }
 
+    private static float ComputeRms(float[] samples)
+    {
+        if (samples.Length == 0) return 0f;
+        double sum = 0;
+        foreach (var s in samples) sum += s * s;
+        return (float)Math.Sqrt(sum / samples.Length);
+    }
+
     private void ProcessRaw(RawAudioEventArgs e, AudioSource source)
     {
         if (_paused || _disposed) return;
@@ -100,6 +111,11 @@ public sealed class AudioPipeline : IDisposable
 
         var vad = source == AudioSource.Loopback ? _loopbackVad : _micVad;
         bool speech = vad.IsSpeech(samples);
+
+        // Fire level event before entering the lock — pure read on local array, no shared state
+        var rms = ComputeRms(samples);
+        var dbFs = rms > 1e-7f ? 20f * MathF.Log10(rms) : -60f;
+        LevelChanged?.Invoke(this, new AudioLevelEventArgs(source, MathF.Max(dbFs, -60f), speech));
 
         // Thread-safety: AudioPipeline state is touched from two capture threads (loopback + mic).
         // For the MVP we accept that occasional interleaving of short chunks is benign.
@@ -203,3 +219,6 @@ public sealed class AudioPipeline : IDisposable
         (_micVad as IDisposable)?.Dispose();
     }
 }
+
+/// <summary>Level data fired by <see cref="AudioPipeline.LevelChanged"/> on each audio callback.</summary>
+public sealed record AudioLevelEventArgs(AudioSource Source, float LevelDbFs, bool IsSpeech);

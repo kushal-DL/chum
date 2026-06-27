@@ -272,6 +272,42 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
         Invoke(() => HasPendingScreenCapture = pending);
     }
 
+    // ── Audio level meters ────────────────────────────────────────────────
+
+    private double _loopbackLevelPct;
+    public double LoopbackLevelPct
+    {
+        get => _loopbackLevelPct;
+        private set { _loopbackLevelPct = value; OnPropertyChanged(); }
+    }
+
+    private double _micLevelPct;
+    public double MicLevelPct
+    {
+        get => _micLevelPct;
+        private set { _micLevelPct = value; OnPropertyChanged(); }
+    }
+
+    private bool _isLoopbackSpeech;
+    public bool IsLoopbackSpeech
+    {
+        get => _isLoopbackSpeech;
+        private set { _isLoopbackSpeech = value; OnPropertyChanged(); }
+    }
+
+    private bool _isMicSpeech;
+    public bool IsMicSpeech
+    {
+        get => _isMicSpeech;
+        private set { _isMicSpeech = value; OnPropertyChanged(); }
+    }
+
+    public void UpdateLoopbackLevel(double pct, bool isSpeech)
+        => Invoke(() => { LoopbackLevelPct = pct; IsLoopbackSpeech = isSpeech; });
+
+    public void UpdateMicLevel(double pct, bool isSpeech)
+        => Invoke(() => { MicLevelPct = pct; IsMicSpeech = isSpeech; });
+
     // ── Disclosure reminder banner ────────────────────────────────────────
 
     private bool _hasDisclosureReminder;

@@ -46,7 +46,7 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** US-08-04 Built — 69/84 stories 🔵 Built (264/320 SP, 82%) — Epic 08 (Privacy) fully built
+**Phase:** US-01-06 Built — 70/84 stories 🔵 Built (266/320 SP, 83%) — Epic 01 (Audio) fully built
 
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
@@ -191,6 +191,34 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 - Two separate `SileroVad` instances (one per stream) — each stream needs its own LSTM hidden state
 - Silero model is used immediately if already downloaded; first-run fallback to EnergyVad with background download for next launch
 - OnnxRuntime 1.19.2 was already in `Chum.Audio.csproj` — no new packages needed
+
+---
+
+### What Was Done Session 39 (2026-06-28, Part 39)
+
+**Real-time Audio Level Meters — US-01-06 → 🔵 Built:**
+
+**Modified files:**
+- `Chum.Audio/Pipeline/AudioPipeline.cs`:
+  - Added `AudioLevelEventArgs` sealed record (Source, LevelDbFs, IsSpeech) at the end of the file.
+  - Added `public event EventHandler<AudioLevelEventArgs>? LevelChanged` event.
+  - Added `private static float ComputeRms(float[] samples)` — computes RMS of float32 samples.
+  - In `ProcessRaw()`: after VAD classification, computes RMS → dBFS (clamped at -60 dBFS floor), fires `LevelChanged` before entering the shared state lock. Event rate ≈ WASAPI callback rate (~20-100 Hz).
+- `Chum.App/ViewModels/OverlayViewModel.cs`:
+  - Added `LoopbackLevelPct` and `MicLevelPct` double properties (0.0–1.0 where 0.0 = -60 dBFS, 1.0 = 0 dBFS).
+  - Added `IsLoopbackSpeech` and `IsMicSpeech` bool properties (VAD classification).
+  - Added `UpdateLoopbackLevel(double pct, bool isSpeech)` and `UpdateMicLevel(double pct, bool isSpeech)` dispatch-safe update methods.
+- `Chum.App/Services/MeetingOrchestrator.cs`:
+  - Added `WireLevelMonitor(AudioPipeline pipeline)` private method: subscribes to `LevelChanged`, converts dBFS to 0-1 pct via `(dbFs + 60) / 60`, calls appropriate overlay update method.
+  - Called from constructor (after pipeline creation) and from `ReplaceAudio()` (re-wires on device failover).
+- `Chum.App/Views/OverlayWindow.xaml`:
+  - Added compact audio level meter row at the bottom of the banners StackPanel (Row 3): two thin (4px) `ProgressBar` elements labelled "LB" and "MIC" with green fill, bound to `LoopbackLevelPct` and `MicLevelPct`.
+
+**Architecture note:** `LevelChanged` fires on the audio capture thread (before the lock that protects segment assembly). The overlay update dispatches to the UI thread via `Dispatcher.InvokeAsync`. At 20-100 Hz this adds ~20-100 UI thread dispatches/second — well within WPF's capacity.
+
+**Note:** Epic 01 (Audio Engine) is now fully built — all 7 stories at 🔵 Built.
+
+**Build:** 0 errors, 6 pre-existing warnings (unchanged).
 
 ---
 
@@ -804,11 +832,11 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-01-06 — Real-time Audio Level Meters (P2, 2 SP):**
+**US-02-09 — Transcript Export (P2, 3 SP):**
 
-Show live RMS level meters for loopback and mic in the overlay (or settings window) so the user can confirm audio is being captured. Two thin horizontal bars (green/amber/red) bound to current audio level.
+Allow the user to export the full session transcript to a text file. Accessible via tray menu "Export Transcript…" and a button in the overlay. Shows a Save File dialog, writes timestamped plain-text (same format as the emergency export already in App.xaml.cs).
 
-Other P2 candidates: US-10-03 (GPU Acceleration for Whisper, 5 SP), US-10-09 (Auto-Update Mechanism, 5 SP).
+Other P2 candidates: US-05-06 (Font Size Adjustment, 2 SP), US-07-03 (LLM Model Hotswap, 3 SP), US-10-03 (GPU Acceleration for Whisper, 5 SP).
 
 ---
 
