@@ -1,0 +1,102 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.rsuser
+*.DotSettings.user
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+
+# Rider
+.idea/
+*.sln.iml
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# App runtime data (never commit these)
+AppData/
+*.wav
+*.mp3
+*.ogg
+*.flac
+
+# Whisper models (large binary files — download on first run)
+*.bin
+*.gguf
+*.pt
+*.onnx
+models/
+
+# Credentials / secrets (never commit)
+.env
+*.env
+appsettings.Development.json
+secrets.json
+credentials.json
+
+# Logs
+*.log
+Logs/
+logs/
+
+# Test results
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Publish output
+publish/
+*.msix
+*.msixbundle
+*.appx
+
+# Temporary files
+*.tmp
+*.temp
+~$*
