@@ -49,6 +49,16 @@ public sealed class ConfigFileService
         }
     }
 
+    public string? CloudSttApiKey
+    {
+        get => string.IsNullOrWhiteSpace(_data.CloudSttApiKey) ? null : _data.CloudSttApiKey;
+        set
+        {
+            _data = _data with { CloudSttApiKey = value?.Trim() ?? string.Empty };
+            TrySave();
+        }
+    }
+
     private void TrySave()
     {
         try
@@ -65,5 +75,6 @@ public sealed class ConfigFileService
 
     private record ConfigData(
         string AnthropicApiKey = "",
-        string OpenAiApiKey = "");
+        string OpenAiApiKey = "",
+        string CloudSttApiKey = "");
 }

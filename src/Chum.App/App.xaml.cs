@@ -118,7 +118,8 @@ public partial class App : System.Windows.Application
         OpenAiSttProvider? cloudStt = null;
         if (Settings.Current.CloudSttFallback)
         {
-            var key = Config.OpenAiApiKey ?? Config.AnthropicApiKey;
+            // Prefer a dedicated Cloud STT key; fall back to the LLM key if not set
+            var key = Config.CloudSttApiKey ?? Config.OpenAiApiKey ?? Config.AnthropicApiKey;
             if (key is not null)
             {
                 var sttBase = string.IsNullOrWhiteSpace(Settings.Current.CloudSttBaseUrl)
@@ -128,7 +129,7 @@ public partial class App : System.Windows.Application
                     sttBase ?? "OpenAI");
             }
             else
-                Log.Warning("Cloud STT enabled but no API key found (NVIDIA or OpenAI) — cloud STT disabled");
+                Log.Warning("Cloud STT enabled but no API key found — cloud STT disabled");
         }
 
         await Task.WhenAll(vadTask1, vadTask2, templatesTask);

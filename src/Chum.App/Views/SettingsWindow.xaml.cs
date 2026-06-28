@@ -100,6 +100,8 @@ public partial class SettingsWindow : Window
         ActiveTemplateCombo.SelectionChanged += (_, _) => LoadTemplateIntoEditor();
 
         CloudSttFallbackBox.IsChecked = s.CloudSttFallback;
+        if (_config.CloudSttApiKey is not null)
+            ShowCloudSttKeyStatus("✓ API key stored", true);
         CloudSttBaseUrlBox.Text = s.CloudSttBaseUrl;
         CloudSttModelBox.Text = s.CloudSttModel;
 
@@ -171,6 +173,24 @@ public partial class SettingsWindow : Window
             ? System.Windows.Media.Brushes.LightGreen
             : System.Windows.Media.Brushes.OrangeRed;
         ApiKeyStatus.Visibility = System.Windows.Visibility.Visible;
+    }
+
+    private void SaveCloudSttApiKey_Click(object sender, RoutedEventArgs e)
+    {
+        var key = CloudSttApiKeyBox.Password.Trim();
+        if (string.IsNullOrWhiteSpace(key)) { ShowCloudSttKeyStatus("Key cannot be empty.", false); return; }
+        _config.CloudSttApiKey = key;
+        CloudSttApiKeyBox.Clear();
+        ShowCloudSttKeyStatus("✓ Key saved", true);
+    }
+
+    private void ShowCloudSttKeyStatus(string msg, bool success)
+    {
+        CloudSttKeyStatus.Text = msg;
+        CloudSttKeyStatus.Foreground = success
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.OrangeRed;
+        CloudSttKeyStatus.Visibility = System.Windows.Visibility.Visible;
     }
 
     private void ProviderCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)

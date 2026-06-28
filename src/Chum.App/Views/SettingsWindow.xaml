@@ -205,8 +205,20 @@
                       Content="Use cloud STT for press-to-record queries (better accuracy for technical terms)"
                       Margin="0,4"
                       ToolTip="When enabled, press-to-record queries are transcribed by the cloud API instead of local sherpa-onnx. NVIDIA Canary-1B or OpenAI Whisper-large give much better accuracy on technical vocabulary (AWS, Kubernetes, APIs, etc.)."/>
-            <TextBlock Text="API base URL (leave empty for OpenAI; set to NVIDIA URL for NVIDIA)"
-                       Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
+            <TextBlock Text="Cloud STT API Key" Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <PasswordBox x:Name="CloudSttApiKeyBox" Grid.Column="0"/>
+                <Button Grid.Column="1" Content="Save" Margin="6,0,0,0" Click="SaveCloudSttApiKey_Click"/>
+            </Grid>
+            <TextBlock x:Name="CloudSttKeyStatus" Foreground="#16A34A" FontSize="11"
+                       Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
+            <TextBlock Text="If blank, falls back to the LLM API key above. Use this to set a separate key for NVIDIA STT."
+                       Style="{StaticResource Hint}"/>
+            <TextBlock Text="API base URL" Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
             <TextBox x:Name="CloudSttBaseUrlBox" Text="https://integrate.api.nvidia.com/v1"
                      ToolTip="NVIDIA: https://integrate.api.nvidia.com/v1 · OpenAI: leave empty"/>
             <TextBlock Text="Model name" Foreground="#374151" FontSize="11" Margin="0,6,0,2"/>
