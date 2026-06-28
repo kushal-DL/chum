@@ -36,11 +36,12 @@ public sealed class HotkeyService : IDisposable
     private record HotkeyDef(Key Key, ModifierKeys Modifiers, string ActionId);
     private readonly List<HotkeyDef> _hotkeys = [];
 
-    // Hold-to-ask state
-    private bool _holdActive;
-    private DateTimeOffset _holdStart;
-    private string? _holdActionId;
-    private static readonly TimeSpan DebounceMin = TimeSpan.FromMilliseconds(300);
+    // Toggle-to-ask state for HoldToAsk hotkey (press once = start, press again = stop+fire)
+    // Other hotkeys (ActionItems, ScreenCapture, etc.) use tap-on-key-up behaviour.
+    private bool _keyDown;           // true while any registered hotkey key is physically held (suppresses key-repeat)
+    private bool _toggleRecording;   // HoldToAsk: true = currently recording; second press fires QueryFired
+    private DateTimeOffset _toggleStart;
+    private string? _activeActionId;
 
     private IntPtr _hookId = IntPtr.Zero;
     private readonly LowLevelKeyboardProc _hookProc;
@@ -108,29 +109,45 @@ public sealed class HotkeyService : IDisposable
                 if (pressedKey != hotkey.Key) continue;
                 if (mods != hotkey.Modifiers) continue;
 
-                if (isDown && !_holdActive)
+                if (isDown && !_keyDown)
                 {
-                    _holdActive = true;
-                    _holdStart = DateTimeOffset.UtcNow;
-                    _holdActionId = hotkey.ActionId;
-                    HoldStarted?.Invoke(this, new HotkeyHoldEventArgs(hotkey.ActionId, _holdStart));
-                }
-                else if (isUp && _holdActive && _holdActionId == hotkey.ActionId)
-                {
-                    _holdActive = false;
-                    var end = DateTimeOffset.UtcNow;
-                    var duration = end - _holdStart;
+                    _keyDown = true;
 
-                    if (duration < DebounceMin)
+                    if (hotkey.ActionId == "HoldToAsk")
                     {
-                        // Too short — treat as tap
-                        HotkeyTapped?.Invoke(this, hotkey.ActionId);
+                        if (!_toggleRecording)
+                        {
+                            // First press: START recording
+                            _toggleRecording = true;
+                            _toggleStart = DateTimeOffset.UtcNow;
+                            _activeActionId = hotkey.ActionId;
+                            HoldStarted?.Invoke(this, new HotkeyHoldEventArgs(hotkey.ActionId, _toggleStart));
+                        }
+                        else if (_activeActionId == hotkey.ActionId)
+                        {
+                            // Second press: STOP recording and fire query
+                            _toggleRecording = false;
+                            var end = DateTimeOffset.UtcNow;
+                            QueryFired?.Invoke(this, new HotkeyQueryEventArgs(hotkey.ActionId, _toggleStart, end));
+                            _activeActionId = null;
+                        }
                     }
                     else
                     {
-                        QueryFired?.Invoke(this, new HotkeyQueryEventArgs(hotkey.ActionId, _holdStart, end));
+                        _activeActionId = hotkey.ActionId;
+                        // Tap actions fire on key-up
                     }
-                    _holdActionId = null;
+                }
+                else if (isUp && _keyDown)
+                {
+                    _keyDown = false;
+
+                    // Tap actions (ActionItems, ScreenCapture, etc.) fire on key-up
+                    if (_activeActionId != null && _activeActionId != "HoldToAsk")
+                    {
+                        HotkeyTapped?.Invoke(this, _activeActionId);
+                        _activeActionId = null;
+                    }
                 }
                 break;
             }

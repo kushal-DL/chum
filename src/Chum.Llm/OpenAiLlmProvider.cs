@@ -108,7 +108,24 @@ public sealed class OpenAiLlmProvider : ILlmProvider
     private string BuildRequestBody(LlmRequest request)
     {
         JsonNode userContent;
-        if (request.ImageBase64 is not null)
+        if (request.AudioBase64 is not null)
+        {
+            // Audio input — OpenAI-compatible format used by GPT-4o audio and NVIDIA NIM audio models
+            userContent = new JsonArray
+            {
+                new JsonObject
+                {
+                    ["type"] = "input_audio",
+                    ["input_audio"] = new JsonObject
+                    {
+                        ["data"] = request.AudioBase64,
+                        ["format"] = "wav"
+                    }
+                },
+                new JsonObject { ["type"] = "text", ["text"] = request.UserMessage }
+            };
+        }
+        else if (request.ImageBase64 is not null)
         {
             var mediaType = request.ImageMediaType ?? "image/jpeg";
             userContent = new JsonArray

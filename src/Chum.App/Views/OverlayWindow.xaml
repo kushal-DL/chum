@@ -276,7 +276,7 @@
                                Foreground="#555" FontSize="10" FontFamily="Consolas"
                                HorizontalAlignment="Center"
                                Visibility="{Binding HasCostHint, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                    <TextBlock Text="Ctrl+Alt+Space to ask · Ctrl+Alt+H to hide"
+                    <TextBlock Text="Ctrl+Alt+Space: start/stop · Ctrl+Alt+H: hide"
                                Foreground="#444" FontSize="10" HorizontalAlignment="Right"/>
                 </Grid>
             </Border>

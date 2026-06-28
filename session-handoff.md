@@ -48,6 +48,32 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 **Date of last update:** 2026-06-28  
 **Phase:** 🎉 BACKLOG COMPLETE — ALL 88/88 stories 🔵 Built (340/340 SP, 100%) — pending end-to-end test run
 
+### What Was Done Session 57 (2026-06-28, Part 57)
+
+**Toggle hotkey (HotkeyService.cs):**
+- Replaced hold-to-ask with press-to-toggle: first `Ctrl+Alt+Space` press = START recording (fires `HoldStarted`, status shows "Recording… press again to send"); second press = STOP + fire query (fires `QueryFired`).
+- Tap-based hotkeys (ActionItems, ScreenCapture, etc.) unchanged — still fire `HotkeyTapped` on key-up.
+- Removed `_holdActive`/`DebounceMin`; new state: `_keyDown` (key-repeat guard), `_toggleRecording`, `_toggleStart`.
+
+**Direct audio-to-LLM (NVIDIA NIM or GPT-4o compatible):**
+- `LlmRequest`: added `AudioBase64` and `AudioMediaType` fields (parallel to existing image fields).
+- `OpenAiLlmProvider`: when `AudioBase64` present, adds `input_audio` content block (OpenAI-compatible format) before the text block.
+- `WavEncoder.cs` (new): converts `float[]` PCM at 16 kHz to WAV bytes (16-bit, mono, RIFF format).
+- `MeetingOrchestrator`: `_recordingBuffer` (List<float>) is opened on `HoldStarted`, filled by transcription loop (samples copied BEFORE STT calls `Array.Clear`), and consumed in `HandleAudioQueryAsync`.
+- `HandleAudioQueryAsync`: if audio ≥0.1s captured → encode WAV → send to LLM with prompt "Q: [what you heard] A: [your answer]"; falls back to transcript-text path if no audio captured (e.g. VAD didn't trigger).
+- Overlay status text: "Recording… (press Ctrl+Alt+Space to send)" during active recording.
+- Status bar hint updated: "Ctrl+Alt+Space: start/stop · Ctrl+Alt+H: hide".
+
+**Note on NVIDIA audio support:** The `input_audio` format is the OpenAI-compatible spec. If the selected NVIDIA model doesn't support audio input, the API will return a 400 error which the overlay will show. In that case, Chum falls back to the transcript-text path automatically (VAD-transcribed text). Best results expected with GPT-4o audio or NVIDIA Canary/Parakeet models.
+
+**Immediate Next Step:** Run `Quick-Deploy.ps1` as admin (or the reinstall sequence) to deploy. Then test:
+1. Press `Ctrl+Alt+Space` → status shows "Recording…"
+2. Let some audio play / speak into mic
+3. Press `Ctrl+Alt+Space` again → LLM response streams starting with "Q: [what it heard] A: [answer]"
+If NVIDIA audio fails → try with transcript-only path (let Whisper run a few seconds first).
+
+---
+
 ### What Was Done Session 56 (2026-06-28, Part 56)
 
 **Quick Answer template updated:**
