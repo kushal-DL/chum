@@ -19,11 +19,9 @@ public partial class OverlayWindow : Window
     private const uint WDA_NONE = 0x00000000;
     private const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
 
-    // Win32: initiate an OS-managed resize from the bottom-right corner without changing the cursor.
-    [DllImport("user32.dll")]
-    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
-    private const int WM_NCLBUTTONDOWN = 0xA1;
-    private const int HTBOTTOMRIGHT = 17;
+    private bool _isResizing;
+    private System.Windows.Point _resizeDragStart;
+    private double _resizeStartW, _resizeStartH;
 
     public new int FontSize => (DataContext as OverlayViewModel) is not null ? 13 : 13;
 
@@ -142,8 +140,26 @@ public partial class OverlayWindow : Window
 
     private void ResizeGrip_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        var hwnd = new WindowInteropHelper(this).Handle;
-        SendMessage(hwnd, WM_NCLBUTTONDOWN, (IntPtr)HTBOTTOMRIGHT, IntPtr.Zero);
+        _isResizing = true;
+        _resizeDragStart = PointToScreen(e.GetPosition(this));
+        _resizeStartW = Width;
+        _resizeStartH = Height;
+        ((UIElement)sender).CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void ResizeGrip_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (!_isResizing) return;
+        var pos = PointToScreen(e.GetPosition(this));
+        Width  = Math.Max(MinWidth,  _resizeStartW + (pos.X - _resizeDragStart.X));
+        Height = Math.Max(MinHeight, _resizeStartH + (pos.Y - _resizeDragStart.Y));
+    }
+
+    private void ResizeGrip_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        _isResizing = false;
+        ((UIElement)sender).ReleaseMouseCapture();
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e)

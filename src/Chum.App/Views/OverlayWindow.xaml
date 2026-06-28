@@ -282,9 +282,11 @@
             </Border>
         </Grid>
     </Border>
-    <!-- Invisible resize handle: triggers OS resize via WM_NCLBUTTONDOWN without showing a resize cursor -->
+    <!-- Invisible resize handle: manual WPF resize (no P/Invoke, no cursor change) -->
     <Border Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Bottom"
             Background="Transparent" Cursor="Arrow"
-            MouseLeftButtonDown="ResizeGrip_MouseLeftButtonDown"/>
+            MouseLeftButtonDown="ResizeGrip_MouseLeftButtonDown"
+            MouseMove="ResizeGrip_MouseMove"
+            MouseLeftButtonUp="ResizeGrip_MouseLeftButtonUp"/>
     </Grid>
 </Window>
