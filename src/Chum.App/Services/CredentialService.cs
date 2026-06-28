@@ -41,9 +41,12 @@ public sealed class CredentialService
         try
         {
             var cred = CredentialManager.GetCredentials(target);
-            return cred?.SecurePassword?.Length > 0
-                ? new System.Net.NetworkCredential(string.Empty, cred.SecurePassword).Password
-                : null;
+            if (cred == null) return null;
+            // AdysTech populates cred.Password (string), not cred.SecurePassword
+            if (!string.IsNullOrEmpty(cred.Password)) return cred.Password;
+            if (cred.SecurePassword?.Length > 0)
+                return new NetworkCredential(string.Empty, cred.SecurePassword).Password;
+            return null;
         }
         catch
         {
