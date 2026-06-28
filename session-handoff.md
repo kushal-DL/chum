@@ -48,6 +48,32 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 **Date of last update:** 2026-06-28  
 **Phase:** 🎉 BACKLOG COMPLETE — ALL 84/84 stories 🔵 Built (320/320 SP, 100%) — pending end-to-end test run
 
+### What Was Done Session 53 (2026-06-28, Part 53)
+
+**Root-cause diagnosis of "no tray icon" + Settings auto-save fix:**
+
+Root cause confirmed by reading all three log files in `%LOCALAPPDATA%\Chum\Logs\`:
+
+1. **Binding crash (fixed, confirmed working):** Runs before 10:16 showed the `LoopbackLevelPct`/`MicLevelPct` `TwoWay` binding crash. Runs after 10:16 (once the rebuilt binary was deployed via `install.cmd`) show ZERO binding errors.
+
+2. **Root cause of "no tray icon":** Every run since 10:16 logs `"No API key found — showing settings on first run"` then `"No API key provided — exiting"`. The tray icon is only created AFTER the settings-window check passes — the app was exiting before ever reaching `CreateTrayIcon()`.
+
+3. **Why the key wasn't being saved:** The Settings window had TWO separate save actions — a "Save" button next to each API key field (persists to Credential Manager) AND "Save Settings" at the bottom. The user was typing the key and clicking "Save Settings" without the per-field "Save", so the key was never written to Credential Manager.
+
+**Fix applied:**
+- `src/Chum.App/Views/SettingsWindow.xaml.cs` — `SaveSettings_Click` now auto-saves API keys from password boxes if non-empty. Commit `bb149fc`.
+
+**For the IT team RIGHT NOW (no reinstall needed):**
+1. Run `C:\Program Files\Chum\App\Chum.App.exe` (or via scheduled task)
+2. Chum Settings window appears → type API key in "Anthropic API Key" field
+3. Click the **"Save"** button next to that field (you'll see "✓ Key saved securely")
+4. Click **"Save Settings"** at the bottom
+5. Tray icon appears immediately
+
+**To deploy the auto-save fix for future setups:** Run `install.cmd` as administrator.
+
+---
+
 ### What Was Done Session 1 (2026-06-27, Part 1)
 
 Created the complete product backlog and project infrastructure:
