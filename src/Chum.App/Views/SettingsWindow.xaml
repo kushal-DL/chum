@@ -103,17 +103,9 @@
                        Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
 
             <TextBlock Text="Model" Foreground="#374151" FontSize="11" Margin="0,8,0,3"/>
-            <ComboBox x:Name="ModelCombo" IsEditable="True"
-                      ToolTip="Select a preset or type any model ID (e.g. gpt-4o, claude-opus-4-8, o1-mini)">
-                <ComboBoxItem Content="claude-haiku-4-5-20251001" Tag="claude-haiku-4-5-20251001"/>
-                <ComboBoxItem Content="claude-sonnet-4-6" Tag="claude-sonnet-4-6"/>
-                <ComboBoxItem Content="claude-opus-4-8" Tag="claude-opus-4-8"/>
-                <ComboBoxItem Content="gpt-4o-mini" Tag="gpt-4o-mini"/>
-                <ComboBoxItem Content="gpt-4o" Tag="gpt-4o"/>
-                <ComboBoxItem Content="o1-mini" Tag="o1-mini"/>
-                <ComboBoxItem Content="o3-mini" Tag="o3-mini"/>
-            </ComboBox>
-            <TextBlock Text="Type any model ID or select a preset. Anthropic models require an Anthropic key; OpenAI models require an OpenAI key."
+            <TextBox x:Name="ModelCombo"
+                     ToolTip="Type any model ID — e.g. nvidia/nemotron-3-nano-omni-30b-a3b-reasoning, gpt-4o, claude-sonnet-4-6"/>
+            <TextBlock Text="Enter any OpenAI-compatible model ID. Anthropic models require an Anthropic key; OpenAI-style models require an OpenAI key."
                        Style="{StaticResource Hint}"/>
 
             <!-- Audio Devices -->
