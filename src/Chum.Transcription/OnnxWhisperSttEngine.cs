@@ -23,8 +23,11 @@ public sealed class OnnxWhisperSttEngine : ISttEngine
     private const int TOKEN_NO_TIMESTAMPS  = 50363;
     private const int TOKEN_SPECIAL_START  = 50256; // IDs ≥ this are special, skip in output
 
-    // HuggingFace model repository for ONNX whisper-small
-    private const string HF_BASE = "https://huggingface.co/onnx-community/whisper-small/resolve/main";
+    // Xenova org on HuggingFace provides Whisper in ONNX format (same export pipeline as onnx-community)
+    // Supported sizes: "small", "medium", "large-v3-turbo"
+    private static string HfBase(string size) =>
+        $"https://huggingface.co/Xenova/whisper-{size}/resolve/main";
+
     private static readonly string[] DownloadFiles =
     [
         "onnx/encoder_model.onnx",
@@ -33,6 +36,7 @@ public sealed class OnnxWhisperSttEngine : ISttEngine
     ];
 
     private readonly string _modelDir;
+    private readonly string _hfBase;
     private InferenceSession? _encoder;
     private InferenceSession? _decoder;
     private string[]? _vocab;   // token_id → token_string (may have gaps as null)
@@ -47,9 +51,10 @@ public sealed class OnnxWhisperSttEngine : ISttEngine
 
     public event EventHandler<TranscriptSegment>? SegmentTranscribed;
 
-    public OnnxWhisperSttEngine(string modelDirectory)
+    public OnnxWhisperSttEngine(string modelDirectory, string modelSize = "medium")
     {
-        _modelDir = Path.Combine(modelDirectory, "whisper-small-onnx");
+        _modelDir = Path.Combine(modelDirectory, $"whisper-{modelSize}-onnx");
+        _hfBase = HfBase(modelSize);
     }
 
     /// <summary>Downloads models (once) and creates DirectML ONNX sessions.</summary>
@@ -292,7 +297,7 @@ public sealed class OnnxWhisperSttEngine : ISttEngine
                 continue;
             }
 
-            var url = $"{HF_BASE}/{relPath}";
+            var url = $"{_hfBase}/{relPath}";
             Serilog.Log.Information("Downloading ONNX Whisper model file: {File}", relPath);
             progress?.Report((double)i / DownloadFiles.Length);
 

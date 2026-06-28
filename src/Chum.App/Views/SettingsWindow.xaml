@@ -130,9 +130,17 @@
                       Content="Use Intel/AMD/NVIDIA iGPU via DirectML (recommended — ~10-20× faster than CPU)"
                       Margin="0,6,0,2" IsChecked="True"
                       ToolTip="Downloads a ~120 MB ONNX Whisper model on first use. Runs inference on any DirectX 12 GPU including Intel integrated graphics. Falls back to CPU if DirectML is unavailable."/>
-            <TextBlock x:Name="GpuHintText"
-                       Text="GPU mode: downloads whisper-small ONNX model (~120 MB) to %LOCALAPPDATA%\Chum\Models\whisper-small-onnx\ on first use."
-                       Style="{StaticResource Hint}"/>
+            <StackPanel x:Name="GpuModelPanel">
+                <TextBlock Text="ONNX model quality" Foreground="#374151" FontSize="11" Margin="0,6,0,2"/>
+                <ComboBox x:Name="OnnxModelCombo">
+                    <ComboBoxItem Tag="small"          Content="small (~300 MB) — fast, decent accuracy"/>
+                    <ComboBoxItem Tag="medium"         Content="medium (~700 MB, recommended) — better for Indian/accented English" IsSelected="True"/>
+                    <ComboBoxItem Tag="large-v3-turbo" Content="large-v3-turbo (~1.5 GB) — best quality on iGPU"/>
+                </ComboBox>
+                <TextBlock x:Name="GpuHintText"
+                           Text="Model files are downloaded from huggingface.co/Xenova to %LOCALAPPDATA%\Chum\Models\ on first use. Changing model size requires restarting Chum."
+                           Style="{StaticResource Hint}"/>
+            </StackPanel>
             <TextBlock x:Name="CpuHintText" Visibility="Collapsed"
                        Text="CPU mode: uses whisper.cpp with the selected model size below. Slower (~12s latency)."
                        Style="{StaticResource Hint}"/>

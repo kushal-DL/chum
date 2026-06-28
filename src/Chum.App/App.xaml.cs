@@ -139,7 +139,7 @@ public partial class App : System.Windows.Application
         ISttEngine? cpuSttFallback = null;
         if (Settings.Current.UseOnnxWhisper)
         {
-            stt = new OnnxWhisperSttEngine(modelDir);
+            stt = new OnnxWhisperSttEngine(modelDir, Settings.Current.OnnxWhisperModel);
             cpuSttFallback = new WhisperSttEngine(modelDir, modelType); // used if ONNX download fails
         }
         else

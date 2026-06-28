@@ -95,9 +95,12 @@ public partial class SettingsWindow : Window
         CloudSttModelBox.Text = s.CloudSttModel;
 
         UseOnnxWhisperBox.IsChecked = s.UseOnnxWhisper;
-        UseOnnxWhisperBox.Checked   += (_, _) => { GpuHintText.Visibility = System.Windows.Visibility.Visible;   CpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuModelPanel.Visibility = System.Windows.Visibility.Collapsed; };
-        UseOnnxWhisperBox.Unchecked += (_, _) => { GpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible;   CpuModelPanel.Visibility = System.Windows.Visibility.Visible; };
-        if (!s.UseOnnxWhisper) { GpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible; CpuModelPanel.Visibility = System.Windows.Visibility.Visible; }
+        UseOnnxWhisperBox.Checked   += (_, _) => { GpuModelPanel.Visibility = System.Windows.Visibility.Visible;   CpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuModelPanel.Visibility = System.Windows.Visibility.Collapsed; };
+        UseOnnxWhisperBox.Unchecked += (_, _) => { GpuModelPanel.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible;   CpuModelPanel.Visibility = System.Windows.Visibility.Visible; };
+        if (!s.UseOnnxWhisper) { GpuModelPanel.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible; CpuModelPanel.Visibility = System.Windows.Visibility.Visible; }
+
+        foreach (System.Windows.Controls.ComboBoxItem item in OnnxModelCombo.Items)
+            if (item.Tag?.ToString() == s.OnnxWhisperModel) OnnxModelCombo.SelectedItem = item;
 
         RefreshDocumentList();
     }
@@ -236,6 +239,8 @@ public partial class SettingsWindow : Window
             s.CloudSttModel = CloudSttModelBox.Text.Trim().Length > 0
                 ? CloudSttModelBox.Text.Trim() : "whisper-1";
             s.UseOnnxWhisper = UseOnnxWhisperBox.IsChecked == true;
+            if (OnnxModelCombo.SelectedItem is ComboBoxItem onnxItem)
+                s.OnnxWhisperModel = onnxItem.Tag?.ToString() ?? s.OnnxWhisperModel;
         });
 
         ((App)Application.Current).ReapplyHotkeys();

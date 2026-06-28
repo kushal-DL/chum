@@ -21,6 +21,9 @@ public sealed class AppSettings
     // When true, use ONNX DirectML Whisper (iGPU/dGPU) instead of whisper.cpp CPU.
     // Falls back to CPU whisper.cpp if DirectML is unavailable or model download fails.
     public bool UseOnnxWhisper { get; set; } = true;
+    // ONNX model size: "small" (~300 MB), "medium" (~700 MB, recommended for Indian English),
+    // "large-v3-turbo" (~1.5 GB, best quality on iGPU). Each size has its own model directory.
+    public string OnnxWhisperModel { get; set; } = "medium";
 
     // --- Hotkeys (string representation, e.g. "Ctrl+Alt+Space") ---
     public string HoldToAskHotkey { get; set; } = "Ctrl+Alt+Space";
