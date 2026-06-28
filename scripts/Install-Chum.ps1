@@ -10,7 +10,7 @@
     creates a scheduled task so the tray app starts on every user logon,
     and writes EventId 1000 to the Windows Application Event Log.
 
-    Use the WiX MSI (Chum.Installer) for production distribution — this script
+    Use the WiX MSI (Chum.Installer) for production distribution -- this script
     is intended for development, testing, and CI pipeline validation.
 
 .PARAMETER InstallDir
@@ -71,7 +71,7 @@ function Write-Ok([string]$Message) {
     Write-Host "  [OK] $Message" -ForegroundColor Green
 }
 
-# ── 1. Verify dotnet SDK is available ────────────────────────────────────────
+# -- 1. Verify dotnet SDK is available ----------------------------------------
 Write-Host "`nChum Installer" -ForegroundColor White
 Write-Host "-----------------------------------------" -ForegroundColor DarkGray
 
@@ -83,19 +83,19 @@ try {
     Write-Error ".NET SDK not found. Install from https://dotnet.microsoft.com/download"
 }
 
-# ── 2. Publish Chum.Service ───────────────────────────────────────────────────
-Write-Step "Publishing Chum.Service → $SvcPublishDir"
+# -- 2. Publish Chum.Service --------------------------------------------------
+Write-Step "Publishing Chum.Service -> $SvcPublishDir"
 & dotnet publish $ServiceProject -r win-x64 -c Release -o $SvcPublishDir --nologo -v minimal
 if ($LASTEXITCODE -ne 0) { Write-Error "dotnet publish failed for Chum.Service" }
 Write-Ok "Chum.Service published"
 
-# ── 3. Publish Chum.App ───────────────────────────────────────────────────────
-Write-Step "Publishing Chum.App → $AppPublishDir"
+# -- 3. Publish Chum.App ------------------------------------------------------
+Write-Step "Publishing Chum.App -> $AppPublishDir"
 & dotnet publish $AppProject -r win-x64 -c Release -o $AppPublishDir --nologo -v minimal
 if ($LASTEXITCODE -ne 0) { Write-Error "dotnet publish failed for Chum.App" }
 Write-Ok "Chum.App published"
 
-# ── 4. Stop and remove existing service (if present) ─────────────────────────
+# -- 4. Stop and remove existing service (if present) -------------------------
 $existingSvc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if ($existingSvc) {
     Write-Step "Stopping existing $ServiceName service..."
@@ -109,18 +109,18 @@ if ($existingSvc) {
     Write-Ok "Existing service removed"
 }
 
-# ── 5. Copy files to %ProgramFiles%\Chum\ ────────────────────────────────────
-Write-Step "Copying service files → $ServiceInstallDir"
+# -- 5. Copy files to %ProgramFiles%\Chum\ ------------------------------------
+Write-Step "Copying service files -> $ServiceInstallDir"
 New-Item -ItemType Directory -Force -Path $ServiceInstallDir | Out-Null
 Copy-Item -Path "$SvcPublishDir\*" -Destination $ServiceInstallDir -Recurse -Force
 Write-Ok "Service files copied"
 
-Write-Step "Copying tray app files → $AppInstallDir"
+Write-Step "Copying tray app files -> $AppInstallDir"
 New-Item -ItemType Directory -Force -Path $AppInstallDir | Out-Null
 Copy-Item -Path "$AppPublishDir\*" -Destination $AppInstallDir -Recurse -Force
 Write-Ok "Tray app files copied"
 
-# ── 6. Create %PROGRAMDATA%\Chum\ with ACLs ──────────────────────────────────
+# -- 6. Create %PROGRAMDATA%\Chum\ with ACLs ----------------------------------
 Write-Step "Creating $DataDir with ACLs..."
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 
@@ -157,7 +157,7 @@ $acl.AddAccessRule($userRule)
 Set-Acl -Path $DataDir -AclObject $acl
 Write-Ok "Data directory created with ACLs"
 
-# ── 7. Register Windows Event Log source ─────────────────────────────────────
+# -- 7. Register Windows Event Log source -------------------------------------
 Write-Step "Registering Event Log source '$EventSource'..."
 $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$EventSource"
 if (-not (Test-Path $regPath)) {
@@ -167,7 +167,7 @@ Set-ItemProperty -Path $regPath -Name 'EventMessageFile' -Value "$env:SystemRoot
 Set-ItemProperty -Path $regPath -Name 'TypesSupported'   -Value 7 -Type DWord
 Write-Ok "Event Log source registered"
 
-# ── 8. Register ChumHostSvc Windows service ───────────────────────────────────
+# -- 8. Register ChumHostSvc Windows service ----------------------------------
 Write-Step "Registering ChumHostSvc service..."
 & sc.exe create $ServiceName `
     binPath= "`"$ServiceExe`"" `
@@ -181,7 +181,7 @@ if ($LASTEXITCODE -ne 0) { Write-Error "sc.exe create failed (exit $LASTEXITCODE
 & sc.exe failure $ServiceName reset= 86400 actions= restart/10000/restart/10000/none/0 | Out-Null
 Write-Ok "ChumHostSvc service registered (auto-start, LocalSystem)"
 
-# ── 9. Create scheduled task for tray app ────────────────────────────────────
+# -- 9. Create scheduled task for tray app ------------------------------------
 Write-Step "Creating scheduled task '$TaskName'..."
 $taskAction  = New-ScheduledTaskAction -Execute "$AppInstallDir\Chum.App.exe"
 $taskTrigger = New-ScheduledTaskTrigger -AtLogOn
@@ -198,7 +198,7 @@ Register-ScheduledTask `
     -Description "Starts the Chum tray application on user logon." | Out-Null
 Write-Ok "Scheduled task created"
 
-# ── 10. Write EventId 1000 (installation event) ───────────────────────────────
+# -- 10. Write EventId 1000 (installation event) ------------------------------
 Write-Step "Writing installation event to Application log..."
 try {
     Write-EventLog -LogName Application -Source $EventSource `
@@ -209,7 +209,7 @@ try {
     Write-Warning "Could not write to Event Log (non-fatal): $_"
 }
 
-# ── 11. Start service (optional) ─────────────────────────────────────────────
+# -- 11. Start service (optional) ---------------------------------------------
 if ($StartService) {
     Write-Step "Starting $ServiceName..."
     Start-Service -Name $ServiceName

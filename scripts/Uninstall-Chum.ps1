@@ -53,7 +53,7 @@ function Write-Skip([string]$Message) {
 Write-Host "`nChum Uninstaller" -ForegroundColor White
 Write-Host "-----------------------------------------" -ForegroundColor DarkGray
 
-# ── 1. Stop and delete Windows service ───────────────────────────────────────
+# -- 1. Stop and delete Windows service ---------------------------------------
 Write-Step "Stopping and removing $ServiceName service..."
 $existingSvc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if ($existingSvc) {
@@ -67,7 +67,7 @@ if ($existingSvc) {
     Write-Skip "$ServiceName service not found"
 }
 
-# ── 2. Delete scheduled task ──────────────────────────────────────────────────
+# -- 2. Delete scheduled task -------------------------------------------------
 Write-Step "Removing scheduled task '$TaskName'..."
 $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($task) {
@@ -77,7 +77,7 @@ if ($task) {
     Write-Skip "Scheduled task not found"
 }
 
-# ── 3. Remove Event Log source ────────────────────────────────────────────────
+# -- 3. Remove Event Log source -----------------------------------------------
 Write-Step "Removing Event Log source '$EventSource'..."
 if (Test-Path $EventRegPath) {
     Remove-Item -Path $EventRegPath -Recurse -Force
@@ -86,7 +86,7 @@ if (Test-Path $EventRegPath) {
     Write-Skip "Event Log source registry key not found"
 }
 
-# ── 4. Remove program files ───────────────────────────────────────────────────
+# -- 4. Remove program files --------------------------------------------------
 Write-Step "Removing program files from $InstallDir..."
 if (Test-Path $InstallDir) {
     Remove-Item -Path $InstallDir -Recurse -Force
@@ -95,7 +95,7 @@ if (Test-Path $InstallDir) {
     Write-Skip "$InstallDir not found"
 }
 
-# ── 5. Remove %PROGRAMDATA%\Chum\ (opt-in) ───────────────────────────────────
+# -- 5. Remove %PROGRAMDATA%\Chum\ (opt-in) -----------------------------------
 if ($RemoveData) {
     Write-Step "Removing data directory $DataDir..."
     if (Test-Path $DataDir) {
@@ -108,7 +108,7 @@ if ($RemoveData) {
     Write-Skip "Skipping data directory $DataDir (use -RemoveData to remove)"
 }
 
-# ── 6. Write uninstall event (best-effort) ────────────────────────────────────
+# -- 6. Write uninstall event (best-effort) -----------------------------------
 Write-Step "Writing uninstall event to Application log..."
 try {
     $src = [System.Diagnostics.EventLog]::SourceExists($EventSource)
