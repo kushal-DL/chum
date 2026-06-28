@@ -15,16 +15,16 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 87 | 332 SP | 100% |
+| 🔵 Built | 88 | 340 SP | 100% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
 | 🔴 Yet to Start | 0 | 0 SP | 0% |
-| **Total** | **87** | **332 SP** | |
+| **Total** | **88** | **340 SP** | |
 
-> **🎉 All 87 stories are 🔵 Built — the entire backlog is code-complete, pending end-to-end testing.**
+> **🎉 All 88 stories are 🔵 Built — the entire backlog is code-complete, pending end-to-end testing.**
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
 > **All P1 stories are 🔵 Built — no scaffolded stories remain.**
-> **3 new stories added (US-03-09, US-03-10, US-07-11) — all 🔵 Built**
+> **4 new stories added (US-03-09, US-03-10, US-07-11, US-10-11) — all 🔵 Built**
 
 ---
 
@@ -41,8 +41,8 @@
 | 07 · Settings & Configuration | 11 | 31 SP | — | 11 (31 SP) | — | — |
 | 08 · Privacy & Security | 11 | 36 SP | — | 11 (36 SP) | — | — |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 7 (27 SP) | — | — |
-| 10 · Performance & Reliability | 10 | 40 SP | — | 10 (40 SP) | — | — |
-| **Total** | **87** | **332 SP** | **0** | **87 (332 SP)** | **0** | **0** |
+| 10 · Performance & Reliability | 11 | 48 SP | — | 11 (48 SP) | — | — |
+| **Total** | **88** | **340 SP** | **0** | **88 (340 SP)** | **0** | **0** |
 
 ---
 
@@ -256,8 +256,9 @@ Each story is attributed to the project where its primary implementation lives.
 | US-10-08 | Crash Reporting (Opt-in) | P3 | 🔵 Built | 3 | CrashReporter.cs — local JSON dump, opt-in toggle in settings |
 | US-10-09 | Auto-Update Mechanism | P2 | 🔵 Built | 5 | UpdateChecker.cs — GitHub Releases API + SHA256 + tray balloon |
 | US-10-10 | Low-Power Mode | P3 | 🔵 Built | 3 | PowerMonitor.cs + SetLowPowerMode() + settings checkboxes; overlay badge |
+| US-10-11 | ONNX DirectML Transcription (iGPU) | P1 | 🔵 Built | 8 | ISttEngine interface; MelSpectrogram.cs; OnnxWhisperSttEngine.cs — downloads whisper-small ONNX (~120 MB) from HuggingFace on first run; DirectML GPU execution provider (Intel/AMD/NVIDIA iGPU) with CPU fallback; ~10-20× faster than whisper.cpp CPU; MaxSegmentMs reduced 8s→5s for ~5.3s worst-case latency |
 
-**Epic 10 Total:** 40 SP · 0 Done · 29 Built · 0 Scaffolded · 11 Yet to Start
+**Epic 10 Total:** 48 SP · 0 Done · 11 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -265,15 +266,15 @@ Each story is attributed to the project where its primary implementation lives.
 
 | Metric | Value |
 |--------|-------|
-| Total Stories | 84 |
-| Total Story Points | 320 SP |
+| Total Stories | 88 |
+| Total Story Points | 340 SP |
 | P0 Stories | 16 stories · 84 SP · **all 🔵 Built** |
-| P1 Stories | 34 stories · 125 SP · **all 🔵 Built** |
-| P2 Stories | 27 stories · 91 SP |
-| P3 Stories | 7 stories · 20 SP |
+| P1 Stories | 35 stories · 133 SP · **all 🔵 Built** |
+| P2 Stories | 27 stories · 91 SP · **all 🔵 Built** |
+| P3 Stories | 10 stories · 32 SP · **all 🔵 Built** |
 | ✅ Done | 0 stories · 0 SP (0%) |
-| 🔵 Built | 74 stories · 280 SP (88%) |
+| 🔵 Built | 88 stories · 340 SP (100%) |
 | 🟡 Scaffolded | 0 stories · 0 SP (0%) |
-| 🔴 Yet to Start | 10 stories · 40 SP (12%) |
+| 🔴 Yet to Start | 0 stories · 0 SP (0%) |
 
-*Last updated: 2026-06-28 — Session 43: US-10-03 (GPU Acceleration for Whisper) built — 74/84 stories built*
+*Last updated: 2026-06-28 — Session 54: US-10-11 (ONNX DirectML iGPU Transcription) built — 88/88 stories built*

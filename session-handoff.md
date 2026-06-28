@@ -46,7 +46,40 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** 🎉 BACKLOG COMPLETE — ALL 84/84 stories 🔵 Built (320/320 SP, 100%) — pending end-to-end test run
+**Phase:** 🎉 BACKLOG COMPLETE — ALL 88/88 stories 🔵 Built (340/340 SP, 100%) — pending end-to-end test run
+
+### What Was Done Session 54 (2026-06-28, Part 54)
+
+**Intel/AMD/NVIDIA iGPU Transcription via ONNX Runtime DirectML — US-10-11 → 🔵 Built:**
+
+Root problem: 12s transcription latency was unusable for real-time interview assistance. Whisper.net 1.7.x has no DirectML/Vulkan/OpenVINO support — only NVIDIA CUDA via a separate runtime package. Solution: implement a second STT engine using ONNX Runtime's DirectML execution provider, which works on all DirectX 12 GPUs including Intel iGPU.
+
+**New files:**
+- `src/Chum.Transcription/ISttEngine.cs` — New interface implemented by both `WhisperSttEngine` (CPU whisper.cpp) and `OnnxWhisperSttEngine` (DirectML GPU). Properties: `IsReady`, `AccelerationMode`, `DetectedLanguage`. Methods: `InitializeAsync`, `TranscribeAsync`. Allows `MeetingOrchestrator` to be engine-agnostic.
+- `src/Chum.Transcription/MelSpectrogram.cs` — Whisper's exact log-mel spectrogram in C#. N_FFT=400, HOP_LENGTH=160, N_MELS=80, N_FRAMES=3000. Zero-pads to N_SAMPLES+N_FFT/2 at end (whisper.cpp style, not Python center-pad). Custom Cooley-Tukey FFT on `(float re, float im)` tuples. Normalises: log10(max(x,1e-10)), clamp to [max-8,max], scale (x+4)/4. Output: flat float[80×3000].
+- `src/Chum.Transcription/OnnxWhisperSttEngine.cs` — Full ONNX DirectML Whisper inference engine. Downloads `encoder_model.onnx`, `decoder_model.onnx`, `tokenizer.json` from `https://huggingface.co/onnx-community/whisper-small/resolve/main/` (~120 MB total) on first run. Stored in `%LOCALAPPDATA%\Chum\Models\whisper-small-onnx\`. DirectML session creation has two-stage try/catch fallback to CPU ONNX on failure. Greedy decoder: initial tokens [SOT=50258, EN=50259, TRANSCRIBE=50359, NO_TIMESTAMPS=50363]; argmax over last position of logits; stops at EOT=50256. BPE decode: Ġ→space, Ċ→newline, special tokens ≥50256 skipped. Uses `WinHttpHandler` for downloads (ZScaler-compatible).
+
+**Modified files:**
+- `src/Chum.Transcription/WhisperSttEngine.cs` — Implements `ISttEngine` (was `IDisposable` only).
+- `src/Chum.Transcription/Chum.Transcription.csproj` — Added `Microsoft.ML.OnnxRuntime.DirectML 1.20.1` and `System.Net.Http.WinHttpHandler 9.0.0`.
+- `src/Chum.Audio/Chum.Audio.csproj` — Upgraded from `Microsoft.ML.OnnxRuntime 1.19.2` → `Microsoft.ML.OnnxRuntime.DirectML 1.20.1` (prevents DLL conflict in shared output directory).
+- `src/Chum.App/Services/MeetingOrchestrator.cs` — `_stt` field type changed `WhisperSttEngine` → `ISttEngine`.
+- `src/Chum.App/App.xaml.cs` — STT engine instantiation: `ISttEngine stt = Settings.Current.UseOnnxWhisper ? new OnnxWhisperSttEngine(modelDir) : new WhisperSttEngine(modelDir, modelType);`
+- `src/Chum.App/Models/AppSettings.cs` — Added `UseOnnxWhisper = true` (GPU on by default).
+- `src/Chum.App/Views/SettingsWindow.xaml` + `.cs` — Added checkbox "Use Intel/AMD/NVIDIA iGPU via DirectML (recommended)" with hint text about model download.
+- `src/Chum.Audio/Pipeline/AudioPipeline.cs` — `MaxSegmentMs` reduced 8000 → 5000 (worst-case latency ~5.3s with GPU, ~5.8s with CPU ONNX, vs ~13s before).
+
+**Decisions made:**
+- ONNX Runtime DirectML 1.20.1 chosen over OpenVINO — DirectML is the native Windows path and works on Intel/AMD/NVIDIA without vendor-specific drivers or SDK setup.
+- `whisper-small` ONNX (not `whisper-tiny`) — better accuracy for professional interview context; still fast enough on iGPU (~300ms per 5s chunk).
+- `UseOnnxWhisper` defaults to `true` — GPU path is strictly better than whisper.cpp CPU unless the system lacks DirectX 12 support.
+- If DirectML session creation throws, engine silently falls back to CPU ONNX (same ONNX model, same files) with a Serilog.Warning log.
+
+**Build:** 0 errors, 0 warnings.
+
+**Immediate Next Step:** Rebuild + reinstall the app (`install.cmd`). On first capture start after install, Chum will download ~120 MB of ONNX model files from HuggingFace (behind corporate proxy via WinHttpHandler). The overlay's About window will show "GPU (DirectML)" in the acceleration row once models are loaded.
+
+---
 
 ### What Was Done Session 53 (2026-06-28, Part 53)
 

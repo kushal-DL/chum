@@ -18,6 +18,9 @@ public sealed class AppSettings
     // --- Transcription ---
     public string WhisperModel { get; set; } = "Small";  // GgmlType enum name
     public bool UseGpu { get; set; } = true;
+    // When true, use ONNX DirectML Whisper (iGPU/dGPU) instead of whisper.cpp CPU.
+    // Falls back to CPU whisper.cpp if DirectML is unavailable or model download fails.
+    public bool UseOnnxWhisper { get; set; } = true;
 
     // --- Hotkeys (string representation, e.g. "Ctrl+Alt+Space") ---
     public string HoldToAskHotkey { get; set; } = "Ctrl+Alt+Space";

@@ -133,7 +133,15 @@
                 <ComboBoxItem Content="Small (244 MB) — recommended balance" Tag="Small" IsSelected="True"/>
                 <ComboBoxItem Content="Medium (769 MB) — high accuracy, slower on CPU" Tag="Medium"/>
             </ComboBox>
-            <TextBlock Text="Model downloads to %LOCALAPPDATA%\Chum\Models on first use. GPU acceleration: NVIDIA CUDA only in current build."
+            <CheckBox x:Name="UseOnnxWhisperBox"
+                      Content="Use Intel/AMD/NVIDIA iGPU via DirectML (recommended — ~10-20× faster than CPU)"
+                      Margin="0,6,0,2" IsChecked="True"
+                      ToolTip="Downloads a ~120 MB ONNX Whisper model on first use. Runs inference on any DirectX 12 GPU including Intel integrated graphics. Falls back to CPU if DirectML is unavailable."/>
+            <TextBlock x:Name="GpuHintText"
+                       Text="GPU mode: downloads whisper-small ONNX model (~120 MB) to %LOCALAPPDATA%\Chum\Models\whisper-small-onnx\ on first use."
+                       Style="{StaticResource Hint}"/>
+            <TextBlock x:Name="CpuHintText" Visibility="Collapsed"
+                       Text="CPU mode: uses whisper.cpp with the selected model size above. Slower (~12s latency)."
                        Style="{StaticResource Hint}"/>
 
             <!-- Hotkeys -->

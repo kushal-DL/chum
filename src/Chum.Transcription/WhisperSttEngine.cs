@@ -11,7 +11,7 @@ namespace Chum.Transcription;
 /// Model is downloaded from Hugging Face on first use (~244 MB for 'small').
 /// Transcription runs on a dedicated background thread; never blocks the UI.
 /// </summary>
-public sealed class WhisperSttEngine : IDisposable
+public sealed class WhisperSttEngine : ISttEngine
 {
     private WhisperFactory? _factory;
     private WhisperProcessor? _processor;

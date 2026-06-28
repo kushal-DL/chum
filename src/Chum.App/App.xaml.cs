@@ -135,7 +135,9 @@ public partial class App : System.Windows.Application
         var modelType = Enum.TryParse<GgmlType>(Settings.Current.WhisperModel, out var gt) ? gt : GgmlType.Small;
         var modelDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Chum", "Models");
-        var stt = new WhisperSttEngine(modelDir, modelType);
+        ISttEngine stt = Settings.Current.UseOnnxWhisper
+            ? new OnnxWhisperSttEngine(modelDir)
+            : new WhisperSttEngine(modelDir, modelType);
 
         var retentionWindow = TimeSpan.FromMinutes(Settings.Current.TranscriptRetentionMinutes);
         var transcriptBuffer = new TranscriptBuffer(retentionWindow);

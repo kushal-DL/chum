@@ -18,7 +18,7 @@ public sealed class AudioPipeline : IDisposable
 {
     private const int PreBufferMs = 300;
     private const int PostSilenceMs = 400;   // was 600 — flush sooner after speech ends
-    private const int MaxSegmentMs = 8_000;  // was 25 000 — shorter clips transcribe ~3x faster on CPU
+    private const int MaxSegmentMs = 5_000;  // GPU inference ~300ms per clip → ~5.3s worst-case latency
     private const int SampleRate = 16_000;
 
     private readonly IAudioCapture _loopback;

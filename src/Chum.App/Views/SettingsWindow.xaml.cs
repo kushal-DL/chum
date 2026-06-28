@@ -94,6 +94,11 @@ public partial class SettingsWindow : Window
         CloudSttFallbackBox.IsChecked = s.CloudSttFallback;
         CloudSttModelBox.Text = s.CloudSttModel;
 
+        UseOnnxWhisperBox.IsChecked = s.UseOnnxWhisper;
+        UseOnnxWhisperBox.Checked   += (_, _) => { GpuHintText.Visibility = System.Windows.Visibility.Visible; CpuHintText.Visibility = System.Windows.Visibility.Collapsed; };
+        UseOnnxWhisperBox.Unchecked += (_, _) => { GpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible; };
+        if (!s.UseOnnxWhisper) { GpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible; }
+
         RefreshDocumentList();
     }
 
@@ -230,6 +235,7 @@ public partial class SettingsWindow : Window
             s.CloudSttFallback = CloudSttFallbackBox.IsChecked == true;
             s.CloudSttModel = CloudSttModelBox.Text.Trim().Length > 0
                 ? CloudSttModelBox.Text.Trim() : "whisper-1";
+            s.UseOnnxWhisper = UseOnnxWhisperBox.IsChecked == true;
         });
 
         ((App)Application.Current).ReapplyHotkeys();

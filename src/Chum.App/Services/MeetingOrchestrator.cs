@@ -24,7 +24,7 @@ public record AudioDeviceMismatchEventArgs(string DeviceId, string DeviceName, s
 public sealed class MeetingOrchestrator : IDisposable
 {
     private AudioPipeline _audio;
-    private readonly WhisperSttEngine _stt;
+    private readonly ISttEngine _stt;
     private readonly OpenAiSttProvider? _cloudStt;
     private readonly TranscriptBuffer _transcript;
     private readonly ContextExtractor _context;
@@ -66,7 +66,7 @@ public sealed class MeetingOrchestrator : IDisposable
 
     public MeetingOrchestrator(
         AudioPipeline audio,
-        WhisperSttEngine stt,
+        ISttEngine stt,
         TranscriptBuffer transcript,
         ContextExtractor context,
         ILlmProvider llm,
