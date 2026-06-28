@@ -28,12 +28,7 @@ public partial class SettingsWindow : Window
     {
         var s = _settings.Current;
 
-        // Populate model combo
-        foreach (System.Windows.Controls.ComboBoxItem item in ModelCombo.Items)
-        {
-            if (item.Tag?.ToString() == s.LlmModel)
-                ModelCombo.SelectedItem = item;
-        }
+        ModelCombo.Text = s.LlmModel;
 
         foreach (System.Windows.Controls.ComboBoxItem item in WhisperModelCombo.Items)
         {
@@ -153,8 +148,8 @@ public partial class SettingsWindow : Window
 
         _settings.Update(s =>
         {
-            if (ModelCombo.SelectedItem is ComboBoxItem modelItem)
-                s.LlmModel = modelItem.Tag?.ToString() ?? s.LlmModel;
+            if (!string.IsNullOrWhiteSpace(ModelCombo.Text))
+                s.LlmModel = ModelCombo.Text.Trim();
 
             if (WhisperModelCombo.SelectedItem is ComboBoxItem whisperItem)
                 s.WhisperModel = whisperItem.Tag?.ToString() ?? s.WhisperModel;
