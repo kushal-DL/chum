@@ -48,6 +48,61 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 **Date of last update:** 2026-06-28  
 **Phase:** 🎉 BACKLOG COMPLETE — ALL 88/88 stories 🔵 Built (340/340 SP, 100%) — pending end-to-end test run
 
+### What Was Done Session 56 (2026-06-28, Part 56)
+
+**Quick Answer template updated:**
+- `src/Chum.Llm/PromptTemplate.cs` — "Quick Answer" mode now says 80 words (was 50) and instructs the LLM to:
+  - If transcript has a question → answer it using any provided document context
+  - If no question → briefly comment on the statement or topic just raised
+  (Was just "no bullets, one direct sentence or short paragraph".)
+
+**Quick-Deploy.ps1 overhauled:**
+- `scripts/Quick-Deploy.ps1` — now builds first, finds each DLL from its project's bin dir
+  (App, Audio, Llm, Transcription), stops the running process, copies all 8 DLLs. Needs admin.
+
+**Deploy status:** The MelSpec fix + decoder repetition fixes from Session 55 are already deployed in
+`C:\Program Files\Chum\App\` (Chum.App.dll + Chum.Transcription.dll at 18:06). Chum.Llm.dll is
+still the 17:39 version. To pick up the Quick Answer template change, run Quick-Deploy.ps1 as admin.
+
+**Immediate Next Step:** User needs to run `Quick-Deploy.ps1` as administrator to deploy Chum.Llm.dll,
+then verify end-to-end: check logs for "STT chunk received" and "ONNX decoded" lines. If transcription
+works, have LLM respond with Quick Answer template and verify the 80-word / comment-or-answer behavior.
+
+---
+
+### What Was Done Session 55 (2026-06-28, Part 55)
+
+**MelSpectrogram buffer-overrun fix (root cause of all transcription failures):**
+
+`MelSpectrogram.Compute` crashed with `IndexOutOfRangeException` on every single audio segment.
+Root cause: `padLen = N_SAMPLES + N_FFT / 2 = 480200`. The last FFT frame (t=2999) reads
+`padded[479840 + 399] = padded[480239]` which is ≥ 480200 → out of bounds.
+Fix (one line): `int padLen = N_SAMPLES + N_FFT;` (= 480400). This covers all 3000 frames safely.
+
+**New test suite — Chum.Tests project (60 tests, all passing):**
+
+- `src/Chum.Tests/Chum.Tests.csproj` — xunit 2.9.3 + Microsoft.NET.Test.Sdk 17.13.0
+- `src/Chum.Tests/Transcription/MelSpectrogramTests.cs` — 9 tests; regression guard for the buffer
+  overrun (index-math verified in test), output shape [80×3000], finite values, tone vs. silence
+- `src/Chum.Tests/Transcription/TranscriptBufferTests.cs` — 16 tests; ordering, GetSince, GetRecent,
+  eviction on retention window, concurrent adds (8 threads × 50)
+- `src/Chum.Tests/Transcription/TranscriptCleanerTests.cs` — 22 tests; bracketed/parenthesised noise
+  tags, music notes, word repetitions, whitespace normalisation, mixed real-world inputs
+- `src/Chum.Tests/Transcription/ContextExtractorTests.cs` — 13 tests; empty buffer, format, section
+  headers, ordering, token budget trimming, boundary segment
+
+**Other changes:**
+- `src/Chum.Transcription/Chum.Transcription.csproj` — Added `InternalsVisibleTo("Chum.Tests")`
+- `src/Chum.sln` — `Chum.Tests.csproj` added via `dotnet sln add`
+- `scripts/Quick-Deploy.ps1` — dev helper: copies built DLLs to `%ProgramFiles%\Chum\App\` (needs admin)
+
+**Run tests:** `dotnet test src/Chum.Tests/Chum.Tests.csproj` (~6 s). Run this before every code change.
+
+**Deploy the fix:** Right-click PowerShell → "Run as administrator" →
+`c:\Users\kushal.f.sharma\repos\chum\scripts\Quick-Deploy.ps1`, then restart Chum from the tray.
+
+---
+
 ### What Was Done Session 54 (2026-06-28, Part 54)
 
 **Intel/AMD/NVIDIA iGPU Transcription via ONNX Runtime DirectML — US-10-11 → 🔵 Built:**

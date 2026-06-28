@@ -19,7 +19,7 @@ public sealed record PromptTemplate(
     [
         Default,
         new("Quick Answer",
-            "\n\nMode: QUICK. Respond in 50 words or fewer. No bullets, no preamble — one direct sentence or short paragraph."),
+            "\n\nMode: QUICK. Respond in 80 words or fewer. No bullets, no preamble. If the transcript contains a question, answer it directly using any provided document context. If there is no question, briefly comment on the statement or topic just raised."),
         new("Detailed Explanation",
             "\n\nMode: DETAILED. Provide a thorough explanation with context, reasoning, and examples. Up to 500 words. Use headers if helpful.",
             MaxTokensOverride: 2048),

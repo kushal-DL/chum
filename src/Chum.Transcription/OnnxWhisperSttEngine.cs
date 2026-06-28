@@ -153,7 +153,11 @@ public sealed class OnnxWhisperSttEngine : ISttEngine
         // ── Greedy decoder ───────────────────────────────────────────────────
         // Initial prompt: <|startoftranscript|> <|en|> <|transcribe|> <|notimestamps|>
         var inputIds = new List<long> { TOKEN_SOT, TOKEN_LANG_EN, TOKEN_TRANSCRIBE, TOKEN_NO_TIMESTAMPS };
-        const int MAX_TOKENS = 448;
+        // Keep MAX_TOKENS low: without KV caching each decoder step is O(seq_len) GPU work,
+        // so a 448-token loop takes ~45 s. Cap at 100 tokens (~75 words) which is plenty for a
+        // 5-second audio segment and keeps worst-case latency under ~8 s.
+        const int MAX_TOKENS = 104; // 4 prompt + 100 content tokens
+        const int REPEAT_WINDOW = 16; // break if last 16 tokens are all the same (repetition loop)
 
         var encoderTensor = new DenseTensor<float>(encoderOut,
             new[] { 1, 1500, _encoderOutDim });
@@ -187,6 +191,22 @@ public sealed class OnnxWhisperSttEngine : ISttEngine
                 break;
 
             inputIds.Add(nextToken);
+
+            // Repetition loop detection: if the last REPEAT_WINDOW content tokens are all identical,
+            // the decoder has collapsed — break immediately rather than running to MAX_TOKENS.
+            int contentCount = inputIds.Count - 4; // subtract the 4 initial prompt tokens
+            if (contentCount >= REPEAT_WINDOW)
+            {
+                long last = inputIds[^1];
+                bool allSame = true;
+                for (int ri = 2; ri <= REPEAT_WINDOW; ri++)
+                    if (inputIds[^ri] != last) { allSame = false; break; }
+                if (allSame)
+                {
+                    Serilog.Log.Debug("Decoder repetition loop detected at token {N} — breaking", contentCount);
+                    break;
+                }
+            }
         }
 
         // ── Decode tokens to text ─────────────────────────────────────────────
@@ -197,6 +217,16 @@ public sealed class OnnxWhisperSttEngine : ISttEngine
         Array.Clear(samples);
 
         text = TranscriptCleaner.Clean(text);
+
+        // Discard output dominated by repeated punctuation (e.g. "......." after repetition collapse)
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            int punct = text.Count(c => c == '.' || c == ',' || c == '-' || c == '_');
+            if (punct > text.Length / 2)
+                text = string.Empty;
+        }
+
+        Serilog.Log.Information("ONNX decoded: '{Text}' ({Tokens} tokens)", text, inputIds.Count - 4);
 
         if (!string.IsNullOrWhiteSpace(text) && !IsHallucination(text))
         {

@@ -25,8 +25,9 @@ internal static class MelSpectrogram
     /// </summary>
     public static float[] Compute(float[] audio)
     {
-        // Zero-pad to N_SAMPLES + N_FFT/2 so the last window doesn't read past the signal
-        int padLen = N_SAMPLES + N_FFT / 2;
+        // Zero-pad to N_SAMPLES + N_FFT so the last window (frame 2999, offset 479840) can
+        // read N_FFT samples without going out of bounds (max index needed: 479840+399=480239).
+        int padLen = N_SAMPLES + N_FFT;
         float[] padded = new float[padLen];
         int copyLen = Math.Min(audio.Length, N_SAMPLES);
         audio.AsSpan(0, copyLen).CopyTo(padded.AsSpan());

@@ -475,6 +475,8 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             try
             {
+                Serilog.Log.Information("STT chunk received: {N} samples from {Src}",
+                    chunk.Samples.Length, chunk.Source);
                 var sw = Stopwatch.StartNew();
                 await TranscribeWithFallbackAsync(chunk.Samples, chunk.Source, ct);
                 sw.Stop();
