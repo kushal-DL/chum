@@ -95,9 +95,9 @@ public partial class SettingsWindow : Window
         CloudSttModelBox.Text = s.CloudSttModel;
 
         UseOnnxWhisperBox.IsChecked = s.UseOnnxWhisper;
-        UseOnnxWhisperBox.Checked   += (_, _) => { GpuHintText.Visibility = System.Windows.Visibility.Visible; CpuHintText.Visibility = System.Windows.Visibility.Collapsed; };
-        UseOnnxWhisperBox.Unchecked += (_, _) => { GpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible; };
-        if (!s.UseOnnxWhisper) { GpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible; }
+        UseOnnxWhisperBox.Checked   += (_, _) => { GpuHintText.Visibility = System.Windows.Visibility.Visible;   CpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuModelPanel.Visibility = System.Windows.Visibility.Collapsed; };
+        UseOnnxWhisperBox.Unchecked += (_, _) => { GpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible;   CpuModelPanel.Visibility = System.Windows.Visibility.Visible; };
+        if (!s.UseOnnxWhisper) { GpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible; CpuModelPanel.Visibility = System.Windows.Visibility.Visible; }
 
         RefreshDocumentList();
     }

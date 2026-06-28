@@ -126,13 +126,6 @@
 
             <!-- Transcription -->
             <Label Content="TRANSCRIPTION" Style="{StaticResource SectionHeader}"/>
-            <TextBlock Text="Whisper model size" Foreground="#374151" FontSize="11" Margin="0,0,0,2"/>
-            <ComboBox x:Name="WhisperModelCombo">
-                <ComboBoxItem Content="Tiny (39 MB) — fastest, lowest accuracy" Tag="Tiny"/>
-                <ComboBoxItem Content="Base (74 MB) — fast, decent accuracy" Tag="Base"/>
-                <ComboBoxItem Content="Small (244 MB) — recommended balance" Tag="Small" IsSelected="True"/>
-                <ComboBoxItem Content="Medium (769 MB) — high accuracy, slower on CPU" Tag="Medium"/>
-            </ComboBox>
             <CheckBox x:Name="UseOnnxWhisperBox"
                       Content="Use Intel/AMD/NVIDIA iGPU via DirectML (recommended — ~10-20× faster than CPU)"
                       Margin="0,6,0,2" IsChecked="True"
@@ -141,8 +134,17 @@
                        Text="GPU mode: downloads whisper-small ONNX model (~120 MB) to %LOCALAPPDATA%\Chum\Models\whisper-small-onnx\ on first use."
                        Style="{StaticResource Hint}"/>
             <TextBlock x:Name="CpuHintText" Visibility="Collapsed"
-                       Text="CPU mode: uses whisper.cpp with the selected model size above. Slower (~12s latency)."
+                       Text="CPU mode: uses whisper.cpp with the selected model size below. Slower (~12s latency)."
                        Style="{StaticResource Hint}"/>
+            <StackPanel x:Name="CpuModelPanel" Visibility="Collapsed">
+                <TextBlock Text="Whisper model size (CPU mode only)" Foreground="#374151" FontSize="11" Margin="0,4,0,2"/>
+                <ComboBox x:Name="WhisperModelCombo">
+                    <ComboBoxItem Content="Tiny (39 MB) — fastest, lowest accuracy" Tag="Tiny"/>
+                    <ComboBoxItem Content="Base (74 MB) — fast, decent accuracy" Tag="Base"/>
+                    <ComboBoxItem Content="Small (244 MB) — recommended balance" Tag="Small" IsSelected="True"/>
+                    <ComboBoxItem Content="Medium (769 MB) — high accuracy, slower on CPU" Tag="Medium"/>
+                </ComboBox>
+            </StackPanel>
 
             <!-- Hotkeys -->
             <Label Content="HOTKEYS" Style="{StaticResource SectionHeader}"/>

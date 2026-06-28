@@ -135,9 +135,17 @@ public partial class App : System.Windows.Application
         var modelType = Enum.TryParse<GgmlType>(Settings.Current.WhisperModel, out var gt) ? gt : GgmlType.Small;
         var modelDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Chum", "Models");
-        ISttEngine stt = Settings.Current.UseOnnxWhisper
-            ? new OnnxWhisperSttEngine(modelDir)
-            : new WhisperSttEngine(modelDir, modelType);
+        ISttEngine stt;
+        ISttEngine? cpuSttFallback = null;
+        if (Settings.Current.UseOnnxWhisper)
+        {
+            stt = new OnnxWhisperSttEngine(modelDir);
+            cpuSttFallback = new WhisperSttEngine(modelDir, modelType); // used if ONNX download fails
+        }
+        else
+        {
+            stt = new WhisperSttEngine(modelDir, modelType);
+        }
 
         var retentionWindow = TimeSpan.FromMinutes(Settings.Current.TranscriptRetentionMinutes);
         var transcriptBuffer = new TranscriptBuffer(retentionWindow);
@@ -145,7 +153,7 @@ public partial class App : System.Windows.Application
 
         _orchestrator = new MeetingOrchestrator(
             audioPipeline, stt, transcriptBuffer, contextExtractor,
-            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates, DocContext);
+            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates, DocContext, cpuSttFallback);
 
         _overlayWindow!.ImageFileDropped += (_, path) =>
             _ = _orchestrator.HandleDroppedImageQueryAsync(path);

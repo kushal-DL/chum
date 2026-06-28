@@ -24,7 +24,8 @@ public record AudioDeviceMismatchEventArgs(string DeviceId, string DeviceName, s
 public sealed class MeetingOrchestrator : IDisposable
 {
     private AudioPipeline _audio;
-    private readonly ISttEngine _stt;
+    private ISttEngine _stt;
+    private ISttEngine? _cpuSttFallback;
     private readonly OpenAiSttProvider? _cloudStt;
     private readonly TranscriptBuffer _transcript;
     private readonly ContextExtractor _context;
@@ -77,10 +78,12 @@ public sealed class MeetingOrchestrator : IDisposable
         ClipboardMonitor? clipboardMonitor = null,
         OpenAiSttProvider? cloudStt = null,
         TemplateService? templateService = null,
-        DocumentContextService? docContext = null)
+        DocumentContextService? docContext = null,
+        ISttEngine? cpuSttFallback = null)
     {
         _audio = audio;
         _stt = stt;
+        _cpuSttFallback = cpuSttFallback;
         _cloudStt = cloudStt;
         _transcript = transcript;
         _context = context;
@@ -446,10 +449,23 @@ public sealed class MeetingOrchestrator : IDisposable
             {
                 await _stt.InitializeAsync(ct: ct);
             }
-            catch (Exception ex) when (_cloudStt != null)
+            catch (Exception ex) when (_cloudStt != null || _cpuSttFallback != null)
             {
-                Serilog.Log.Warning(ex, "Local Whisper init failed — running on cloud STT fallback");
-                _overlay.ShowError("Local Whisper unavailable — using cloud STT (OpenAI Whisper)");
+                if (_cloudStt != null)
+                {
+                    Serilog.Log.Warning(ex, "Local STT init failed — running on cloud STT fallback");
+                    _overlay.ShowError("Local Whisper unavailable — using cloud STT (OpenAI Whisper)");
+                }
+                else
+                {
+                    // ONNX download/init failed; fall back to CPU whisper.cpp automatically
+                    Serilog.Log.Warning(ex, "ONNX STT init failed — switching to CPU Whisper fallback");
+                    _overlay.ShowError("⚠ GPU model unavailable — switched to CPU Whisper automatically");
+                    _stt.Dispose();
+                    _stt = _cpuSttFallback!;
+                    _cpuSttFallback = null;
+                    throw; // re-enter the outer loop → retries RunTranscriptionCycleAsync with CPU engine
+                }
             }
         }
 
@@ -921,6 +937,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _latencyLogTimer?.Dispose();
         _audio.Dispose();
         _stt.Dispose();
+        _cpuSttFallback?.Dispose();
         _cloudStt?.Dispose();
         _hotkeys.Dispose();
         _shareDetector.Dispose();
