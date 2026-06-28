@@ -1,7 +1,6 @@
 @echo off
 :: Chum installer
-:: Open this file as Administrator: right-click install.cmd -> "Run as administrator"
-:: PowerShell will tell you if admin rights are missing.
+:: Right-click -> "Run as administrator"
 
 echo.
 echo  Chum Service Installer
@@ -14,6 +13,14 @@ if %errorlevel% neq 0 (
     pause
     exit /b %errorlevel%
 )
+
+echo.
+echo  Launching Chum tray app...
+start "" "%ProgramFiles%\Chum\App\Chum.App.exe"
+
 echo.
 echo  Done. Chum is installed and running.
+echo  Look for the Chum icon in your system tray (bottom-right).
+echo  Right-click the tray icon and choose Settings to enter your API key.
+echo.
 pause
