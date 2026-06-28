@@ -183,7 +183,25 @@ if ($LASTEXITCODE -ne 0) { Write-Error "sc.exe create failed (exit $LASTEXITCODE
 & sc.exe failure $ServiceName reset= 86400 actions= restart/10000/restart/10000/none/0 | Out-Null
 Write-Ok "ChumHostSvc service registered (auto-start, LocalSystem)"
 
-# -- 9. Create scheduled task for tray app ------------------------------------
+# -- 9. Create config.json and grant Users write access -----------------------
+Write-Step "Creating config.json in $AppInstallDir..."
+$configPath = Join-Path $AppInstallDir 'config.json'
+if (-not (Test-Path $configPath)) {
+    @'
+{
+  "AnthropicApiKey": "",
+  "OpenAiApiKey": ""
+}
+'@ | Out-File -FilePath $configPath -Encoding utf8 -NoNewline
+}
+$configAcl = Get-Acl $configPath
+$usersWrite = New-Object System.Security.AccessControl.FileSystemAccessRule(
+    'BUILTIN\Users', 'Modify', 'None', 'None', 'Allow')
+$configAcl.AddAccessRule($usersWrite)
+Set-Acl -Path $configPath -AclObject $configAcl
+Write-Ok "config.json created with write access for Users"
+
+# -- 10. Create scheduled task for tray app -----------------------------------
 Write-Step "Creating scheduled task '$TaskName'..."
 $taskAction  = New-ScheduledTaskAction -Execute "$AppInstallDir\Chum.App.exe"
 $taskTrigger = New-ScheduledTaskTrigger -AtLogOn
@@ -200,7 +218,7 @@ Register-ScheduledTask `
     -Description "Starts the Chum tray application on user logon." | Out-Null
 Write-Ok "Scheduled task created"
 
-# -- 10. Write EventId 1000 (installation event) ------------------------------
+# -- 11. Write EventId 1000 (installation event) ------------------------------
 Write-Step "Writing installation event to Application log..."
 try {
     Write-EventLog -LogName Application -Source $EventSource `
@@ -211,7 +229,7 @@ try {
     Write-Warning "Could not write to Event Log (non-fatal): $_"
 }
 
-# -- 11. Start service (optional) ---------------------------------------------
+# -- 12. Start service (optional) ---------------------------------------------
 if ($StartService) {
     Write-Step "Starting $ServiceName..."
     Start-Service -Name $ServiceName

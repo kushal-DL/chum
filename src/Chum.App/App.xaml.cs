@@ -21,7 +21,7 @@ public partial class App : System.Windows.Application
 {
     // Publicly accessible services (used by SettingsWindow)
     public SettingsService Settings { get; } = new();
-    public CredentialService Credentials { get; } = new();
+    public ConfigFileService Config { get; } = new();
     public MeetingOrchestrator? Orchestrator => _orchestrator;
 
     private HotkeyService? _hotkeys;
@@ -49,6 +49,7 @@ public partial class App : System.Windows.Application
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         Settings.Load();
+        Config.Load();
 
         // Create overlay early so we can show startup status immediately
         _overlayVm = new OverlayViewModel(Dispatcher);
@@ -56,8 +57,8 @@ public partial class App : System.Windows.Application
 
         bool localMode = Settings.Current.LocalOnlyMode;
         bool hasKey = localMode
-                   || Credentials.GetAnthropicKey() is not null
-                   || Credentials.GetOpenAiKey() is not null;
+                   || Config.AnthropicApiKey is not null
+                   || Config.OpenAiApiKey is not null;
         if (!hasKey)
         {
             Log.Information("No API key found — showing settings on first run");
@@ -65,8 +66,8 @@ public partial class App : System.Windows.Application
             setup.ShowDialog();
             localMode = Settings.Current.LocalOnlyMode;
             hasKey = localMode
-                  || Credentials.GetAnthropicKey() is not null
-                  || Credentials.GetOpenAiKey() is not null;
+                  || Config.AnthropicApiKey is not null
+                  || Config.OpenAiApiKey is not null;
             if (!hasKey)
             {
                 Log.Warning("No API key provided — exiting");
@@ -124,7 +125,7 @@ public partial class App : System.Windows.Application
         OpenAiSttProvider? cloudStt = null;
         if (Settings.Current.CloudSttFallback)
         {
-            var openAiKey = Credentials.GetOpenAiKey();
+            var openAiKey = Config.OpenAiApiKey;
             if (openAiKey is not null)
                 cloudStt = new OpenAiSttProvider(openAiKey, Settings.Current.CloudSttModel);
             else
@@ -319,7 +320,7 @@ public partial class App : System.Windows.Application
 
         if (isOpenAi)
         {
-            var key = Credentials.GetOpenAiKey();
+            var key = Config.OpenAiApiKey;
             if (key is not null)
             {
                 Log.Information("Using OpenAI provider: {Model}", model);
@@ -328,7 +329,7 @@ public partial class App : System.Windows.Application
             Log.Warning("OpenAI model selected but no key stored — falling back to Anthropic");
         }
 
-        var anthropicKey = Credentials.GetAnthropicKey()
+        var anthropicKey = Config.AnthropicApiKey
             ?? throw new InvalidOperationException("No API key configured — cannot start LLM provider");
         Log.Information("Using Anthropic provider: {Model}", model);
         return new AnthropicLlmProvider(anthropicKey, model);

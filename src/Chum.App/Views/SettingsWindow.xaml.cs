@@ -12,14 +12,14 @@ namespace Chum.App.Views;
 public partial class SettingsWindow : Window
 {
     private readonly SettingsService _settings;
-    private readonly CredentialService _credentials;
+    private readonly ConfigFileService _config;
     private TemplateService? _templateService;
 
     public SettingsWindow()
     {
         InitializeComponent();
         _settings = ((App)Application.Current).Settings;
-        _credentials = ((App)Application.Current).Credentials;
+        _config = ((App)Application.Current).Config;
         _templateService = ((App)Application.Current).Orchestrator?.GetTemplateService();
         LoadCurrentSettings();
     }
@@ -77,16 +77,16 @@ public partial class SettingsWindow : Window
         CloudSttFallbackBox.IsChecked = s.CloudSttFallback;
         CloudSttModelBox.Text = s.CloudSttModel;
 
-        // Show masked key indicator if key is stored
-        if (_credentials.GetAnthropicKey() is not null)
+        // Show indicator if key is already in config.json
+        if (_config.AnthropicApiKey is not null)
         {
-            AnthropicKeyStatus.Text = "✓ API key stored";
+            AnthropicKeyStatus.Text = "✓ API key in config.json";
             AnthropicKeyStatus.Visibility = Visibility.Visible;
         }
 
-        if (_credentials.GetOpenAiKey() is not null)
+        if (_config.OpenAiApiKey is not null)
         {
-            OpenAiKeyStatus.Text = "✓ API key stored";
+            OpenAiKeyStatus.Text = "✓ API key in config.json";
             OpenAiKeyStatus.Visibility = Visibility.Visible;
         }
     }
@@ -96,9 +96,9 @@ public partial class SettingsWindow : Window
         var key = AnthropicKeyBox.Password.Trim();
         if (string.IsNullOrWhiteSpace(key)) { ShowError("Key cannot be empty."); return; }
 
-        _credentials.SaveAnthropicKey(key);
+        _config.AnthropicApiKey = key;
         AnthropicKeyBox.Clear();
-        AnthropicKeyStatus.Text = "✓ Key saved securely";
+        AnthropicKeyStatus.Text = "✓ Key saved to config.json";
         AnthropicKeyStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
         AnthropicKeyStatus.Visibility = Visibility.Visible;
     }
@@ -108,16 +108,16 @@ public partial class SettingsWindow : Window
         var key = OpenAiKeyBox.Password.Trim();
         if (string.IsNullOrWhiteSpace(key)) { ShowError("Key cannot be empty."); return; }
 
-        _credentials.SaveOpenAiKey(key);
+        _config.OpenAiApiKey = key;
         OpenAiKeyBox.Clear();
-        OpenAiKeyStatus.Text = "✓ Key saved securely";
+        OpenAiKeyStatus.Text = "✓ Key saved to config.json";
         OpenAiKeyStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
         OpenAiKeyStatus.Visibility = Visibility.Visible;
     }
 
     private async void TestAnthropicKey_Click(object sender, RoutedEventArgs e)
     {
-        var key = _credentials.GetAnthropicKey();
+        var key = _config.AnthropicApiKey;
         if (key is null) { ShowError("No key stored — save a key first."); return; }
 
         AnthropicKeyStatus.Text = "Testing...";
@@ -145,9 +145,9 @@ public partial class SettingsWindow : Window
     {
         // Auto-save API keys if typed in but not yet saved via individual Save buttons
         if (!string.IsNullOrWhiteSpace(AnthropicKeyBox.Password))
-            _credentials.SaveAnthropicKey(AnthropicKeyBox.Password.Trim());
+            _config.AnthropicApiKey = AnthropicKeyBox.Password.Trim();
         if (!string.IsNullOrWhiteSpace(OpenAiKeyBox.Password))
-            _credentials.SaveOpenAiKey(OpenAiKeyBox.Password.Trim());
+            _config.OpenAiApiKey = OpenAiKeyBox.Password.Trim();
 
         string? oldLoopback = _settings.Current.LoopbackDeviceId;
         string? oldMic = _settings.Current.MicDeviceId;
