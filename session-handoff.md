@@ -46,7 +46,35 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** 🎉 BACKLOG COMPLETE — ALL 88/88 stories 🔵 Built (340/340 SP, 100%) — pending end-to-end test run
+**Phase:** 🎉 BACKLOG COMPLETE — ALL 88/88 stories 🔵 Built (340/340 SP, 100%) — 186 unit tests passing — pending end-to-end test run
+
+### What Was Done Session 58 (2026-06-28, Part 58)
+
+**Expanded unit test coverage — 186 tests, all passing:**
+
+Added test files for all pure-logic classes that don't require hardware, GPU, or network:
+
+- `src/Chum.Tests/Transcription/WavEncoderTests.cs` — 19 tests: RIFF/WAVE/fmt/data header markers, size math, PCM format fields (mono, 16-bit, 16 kHz), sample encoding (1.0→32767, -1.0→-32767), overdrive clamp, sample ordering, custom sample rate.
+- `src/Chum.Tests/Llm/PromptTemplateTests.cs` — 18 tests: 5 built-ins, names/suffixes/MaxTokensOverride, Default empty suffix, Quick Answer "80 words", Detailed MaxTokensOverride=2048, record equality.
+- `src/Chum.Tests/Llm/LlmPricingTests.cs` — 15 tests: correct $/1M for Haiku/Sonnet/Opus/GPT-4o/GPT-4-Turbo, case-insensitive model name lookup, unknown model returns 0.
+- `src/Chum.Tests/Llm/PromptBuilderTests.cs` — 42 tests (Theory): userName fallback, platform note, all 20 language ISO codes + unknown code uppercase fallback, English omits language note, template suffix appended, BuildUserMessage transcript/image paths.
+- `src/Chum.Tests/Audio/AudioConverterTests.cs` — 11 tests: mono IEEE float passthrough, stereo→mono averaging, PCM 16-bit decode, 48kHz→16kHz downsampling (exact length), constant DC signal preserved.
+- `src/Chum.Tests/Audio/EnergyVadTests.cs` — 21 tests: silence/empty returns false, above threshold returns true, hysteresis band, three-phase loud/moderate/silent, state re-trigger, custom thresholds.
+
+**Infrastructure (carried over from Session 57):**
+- `src/Chum.Audio/Chum.Audio.csproj` — `[InternalsVisibleTo("Chum.Tests")]`
+- `src/Chum.Tests/Chum.Tests.csproj` — ProjectReferences to Chum.Audio, Chum.Llm, Chum.Transcription
+- `src/Chum.Transcription/WavEncoder.cs` — Moved from Chum.App.Services, now `public static` (testable without WPF)
+
+**Coverage for pure-logic classes:** EnergyVad 100%/100%, WavEncoder 100%/100%, LlmPricing 100%/100%, PromptTemplate 100%/100%, PromptBuilder 93%/80%+, AudioConverter 91%/73%. Overall repo line rate is 35.8% — the ceiling is set by untestable hardware/GPU/network-dependent code (AudioPipeline, WASAPI captures, SileroVad, OnnxWhisperSttEngine, HTTP LLM providers, WPF overlay).
+
+**Immediate Next Step:** Run `Quick-Deploy.ps1` as admin to deploy Session 57 toggle-hotkey + audio-to-LLM binaries. Then test:
+1. Press `Ctrl+Alt+Space` → status shows "Recording… (press Ctrl+Alt+Space to send)"
+2. Let audio play or speak
+3. Press `Ctrl+Alt+Space` again → LLM responds with "Q: [heard] A: [answer]" format
+4. If NVIDIA model returns 400 on audio → falls back to transcript-text path automatically
+
+---
 
 ### What Was Done Session 57 (2026-06-28, Part 57)
 

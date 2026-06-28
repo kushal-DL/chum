@@ -21,6 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Chum.Audio\Chum.Audio.csproj" />
+    <ProjectReference Include="..\Chum.Llm\Chum.Llm.csproj" />
     <ProjectReference Include="..\Chum.Transcription\Chum.Transcription.csproj" />
   </ItemGroup>
 
