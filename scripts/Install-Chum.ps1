@@ -44,7 +44,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$ScriptDir = Split-Path $MyInvocation.MyCommand.Definition -Parent
+$ScriptDir = $PSScriptRoot
 $RepoRoot  = Split-Path $ScriptDir -Parent
 $SrcRoot   = Join-Path $RepoRoot 'src'
 
