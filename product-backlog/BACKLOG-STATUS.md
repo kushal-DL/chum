@@ -15,15 +15,16 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 84 | 320 SP | 100% |
+| 🔵 Built | 87 | 332 SP | 100% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
 | 🔴 Yet to Start | 0 | 0 SP | 0% |
-| **Total** | **84** | **320 SP** | |
+| **Total** | **87** | **332 SP** | |
 
-> **🎉 All 84 stories are 🔵 Built — the entire backlog is code-complete, pending end-to-end testing.**
+> **🎉 All 87 stories are 🔵 Built — the entire backlog is code-complete, pending end-to-end testing.**
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
 > **All P1 stories are 🔵 Built — no scaffolded stories remain.**
+> **3 new stories added (US-03-09, US-03-10, US-07-11) — all 🔵 Built**
 
 ---
 
@@ -33,15 +34,15 @@
 |------|---------|----------|---------|----------|--------------|-----------------|
 | 01 · Core Audio Engine | 7 | 29 SP | — | 7 (29 SP) | — | — |
 | 02 · Transcription & Context | 8 | 33 SP | — | 8 (33 SP) | — | — |
-| 03 · LLM Integration | 8 | 30 SP | — | 8 (30 SP) | — | — |
+| 03 · LLM Integration | 10 | 38 SP | — | 10 (38 SP) | — | — |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 7 (26 SP) | — | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 9 (42 SP) | — | — |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 7 (30 SP) | — | — |
-| 07 · Settings & Configuration | 10 | 27 SP | — | 10 (27 SP) | — | — |
+| 07 · Settings & Configuration | 11 | 31 SP | — | 11 (31 SP) | — | — |
 | 08 · Privacy & Security | 11 | 36 SP | — | 11 (36 SP) | — | — |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 7 (27 SP) | — | — |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 10 (40 SP) | — | — |
-| **Total** | **84** | **320 SP** | **0** | **84 (320 SP)** | **0** | **0** |
+| **Total** | **87** | **332 SP** | **0** | **87 (332 SP)** | **0** | **0** |
 
 ---
 
@@ -121,8 +122,10 @@ Each story is attributed to the project where its primary implementation lives.
 | US-03-06 | Response History | P1 | 🔵 Built | 3 | OverlayViewModel: _history ring buffer (max 20), NavigateBack/Forward, HasHistory/CanGoBack/CanGoForward; OverlayWindow: ◀/▶ nav strip in Row 2 |
 | US-03-07 | Cost Estimation & Token Tracking | P2 | 🔵 Built | 3 | UsageRecorded event on ILlmProvider; SessionCostTracker; cost hint in overlay status bar + About dialog; spend threshold warning |
 | US-03-08 | Prompt Templates Library | P2 | 🔵 Built | 3 | PromptTemplate record; TemplateService (JSON storage); 5 built-ins; Ctrl+Alt+1–5 hotkeys; settings CRUD; passed to BuildSystemPrompt |
+| US-03-09 | OpenAI-Compatible Endpoint Support | P0 | 🔵 Built | 4 | OpenAiLlmProvider accepts optional baseUrl; NVIDIA NIM at integrate.api.nvidia.com/v1 and any custom endpoint supported |
+| US-03-10 | Document Context in LLM Requests | P1 | 🔵 Built | 4 | DocumentContextService loads PDF/TXT/MD; builds formatted context block injected into LLM system prompt |
 
-**Epic 03 Total:** 30 SP · 0 Done · 30 Built · 0 Scaffolded · 0 Yet to Start
+**Epic 03 Total:** 38 SP · 0 Done · 38 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -194,8 +197,9 @@ Each story is attributed to the project where its primary implementation lives.
 | US-07-08 | Data Retention & Privacy Settings | P1 | 🔵 Built | 2 | PRIVACY section in SettingsWindow: retention slider (1–120 min, snaps to 5), live label, saved on "Save Settings" |
 | US-07-09 | Settings Import & Export | P3 | 🔵 Built | 2 | "Export Settings…" + "Import Settings…" buttons in SettingsWindow BACKUP section; JSON backup contains settings + templates; import writes files then calls Settings.Load() + LoadCurrentSettings() |
 | US-07-10 | About & Diagnostics Panel | P2 | 🔵 Built | 2 | |
+| US-07-11 | Flexible Provider Settings UI | P0 | 🔵 Built | 4 | Provider dropdown (Anthropic/OpenAI/NVIDIA/Ollama/Custom) + API URL, key, model, test button; dynamic panel visibility per provider |
 
-**Epic 07 Total:** 27 SP · 0 Done · 27 Built · 0 Scaffolded · 0 Yet to Start
+**Epic 07 Total:** 31 SP · 0 Done · 31 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 

@@ -1,5 +1,3 @@
-using System.IO;
-using System.Text.Json;
 using System.Windows;
 using Chum.App.Services;
 using Chum.Audio.Capture;
@@ -12,14 +10,16 @@ namespace Chum.App.Views;
 public partial class SettingsWindow : Window
 {
     private readonly SettingsService _settings;
-    private readonly ConfigFileService _config;
+    private readonly CredentialService _credentials;
+    private readonly DocumentContextService _docContext;
     private TemplateService? _templateService;
 
     public SettingsWindow()
     {
         InitializeComponent();
         _settings = ((App)Application.Current).Settings;
-        _config = ((App)Application.Current).Config;
+        _credentials = ((App)Application.Current).Credentials;
+        _docContext = ((App)Application.Current).DocContext;
         _templateService = ((App)Application.Current).Orchestrator?.GetTemplateService();
         LoadCurrentSettings();
     }
@@ -28,6 +28,27 @@ public partial class SettingsWindow : Window
     {
         var s = _settings.Current;
 
+        // Select provider
+        foreach (System.Windows.Controls.ComboBoxItem item in ProviderCombo.Items)
+        {
+            if (item.Tag as string == s.LlmProvider)
+                ProviderCombo.SelectedItem = item;
+        }
+        // Trigger visibility update
+        ProviderCombo_SelectionChanged(ProviderCombo, null!);
+
+        // Show key status
+        var storedKey = s.LlmProvider == "Anthropic" ? _credentials.GetAnthropicKey() : _credentials.GetOpenAiKey();
+        if (storedKey is not null)
+            ShowApiKeyStatus("✓ API key stored", true);
+
+        // API base URL
+        ApiBaseUrlBox.Text = s.LlmApiBaseUrl;
+
+        // Ollama inline URL
+        OllamaInlineUrlBox.Text = s.OllamaBaseUrl;
+
+        // Model text box
         ModelCombo.Text = s.LlmModel;
 
         foreach (System.Windows.Controls.ComboBoxItem item in WhisperModelCombo.Items)
@@ -54,12 +75,8 @@ public partial class SettingsWindow : Window
         ExcludeFromCaptureBox.IsChecked = s.ExcludeFromScreenCapture;
         ConfirmScreenCaptureBox.IsChecked = s.ConfirmScreenCapture;
         AutoStartCaptureBox.IsChecked = s.AutoStartCapture;
-        UseTeamsCaptionsBox.IsChecked = s.UseTeamsCaptions;
-        AutoLowPowerBox.IsChecked = s.AutoLowPowerOnBattery;
-        ForceLowPowerBox.IsChecked = s.ForceLowPowerMode;
         SpendThresholdBox.Text = s.SpendThresholdDollars.ToString("G");
         DisclosureReminderBox.IsChecked = s.ShowDisclosureReminder;
-        CrashReportingBox.IsChecked = s.EnableCrashReporting;
 
         // Populate template combo
         if (_templateService is not null)
@@ -77,85 +94,113 @@ public partial class SettingsWindow : Window
         CloudSttFallbackBox.IsChecked = s.CloudSttFallback;
         CloudSttModelBox.Text = s.CloudSttModel;
 
-        // Show indicator if key is already in config.json
-        if (_config.AnthropicApiKey is not null)
-        {
-            AnthropicKeyStatus.Text = "✓ API key in config.json";
-            AnthropicKeyStatus.Visibility = Visibility.Visible;
-        }
-
-        if (_config.OpenAiApiKey is not null)
-        {
-            OpenAiKeyStatus.Text = "✓ API key in config.json";
-            OpenAiKeyStatus.Visibility = Visibility.Visible;
-        }
+        RefreshDocumentList();
     }
 
-    private void SaveAnthropicKey_Click(object sender, RoutedEventArgs e)
+    private void SaveApiKey_Click(object sender, RoutedEventArgs e)
     {
-        var key = AnthropicKeyBox.Password.Trim();
-        if (string.IsNullOrWhiteSpace(key)) { ShowError("Key cannot be empty."); return; }
+        var key = ApiKeyBox.Password.Trim();
+        if (string.IsNullOrWhiteSpace(key)) { ShowApiKeyStatus("Key cannot be empty.", false); return; }
 
-        _config.AnthropicApiKey = key;
-        AnthropicKeyBox.Clear();
-        AnthropicKeyStatus.Text = "✓ Key saved to config.json";
-        AnthropicKeyStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
-        AnthropicKeyStatus.Visibility = Visibility.Visible;
+        var tag = (ProviderCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string;
+        if (tag == "Anthropic")
+            _credentials.SaveAnthropicKey(key);
+        else
+            _credentials.SaveOpenAiKey(key);
+
+        ApiKeyBox.Clear();
+        ShowApiKeyStatus("✓ Key saved securely", true);
     }
 
-    private void SaveOpenAiKey_Click(object sender, RoutedEventArgs e)
+    private async void TestApiKey_Click(object sender, RoutedEventArgs e)
     {
-        var key = OpenAiKeyBox.Password.Trim();
-        if (string.IsNullOrWhiteSpace(key)) { ShowError("Key cannot be empty."); return; }
+        var tag = (ProviderCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string;
+        var key = tag == "Anthropic" ? _credentials.GetAnthropicKey() : _credentials.GetOpenAiKey();
+        if (key is null) { ShowApiKeyStatus("No key stored — save a key first.", false); return; }
 
-        _config.OpenAiApiKey = key;
-        OpenAiKeyBox.Clear();
-        OpenAiKeyStatus.Text = "✓ Key saved to config.json";
-        OpenAiKeyStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
-        OpenAiKeyStatus.Visibility = Visibility.Visible;
-    }
-
-    private async void TestAnthropicKey_Click(object sender, RoutedEventArgs e)
-    {
-        var key = _config.AnthropicApiKey;
-        if (key is null) { ShowError("No key stored — save a key first."); return; }
-
-        AnthropicKeyStatus.Text = "Testing...";
-        AnthropicKeyStatus.Visibility = Visibility.Visible;
-
+        ShowApiKeyStatus("Testing...", true);
         try
         {
-            var provider = new Chum.Llm.AnthropicLlmProvider(key);
-            var sb = new System.Text.StringBuilder();
-            await foreach (var tok in provider.StreamResponseAsync(
-                new Chum.Llm.LlmRequest("You are a test assistant.", "Reply with only: OK", MaxTokens: 10)))
-                sb.Append(tok);
-
-            AnthropicKeyStatus.Text = $"✓ Connected — model replied: {sb}";
-            AnthropicKeyStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
+            if (tag == "Anthropic")
+            {
+                var provider = new Chum.Llm.AnthropicLlmProvider(key);
+                var sb = new System.Text.StringBuilder();
+                await foreach (var tok in provider.StreamResponseAsync(
+                    new Chum.Llm.LlmRequest("You are a test assistant.", "Reply with only: OK", MaxTokens: 10)))
+                    sb.Append(tok);
+                ShowApiKeyStatus($"✓ Connected — replied: {sb}", true);
+            }
+            else
+            {
+                var baseUrl = ApiBaseUrlBox.Text.Trim();
+                var model = ModelCombo.Text.Trim();
+                if (string.IsNullOrEmpty(model)) model = "gpt-4o-mini";
+                var provider = new Chum.Llm.OpenAiLlmProvider(key, model, string.IsNullOrEmpty(baseUrl) ? null : baseUrl);
+                var sb = new System.Text.StringBuilder();
+                await foreach (var tok in provider.StreamResponseAsync(
+                    new Chum.Llm.LlmRequest("You are a test assistant.", "Reply with only: OK", MaxTokens: 10)))
+                    sb.Append(tok);
+                ShowApiKeyStatus($"✓ Connected — replied: {sb}", true);
+            }
         }
         catch (Exception ex)
         {
-            AnthropicKeyStatus.Text = $"✗ Failed: {ex.Message}";
-            AnthropicKeyStatus.Foreground = System.Windows.Media.Brushes.OrangeRed;
+            ShowApiKeyStatus($"✗ Failed: {ex.Message}", false);
         }
+    }
+
+    private void ShowApiKeyStatus(string msg, bool success)
+    {
+        ApiKeyStatus.Text = msg;
+        ApiKeyStatus.Foreground = success
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.OrangeRed;
+        ApiKeyStatus.Visibility = System.Windows.Visibility.Visible;
+    }
+
+    private void ProviderCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        var tag = (ProviderCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string;
+        if (ApiUrlPanel is null) return; // called before InitializeComponent
+
+        ApiUrlPanel.Visibility = tag is "OpenAI" or "NVIDIA" or "Custom"
+            ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        ApiKeyPanel.Visibility = tag is "Ollama"
+            ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
+        OllamaInlinePanel.Visibility = tag is "Ollama"
+            ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+
+        // Pre-fill NVIDIA URL
+        if (tag == "NVIDIA" && string.IsNullOrWhiteSpace(ApiBaseUrlBox.Text))
+            ApiBaseUrlBox.Text = "https://integrate.api.nvidia.com/v1";
+
+        if (ApiKeyLabel is null) return;
+        ApiKeyLabel.Text = tag == "Anthropic" ? "Anthropic API Key" : "API Key";
     }
 
     private async void SaveSettings_Click(object sender, RoutedEventArgs e)
     {
-        // Auto-save API keys if typed in but not yet saved via individual Save buttons
-        if (!string.IsNullOrWhiteSpace(AnthropicKeyBox.Password))
-            _config.AnthropicApiKey = AnthropicKeyBox.Password.Trim();
-        if (!string.IsNullOrWhiteSpace(OpenAiKeyBox.Password))
-            _config.OpenAiApiKey = OpenAiKeyBox.Password.Trim();
+        // Save API key if typed
+        if (!string.IsNullOrWhiteSpace(ApiKeyBox.Password))
+        {
+            var tag = (ProviderCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string;
+            if (tag == "Anthropic")
+                _credentials.SaveAnthropicKey(ApiKeyBox.Password.Trim());
+            else
+                _credentials.SaveOpenAiKey(ApiKeyBox.Password.Trim());
+        }
 
         string? oldLoopback = _settings.Current.LoopbackDeviceId;
         string? oldMic = _settings.Current.MicDeviceId;
 
         _settings.Update(s =>
         {
-            if (!string.IsNullOrWhiteSpace(ModelCombo.Text))
-                s.LlmModel = ModelCombo.Text.Trim();
+            s.LlmProvider = (ProviderCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string ?? "Anthropic";
+            s.LlmApiBaseUrl = ApiBaseUrlBox.Text.Trim();
+            s.LlmModel = ModelCombo.Text.Trim().Length > 0 ? ModelCombo.Text.Trim() : s.LlmModel;
+            // Update Ollama URL from inline field too
+            if (s.LlmProvider == "Ollama")
+                s.OllamaBaseUrl = OllamaInlineUrlBox.Text.Trim();
 
             if (WhisperModelCombo.SelectedItem is ComboBoxItem whisperItem)
                 s.WhisperModel = whisperItem.Tag?.ToString() ?? s.WhisperModel;
@@ -177,13 +222,9 @@ public partial class SettingsWindow : Window
             s.ExcludeFromScreenCapture = ExcludeFromCaptureBox.IsChecked == true;
             s.ConfirmScreenCapture = ConfirmScreenCaptureBox.IsChecked == true;
             s.AutoStartCapture = AutoStartCaptureBox.IsChecked == true;
-            s.UseTeamsCaptions = UseTeamsCaptionsBox.IsChecked == true;
-            s.AutoLowPowerOnBattery = AutoLowPowerBox.IsChecked == true;
-            s.ForceLowPowerMode = ForceLowPowerBox.IsChecked == true;
             if (decimal.TryParse(SpendThresholdBox.Text, out var thresh) && thresh >= 0)
                 s.SpendThresholdDollars = thresh;
             s.ShowDisclosureReminder = DisclosureReminderBox.IsChecked == true;
-            s.EnableCrashReporting = CrashReportingBox.IsChecked == true;
             if (ActiveTemplateCombo.SelectedItem is string tName)
                 s.ActiveTemplateName = tName;
             s.CloudSttFallback = CloudSttFallbackBox.IsChecked == true;
@@ -224,75 +265,6 @@ public partial class SettingsWindow : Window
         combo.SelectedItem = toSelect ?? defaultItem;
     }
 
-    private void ExportSettings_Click(object sender, RoutedEventArgs e)
-    {
-        var chumDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Chum");
-        var settingsPath  = Path.Combine(chumDir, "settings.json");
-        var templatesPath = Path.Combine(chumDir, "templates.json");
-
-        var settingsJson  = File.Exists(settingsPath)  ? JsonDocument.Parse(File.ReadAllText(settingsPath)).RootElement  : (JsonElement?)null;
-        var templatesJson = File.Exists(templatesPath) ? JsonDocument.Parse(File.ReadAllText(templatesPath)).RootElement : (JsonElement?)null;
-
-        var backup = new
-        {
-            chumBackupVersion = 1,
-            exportedAt = DateTime.UtcNow.ToString("o"),
-            settings   = settingsJson,
-            templates  = templatesJson
-        };
-
-        var dlg = new Microsoft.Win32.SaveFileDialog
-        {
-            Title      = "Export Chum Settings",
-            Filter     = "Chum backup (*.json)|*.json|All files (*.*)|*.*",
-            FileName   = $"chum_backup_{DateTime.Now:yyyyMMdd}.json",
-            DefaultExt = ".json"
-        };
-        if (dlg.ShowDialog() != true) return;
-
-        File.WriteAllText(dlg.FileName,
-            JsonSerializer.Serialize(backup, new JsonSerializerOptions { WriteIndented = true }));
-    }
-
-    private void ImportSettings_Click(object sender, RoutedEventArgs e)
-    {
-        var dlg = new Microsoft.Win32.OpenFileDialog
-        {
-            Title  = "Import Chum Settings",
-            Filter = "Chum backup (*.json)|*.json|All files (*.*)|*.*"
-        };
-        if (dlg.ShowDialog() != true) return;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(File.ReadAllText(dlg.FileName));
-            var root = doc.RootElement;
-
-            var chumDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Chum");
-            Directory.CreateDirectory(chumDir);
-
-            if (root.TryGetProperty("settings", out var settingsEl) && settingsEl.ValueKind == JsonValueKind.Object)
-                File.WriteAllText(Path.Combine(chumDir, "settings.json"),
-                    JsonSerializer.Serialize(settingsEl, new JsonSerializerOptions { WriteIndented = true }));
-
-            if (root.TryGetProperty("templates", out var templatesEl) && templatesEl.ValueKind == JsonValueKind.Array)
-                File.WriteAllText(Path.Combine(chumDir, "templates.json"),
-                    JsonSerializer.Serialize(templatesEl, new JsonSerializerOptions { WriteIndented = true }));
-
-            // Reload settings into memory and refresh UI
-            _settings.Load();
-            LoadCurrentSettings();
-
-            System.Windows.MessageBox.Show("Settings imported. Some changes take effect on next launch.",
-                "Chum — Import Complete", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-        catch (Exception ex)
-        {
-            System.Windows.MessageBox.Show($"Could not read backup file:\n{ex.Message}",
-                "Chum — Import Failed", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
         DialogResult = false;
@@ -307,9 +279,7 @@ public partial class SettingsWindow : Window
 
     private void ShowError(string msg)
     {
-        AnthropicKeyStatus.Text = $"✗ {msg}";
-        AnthropicKeyStatus.Foreground = System.Windows.Media.Brushes.OrangeRed;
-        AnthropicKeyStatus.Visibility = Visibility.Visible;
+        System.Windows.MessageBox.Show(msg, "Chum Settings", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
     }
 
     private void About_Click(object sender, RoutedEventArgs e)
@@ -374,5 +344,38 @@ public partial class SettingsWindow : Window
         ActiveTemplateCombo.SelectedIndex = 0;
         ActiveTemplateCombo.SelectionChanged += (_, _) => LoadTemplateIntoEditor();
         LoadTemplateIntoEditor();
+    }
+
+    private void RefreshDocumentList()
+    {
+        DocumentList.Items.Clear();
+        foreach (var doc in _docContext.Documents)
+            DocumentList.Items.Add(doc.Name);
+    }
+
+    private void AddDocument_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Add Reference Document",
+            Filter = "Supported files (*.pdf;*.txt;*.md)|*.pdf;*.txt;*.md|All files (*.*)|*.*",
+            Multiselect = true
+        };
+        if (dlg.ShowDialog() != true) return;
+        foreach (var path in dlg.FileNames)
+        {
+            var err = _docContext.AddDocument(path);
+            if (err is not null)
+                System.Windows.MessageBox.Show(err, "Chum — Add Document", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+        }
+        RefreshDocumentList();
+    }
+
+    private void RemoveDocument_Click(object sender, RoutedEventArgs e)
+    {
+        int idx = DocumentList.SelectedIndex;
+        if (idx < 0) return;
+        _docContext.RemoveAt(idx);
+        RefreshDocumentList();
     }
 }

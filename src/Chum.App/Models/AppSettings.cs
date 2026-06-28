@@ -5,6 +5,7 @@ public sealed class AppSettings
     // --- LLM ---
     public string LlmProvider { get; set; } = "Anthropic";
     public string LlmModel { get; set; } = "claude-haiku-4-5-20251001";
+    public string LlmApiBaseUrl { get; set; } = "";
     public int MaxResponseTokens { get; set; } = 1024;
     public float Temperature { get; set; } = 0.3f;
     public string? UserName { get; set; }

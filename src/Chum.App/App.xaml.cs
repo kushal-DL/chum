@@ -21,7 +21,8 @@ public partial class App : System.Windows.Application
 {
     // Publicly accessible services (used by SettingsWindow)
     public SettingsService Settings { get; } = new();
-    public ConfigFileService Config { get; } = new();
+    public CredentialService Credentials { get; } = new();
+    public DocumentContextService DocContext { get; } = new();
     public MeetingOrchestrator? Orchestrator => _orchestrator;
 
     private HotkeyService? _hotkeys;
@@ -31,10 +32,7 @@ public partial class App : System.Windows.Application
     private NotifyIcon? _trayIcon;
     private DxgiScreenCapture? _screenCapture;
     private ClipboardMonitor? _clipboardMonitor;
-    private PowerMonitor? _powerMonitor;
     private bool _started;
-    private string? _pendingMeetingDeviceId;
-    private UpdateInfo? _pendingUpdate;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -49,7 +47,7 @@ public partial class App : System.Windows.Application
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         Settings.Load();
-        Config.Load();
+        DocContext.Load();
 
         // Create overlay early so we can show startup status immediately
         _overlayVm = new OverlayViewModel(Dispatcher);
@@ -57,8 +55,8 @@ public partial class App : System.Windows.Application
 
         bool localMode = Settings.Current.LocalOnlyMode;
         bool hasKey = localMode
-                   || Config.AnthropicApiKey is not null
-                   || Config.OpenAiApiKey is not null;
+                   || Credentials.GetAnthropicKey() is not null
+                   || Credentials.GetOpenAiKey() is not null;
         if (!hasKey)
         {
             Log.Information("No API key found — showing settings on first run");
@@ -66,8 +64,8 @@ public partial class App : System.Windows.Application
             setup.ShowDialog();
             localMode = Settings.Current.LocalOnlyMode;
             hasKey = localMode
-                  || Config.AnthropicApiKey is not null
-                  || Config.OpenAiApiKey is not null;
+                  || Credentials.GetAnthropicKey() is not null
+                  || Credentials.GetOpenAiKey() is not null;
             if (!hasKey)
             {
                 Log.Warning("No API key provided — exiting");
@@ -76,16 +74,13 @@ public partial class App : System.Windows.Application
             }
         }
 
-        // Create tray icon immediately so the user sees Chum in the system tray
-        // even while the audio pipeline and models are still loading.
-        CreateTrayIcon();
-
         // Show overlay before component build so the user sees the app immediately
         _overlayWindow.Show();
         _overlayVm.SetStatus(OverlayStatus.Initialising, "Starting up…");
 
         await BuildAndWireComponentsAsync();
         ApplyCaptureExclusionToOverlay();
+        CreateTrayIcon();
 
         startupSw.Stop();
         var startupMs = startupSw.Elapsed.TotalMilliseconds;
@@ -97,9 +92,6 @@ public partial class App : System.Windows.Application
 
         if (Settings.Current.StartCapturingOnLaunch)
             await StartCaptureAsync();
-
-        // Fire-and-forget; never blocks startup or throws to the UI thread
-        _ = CheckForUpdatesAsync();
     }
 
     private async Task BuildAndWireComponentsAsync()
@@ -125,7 +117,7 @@ public partial class App : System.Windows.Application
         OpenAiSttProvider? cloudStt = null;
         if (Settings.Current.CloudSttFallback)
         {
-            var openAiKey = Config.OpenAiApiKey;
+            var openAiKey = Credentials.GetOpenAiKey();
             if (openAiKey is not null)
                 cloudStt = new OpenAiSttProvider(openAiKey, Settings.Current.CloudSttModel);
             else
@@ -141,8 +133,6 @@ public partial class App : System.Windows.Application
         var modelType = Enum.TryParse<GgmlType>(Settings.Current.WhisperModel, out var gt) ? gt : GgmlType.Small;
         var modelDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Chum", "Models");
-        bool hasGpu = DetectDedicatedGpu(out string gpuName);
-        Log.Information("GPU detection: {HasGpu} — {GpuName}", hasGpu, gpuName);
         var stt = new WhisperSttEngine(modelDir, modelType);
 
         var retentionWindow = TimeSpan.FromMinutes(Settings.Current.TranscriptRetentionMinutes);
@@ -151,7 +141,7 @@ public partial class App : System.Windows.Application
 
         _orchestrator = new MeetingOrchestrator(
             audioPipeline, stt, transcriptBuffer, contextExtractor,
-            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates);
+            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates, DocContext);
 
         _overlayWindow!.ImageFileDropped += (_, path) =>
             _ = _orchestrator.HandleDroppedImageQueryAsync(path);
@@ -170,33 +160,9 @@ public partial class App : System.Windows.Application
             await _orchestrator.StopAsync();
         };
 
-        _orchestrator.AudioDeviceMismatchDetected += (_, e) =>
-        {
-            _pendingMeetingDeviceId = e.DeviceId;
-            _overlayVm?.ShowAudioDeviceMismatch(
-                $"⚠ {e.PlatformName} audio is on '{e.DeviceName}'. Switch Chum capture to match?");
-        };
-
-        _orchestrator.SnipModeRequested += (_, _) =>
-        {
-            _ = Dispatcher.InvokeAsync(async () =>
-            {
-                var snip = new Chum.App.Views.SnipOverlayWindow();
-                var region = await snip.ShowAndGetSelectionAsync();
-                if (region is not null && _orchestrator is not null)
-                    await _orchestrator.HandleSnipCaptureAsync(region.Value);
-            });
-        };
-
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
         Settings.SettingsChanged += (_, _) =>
             Dispatcher.InvokeAsync(() => _overlayWindow.Opacity = Settings.Current.OverlayOpacity);
-
-        // Start power monitoring; apply low-power mode immediately on startup if needed
-        _powerMonitor = new PowerMonitor();
-        _powerMonitor.OnBatteryChanged += (_, onBattery) => ApplyLowPowerMode(onBattery);
-        _powerMonitor.Start();
-        ApplyLowPowerMode(IsLowPowerModeActive());
     }
 
     public void ReapplyHotkeys()
@@ -259,11 +225,6 @@ public partial class App : System.Windows.Application
         _hotkeys.RegisterFromString("HideOverlay", s.HideOverlayHotkey);
         _hotkeys.RegisterFromString("ActionItems", s.ActionItemsHotkey);
 
-        // Snip mode: Ctrl+Alt+Shift+S (fixed — subset of ScreenCapture but with Shift)
-        var snipMods = System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Alt
-                     | System.Windows.Input.ModifierKeys.Shift;
-        _hotkeys.Register("SnipCapture", System.Windows.Input.Key.S, snipMods);
-
         // Template selection: Ctrl+Alt+1..5 (fixed, not user-configurable)
         var templateMods = System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Alt;
         _hotkeys.Register("Template1", System.Windows.Input.Key.D1, templateMods);
@@ -309,30 +270,29 @@ public partial class App : System.Windows.Application
     {
         var s = Settings.Current;
 
-        if (s.LocalOnlyMode)
+        if (s.LocalOnlyMode || s.LlmProvider == "Ollama")
         {
             Log.Information("Local-only mode — using Ollama: {Model} at {Url}", s.OllamaModel, s.OllamaBaseUrl);
             return new OllamaLlmProvider(s.OllamaModel, s.OllamaBaseUrl);
         }
 
-        var model = s.LlmModel;
-        bool isOpenAi = model.StartsWith("gpt", StringComparison.OrdinalIgnoreCase);
-
-        if (isOpenAi)
+        if (s.LlmProvider == "Anthropic")
         {
-            var key = Config.OpenAiApiKey;
-            if (key is not null)
-            {
-                Log.Information("Using OpenAI provider: {Model}", model);
-                return new OpenAiLlmProvider(key, model);
-            }
-            Log.Warning("OpenAI model selected but no key stored — falling back to Anthropic");
+            var key = Credentials.GetAnthropicKey()
+                ?? throw new InvalidOperationException("Anthropic API key not set — open Settings to add it");
+            Log.Information("Using Anthropic provider: {Model}", s.LlmModel);
+            return new AnthropicLlmProvider(key, s.LlmModel);
         }
 
-        var anthropicKey = Config.AnthropicApiKey
-            ?? throw new InvalidOperationException("No API key configured — cannot start LLM provider");
-        Log.Information("Using Anthropic provider: {Model}", model);
-        return new AnthropicLlmProvider(anthropicKey, model);
+        // OpenAI / NVIDIA / Custom — all OpenAI-compatible
+        {
+            var key = Credentials.GetOpenAiKey()
+                ?? throw new InvalidOperationException("API key not set — open Settings to add it");
+            var baseUrl = string.IsNullOrWhiteSpace(s.LlmApiBaseUrl) ? null : s.LlmApiBaseUrl;
+            Log.Information("Using OpenAI-compatible provider ({Provider}): {Model} at {Url}",
+                s.LlmProvider, s.LlmModel, baseUrl ?? "https://api.openai.com/v1");
+            return new OpenAiLlmProvider(key, s.LlmModel, baseUrl);
+        }
     }
 
     private async Task StartCaptureAsync()
@@ -365,8 +325,6 @@ public partial class App : System.Windows.Application
             _started = false;
         });
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Export Transcript…", null, (_, _) => ExportTranscript());
-        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Quit Chum", null, (_, _) => Shutdown());
 
         _trayIcon.ContextMenuStrip = menu;
@@ -385,124 +343,6 @@ public partial class App : System.Windows.Application
         win.ShowDialog();
     }
 
-    public void SwitchToTeamsAudioDevice()
-    {
-        if (_pendingMeetingDeviceId is null || _orchestrator is null) return;
-        var deviceId = _pendingMeetingDeviceId;
-        _pendingMeetingDeviceId = null;
-        _overlayVm?.DismissAudioDeviceMismatch();
-        Settings.Update(s => s.LoopbackDeviceId = deviceId);
-        Log.Information("Switching loopback capture to meeting app audio device: {Id}", deviceId);
-        _ = ApplyAudioDevicesAsync();
-    }
-
-    public void DismissAudioDeviceMismatch()
-    {
-        _pendingMeetingDeviceId = null;
-        _overlayVm?.DismissAudioDeviceMismatch();
-    }
-
-    public void ExportTranscript()
-    {
-        if (_orchestrator is null) return;
-        var text = _orchestrator.GetTranscriptExportText();
-        if (string.IsNullOrEmpty(text))
-        {
-            System.Windows.MessageBox.Show(
-                "No transcript available yet — start capture and wait for speech.",
-                "Chum — Export Transcript", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var dlg = new Microsoft.Win32.SaveFileDialog
-        {
-            Title = "Export Transcript",
-            Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
-            FileName = $"chum_transcript_{DateTime.Now:yyyyMMdd_HHmmss}.txt",
-            DefaultExt = ".txt"
-        };
-        if (dlg.ShowDialog() != true) return;
-
-        File.WriteAllText(dlg.FileName, text);
-        Log.Information("Transcript exported: {Path}", dlg.FileName);
-    }
-
-    public bool IsLowPowerModeActive()
-    {
-        var s = Settings.Current;
-        return s.ForceLowPowerMode || (s.AutoLowPowerOnBattery && (_powerMonitor?.IsOnBattery ?? false));
-    }
-
-    private void ApplyLowPowerMode(bool isLowPower)
-    {
-        if (_orchestrator is null) return;
-        _orchestrator.SetLowPowerMode(isLowPower);
-        if (isLowPower)
-            _overlayVm?.SetStatus(OverlayStatus.Listening, "⚡ Low power mode — listening...");
-        else if (_started)
-            _overlayVm?.SetStatus(OverlayStatus.Listening, "Listening...");
-    }
-
-    private async Task CheckForUpdatesAsync()
-    {
-        var s = Settings.Current;
-        if (!s.CheckForUpdates) return;
-
-        // Throttle to once per day
-        if ((DateTimeOffset.UtcNow - s.LastUpdateCheckUtc).TotalHours < 24) return;
-
-        try
-        {
-            var checker = new UpdateChecker(new HttpClient());
-            var info = await checker.CheckForUpdateAsync();
-
-            // Record that we checked (regardless of result)
-            Settings.Update(x => x.LastUpdateCheckUtc = DateTimeOffset.UtcNow);
-
-            if (info is null) return;
-
-            _pendingUpdate = info;
-            Log.Information("Update available: v{Version}", info.Version);
-
-            // Show tray balloon — clicking it starts the download
-            Dispatcher.Invoke(() =>
-            {
-                if (_trayIcon is null) return;
-                _trayIcon.BalloonTipTitle = $"Chum v{info.Version} available";
-                _trayIcon.BalloonTipText = string.IsNullOrEmpty(info.ReleaseNotes)
-                    ? "Click to update now."
-                    : $"{info.ReleaseNotes}\nClick to update now.";
-                _trayIcon.BalloonTipIcon = ToolTipIcon.Info;
-                _trayIcon.BalloonTipClicked -= OnUpdateBalloonClicked;
-                _trayIcon.BalloonTipClicked += OnUpdateBalloonClicked;
-                _trayIcon.ShowBalloonTip(10_000);
-            });
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Update check failed");
-        }
-    }
-
-    private void OnUpdateBalloonClicked(object? sender, EventArgs e)
-    {
-        if (_pendingUpdate is null) return;
-        if (_orchestrator?.IsRunning == true)
-        {
-            System.Windows.MessageBox.Show(
-                "Chum is currently capturing a meeting. Stop capture before updating.",
-                "Chum — Update", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        var info = _pendingUpdate;
-        _ = Task.Run(async () =>
-        {
-            var checker = new UpdateChecker(new HttpClient());
-            await checker.DownloadAndLaunchAsync(info);
-        });
-    }
-
     protected override async void OnExit(ExitEventArgs e)
     {
         Log.Information("Chum shutting down");
@@ -513,7 +353,6 @@ public partial class App : System.Windows.Application
         _orchestrator?.Dispose();
         _screenCapture?.Dispose();
         _clipboardMonitor?.Dispose();
-        _powerMonitor?.Dispose();
         Settings.Save(); // persist overlay position and runtime setting changes
         Log.CloseAndFlush();
         base.OnExit(e);
@@ -524,32 +363,13 @@ public partial class App : System.Windows.Application
         var ex = (Exception)e.ExceptionObject;
         Log.Fatal(ex, "Unhandled exception — terminating={Terminating}", e.IsTerminating);
         var transcriptPath = ExportEmergencyTranscript();
-
-        string? crashReportPath = null;
-        if (Settings.Current.EnableCrashReporting)
-        {
-            var transcriptSummary = transcriptPath is not null ? $"Emergency transcript at: {transcriptPath}" : null;
-            crashReportPath = CrashReporter.TryWriteReport(ex, transcriptSummary);
-        }
-
         if (!e.IsTerminating) return;
-
-        var parts = new System.Text.StringBuilder();
-        parts.Append("Chum encountered an unexpected error and must close.\n\n");
-        if (transcriptPath is not null)
-            parts.Append($"Transcript saved to:\n{transcriptPath}\n\n");
-        if (crashReportPath is not null)
-            parts.Append($"Crash report saved to:\n{crashReportPath}\n\n");
-        parts.Append($"Error: {ex.Message}");
-
-        var result = System.Windows.MessageBox.Show(
-            parts.ToString() + (crashReportPath is not null ? "\n\nOpen crash report folder?" : string.Empty),
-            "Chum — Unexpected Error",
-            crashReportPath is not null ? MessageBoxButton.YesNo : MessageBoxButton.OK,
-            MessageBoxImage.Error);
-
-        if (crashReportPath is not null && result == MessageBoxResult.Yes)
-            Process.Start("explorer.exe", $"/select,\"{crashReportPath}\"");
+        var detail = transcriptPath is not null
+            ? $"Transcript saved to:\n{transcriptPath}\n\n"
+            : string.Empty;
+        System.Windows.MessageBox.Show(
+            $"Chum encountered an unexpected error and must close.\n\n{detail}Error: {ex.Message}",
+            "Chum — Unexpected Error", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     private void OnDispatcherUnhandledException(object sender,
@@ -584,40 +404,6 @@ public partial class App : System.Windows.Application
             Log.Error(ex, "Failed to export emergency transcript");
             return null;
         }
-    }
-
-    /// <summary>
-    /// Enumerates DXGI adapters and returns true if a dedicated GPU with ≥500 MB VRAM is found.
-    /// The GPU name is written to <paramref name="gpuName"/>. Uses Vortice.DXGI (already in scope
-    /// for DxgiScreenCapture). Returns false + empty name in VMs or on systems with no discrete GPU.
-    /// </summary>
-    private static bool DetectDedicatedGpu(out string gpuName)
-    {
-        gpuName = "none";
-        try
-        {
-            using var factory = Vortice.DXGI.DXGI.CreateDXGIFactory1<Vortice.DXGI.IDXGIFactory1>();
-            for (int i = 0; factory.EnumAdapters1(i, out var adapter).Success; i++)
-            {
-                using (adapter)
-                {
-                    var desc = adapter.Description1;
-                    // Skip the "Microsoft Basic Render Driver" (software adapter)
-                    if ((desc.Flags & Vortice.DXGI.AdapterFlags.Software) != 0) continue;
-                    long vram = (long)desc.DedicatedVideoMemory;
-                    if (vram >= 500 * 1024 * 1024) // 500 MB minimum for Whisper small
-                    {
-                        gpuName = $"{desc.Description.TrimEnd('\0')} ({vram / (1024 * 1024)} MB VRAM)";
-                        return true;
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "GPU detection via DXGI failed — assuming CPU-only");
-        }
-        return false;
     }
 
     private static void ConfigureLogging()
