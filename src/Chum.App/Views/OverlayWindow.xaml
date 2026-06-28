@@ -7,7 +7,7 @@
         Background="Transparent"
         Topmost="True"
         ShowInTaskbar="False"
-        ResizeMode="CanResizeWithGrip"
+        ResizeMode="NoResize"
         Width="420" Height="320"
         MinWidth="280" MinHeight="160"
         AllowDrop="True"
@@ -40,6 +40,7 @@
         </Style>
     </Window.Resources>
 
+    <Grid>
     <!-- Root: semi-transparent dark panel -->
     <Border Background="#CC1A1A1A" CornerRadius="10"
             Visibility="{Binding OverlayVisibility}">
@@ -55,8 +56,7 @@
 
             <!-- ── Header ── -->
             <Grid Grid.Row="0" Background="#221A1A1A"
-                  MouseLeftButtonDown="Header_MouseLeftButtonDown"
-                  Cursor="SizeAll">
+                  MouseLeftButtonDown="Header_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -282,4 +282,9 @@
             </Border>
         </Grid>
     </Border>
+    <!-- Invisible resize handle: triggers OS resize via WM_NCLBUTTONDOWN without showing a resize cursor -->
+    <Border Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+            Background="Transparent" Cursor="Arrow"
+            MouseLeftButtonDown="ResizeGrip_MouseLeftButtonDown"/>
+    </Grid>
 </Window>

@@ -19,6 +19,12 @@ public partial class OverlayWindow : Window
     private const uint WDA_NONE = 0x00000000;
     private const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
 
+    // Win32: initiate an OS-managed resize from the bottom-right corner without changing the cursor.
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    private const int WM_NCLBUTTONDOWN = 0xA1;
+    private const int HTBOTTOMRIGHT = 17;
+
     public new int FontSize => (DataContext as OverlayViewModel) is not null ? 13 : 13;
 
     // Fires on the UI thread with the validated file path of an image dropped onto the overlay.
@@ -132,6 +138,12 @@ public partial class OverlayWindow : Window
     {
         if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
             DragMove();
+    }
+
+    private void ResizeGrip_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        SendMessage(hwnd, WM_NCLBUTTONDOWN, (IntPtr)HTBOTTOMRIGHT, IntPtr.Zero);
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e)

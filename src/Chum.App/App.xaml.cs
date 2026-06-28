@@ -316,7 +316,7 @@ public partial class App : System.Windows.Application
             Icon = File.Exists(iconPath)
                 ? new System.Drawing.Icon(iconPath)
                 : System.Drawing.SystemIcons.Application,
-            Text = "Chum — AI Meeting Co-pilot",
+            Text = "",
             Visible = true
         };
 
