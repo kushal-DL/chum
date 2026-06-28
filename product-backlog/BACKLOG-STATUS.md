@@ -14,35 +14,35 @@
 
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
-| ✅ Done | 88 | 340 SP | 100% |
+| ✅ Done | 90 | 348 SP | 98% |
+| ⚠️ Superseded | 1 | 8 SP | 2% |
 | 🔵 Built | 0 | 0 SP | 0% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
 | 🔴 Yet to Start | 0 | 0 SP | 0% |
-| **Total** | **88** | **340 SP** | |
+| **Total** | **91** | **356 SP** | |
 
-> **🎉 All 88 stories are ✅ Done — the entire backlog is built and tested.**
+> **90 stories ✅ Done. US-10-11 (ONNX DirectML, 8 SP) was superseded in S59 by US-02-09 (sherpa streaming).**
 
-> **All 16 P0 (MVP) stories are ✅ Done.**
-> **All P1 stories are ✅ Done.**
-> **4 new stories added (US-03-09, US-03-10, US-07-11, US-10-11) — all ✅ Done**
+> **All 18 P0 (MVP) stories ✅ Done** (added US-02-09 streaming STT, US-04-08 press-to-record query modes).
+> **S59 STT rework: sherpa-onnx streaming replaces batch Whisper; press-to-record query modes; noise suppression.**
 
 ---
 
 ### By Epic
 
-| Epic | Stories | Total SP | ✅ Done | 🔵 Built | 🟡 Scaffolded | 🔴 Yet to Start |
-|------|---------|----------|---------|----------|--------------|-----------------|
-| 01 · Core Audio Engine | 7 | 29 SP | 7 (29 SP) | — | — | — |
-| 02 · Transcription & Context | 8 | 33 SP | 8 (33 SP) | — | — | — |
+| Epic | Stories | Total SP | ✅ Done | ⚠️ Superseded | 🟡 Scaffolded | 🔴 Yet to Start |
+|------|---------|----------|---------|--------------|--------------|-----------------|
+| 01 · Core Audio Engine | 8 | 32 SP | 8 (32 SP) | — | — | — |
+| 02 · Transcription & Context | 9 | 41 SP | 9 (41 SP) | — | — | — |
 | 03 · LLM Integration | 10 | 38 SP | 10 (38 SP) | — | — | — |
-| 04 · Hotkey & Trigger System | 7 | 26 SP | 7 (26 SP) | — | — | — |
+| 04 · Hotkey & Trigger System | 8 | 31 SP | 8 (31 SP) | — | — | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | 9 (42 SP) | — | — | — |
 | 06 · Screen Capture & Vision | 7 | 30 SP | 7 (30 SP) | — | — | — |
 | 07 · Settings & Configuration | 11 | 31 SP | 11 (31 SP) | — | — | — |
 | 08 · Privacy & Security | 11 | 36 SP | 11 (36 SP) | — | — | — |
 | 09 · Platform Compatibility | 7 | 27 SP | 7 (27 SP) | — | — | — |
-| 10 · Performance & Reliability | 11 | 48 SP | 11 (48 SP) | — | — | — |
-| **Total** | **88** | **340 SP** | **88 (340 SP)** | **0** | **0** | **0** |
+| 10 · Performance & Reliability | 11 | 48 SP | 10 (40 SP) | 1 (8 SP) | — | — |
+| **Total** | **91** | **356 SP** | **90 (348 SP)** | **1 (8 SP)** | **0** | **0** |
 
 ---
 
@@ -50,27 +50,27 @@
 
 Each story is attributed to the project where its primary implementation lives.
 
-| Project | Primary Scope | Stories | Total SP | ✅ Done | 🟡 Scaffolded | 🔴 Yet to Start |
+| Project | Primary Scope | Stories | Total SP | ✅ Done | ⚠️ Superseded | 🔴 Yet to Start |
 |---------|--------------|---------|----------|---------|--------------|-----------------|
-| Chum.Audio | Epic 01 + US-08-02 | 8 | 32 SP | 8 (32 SP) | — | — |
-| Chum.Transcription | Epic 02 + US-08-03 | 9 | 36 SP | 9 (36 SP) | — | — |
+| Chum.Audio | Epic 01 + US-08-02 | 9 | 35 SP | 9 (35 SP) | — | — |
+| Chum.Transcription | Epic 02 + US-08-03 | 10 | 44 SP | 10 (44 SP) | — | — |
 | Chum.Llm | Epic 03 | 8 | 30 SP | 8 (30 SP) | — | — |
-| Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/02/04/05 | 43 | 158 SP | 43 (158 SP) | — | — |
+| Chum.App | Epics 04–07 + US-08-04…08 + US-10-01/02/04/05 | 44 | 163 SP | 44 (163 SP) | — | — |
 | Chum.Service + Chum.Installer | US-08-09, 08-10, 08-11 | 3 | 12 SP | 3 (12 SP) | — | — |
-| Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 14 (54 SP) | — | — |
-| **Total** | | **84** | **320 SP** | **74 (280 SP)** | **0** | **10 (40 SP)** |
+| Cross-cutting | US-08-01 + Epics 09–10 (excl. US-10-01/02/04/05) | 14 | 54 SP | 13 (46 SP) | 1 (8 SP) | — |
+| **Total (approx. attribution)** | | **91** | **356 SP** | **90 (348 SP)** | **1 (8 SP)** | **0** |
 
 ---
 
 ### By Priority
 
-| Priority | Stories | Total SP | ✅ Done | 🟡 Scaffolded | 🔴 Yet to Start |
+| Priority | Stories | Total SP | ✅ Done | ⚠️ Superseded | 🔴 Yet to Start |
 |----------|---------|----------|---------|--------------|-----------------|
-| P0 — MVP Blockers | 16 | 84 SP | 16 (84 SP) | — | — |
-| P1 — High | 35 | 133 SP | 35 (133 SP) | — | — |
+| P0 — MVP Blockers | 18 | 97 SP | 18 (97 SP) | — | — |
+| P1 — High | 36 | 136 SP | 35 (128 SP) | 1 (8 SP) | — |
 | P2 — Medium | 27 | 91 SP | 27 (91 SP) | — | — |
 | P3 — Low | 10 | 32 SP | 10 (32 SP) | — | — |
-| **Total** | **88** | **340 SP** | **88 (340 SP)** | **0** | **0** |
+| **Total** | **91** | **356 SP** | **90 (348 SP)** | **1 (8 SP)** | **0** |
 
 ---
 
@@ -82,12 +82,13 @@ Each story is attributed to the project where its primary implementation lives.
 | US-01-01 | Capture System Audio Loopback | P0 | ✅ Done (Built & Tested) | 5 | LoopbackCapture.cs (WasapiLoopbackCapture) |
 | US-01-02 | Capture Microphone Audio | P0 | ✅ Done (Built & Tested) | 3 | MicCapture.cs (WasapiCapture) |
 | US-01-03 | Audio Device Selection | P1 | ✅ Done (Built & Tested) | 3 | AudioDeviceEnumerator.cs (MMDeviceEnumerator); LoopbackCapture + MicCapture already accept deviceId |
-| US-01-04 | Voice Activity Detection (Silero VAD) | P0 | ✅ Done (Built & Tested) | 8 | SileroVad.cs (ONNX, stateful LSTM, 512-sample chunks); EnergyVad kept as fallback when model not downloaded |
-| US-01-05 | Audio Ring Buffer | P0 | ✅ Done (Built & Tested) | 5 | AudioPipeline.cs: pre-buffer + Channel<AudioChunk> |
+| US-01-04 | Voice Activity Detection | P0 | ✅ Done (Built & Tested) | 8 | EnergyVad.cs (RMS + hysteresis, configurable threshold via VadThresholdDb). SileroVad removed in S59 — its ONNX runtime conflicted with sherpa-onnx; noise suppression covers noisy rooms instead |
+| US-01-05 | Audio Ring Buffer | P0 | ✅ Done (Built & Tested) | 5 | AudioPipeline.cs: pre-buffer + Channel<AudioChunk>; + VAD-independent raw recording for press-to-record (S59) |
 | US-01-06 | Real-time Audio Level Meters | P2 | ✅ Done (Built & Tested) | 2 | RMS dBFS computed in AudioPipeline; compact LB/MIC ProgressBar meters in overlay |
 | US-01-07 | Automatic Device Failover | P1 | ✅ Done (Built & Tested) | 3 | Disconnected event on IAudioCapture/AudioPipeline; DeviceDisconnected event on MeetingOrchestrator; FallbackToDefaultAudioAsync in App |
+| US-01-08 | Noise Suppression | P1 | ✅ Done (Built & Tested) | 3 | NoiseSuppressor.cs (S59): one-pole high-pass + adaptive noise gate; applied to recorded clips and rolling segments; EnableNoiseSuppression setting; 9 unit tests |
 
-**Epic 01 Total:** 29 SP · 29 Done · 0 Built · 0 Scaffolded · 0 Yet to Start
+**Epic 01 Total:** 32 SP · 32 Done · 0 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -96,16 +97,17 @@ Each story is attributed to the project where its primary implementation lives.
 
 | Story ID | Title | Priority | Status | SP | Notes |
 |----------|-------|----------|--------|----|-------|
-| US-02-01 | Local Whisper Transcription | P0 | ✅ Done (Built & Tested) | 8 | WhisperSttEngine.cs (Whisper.net, model auto-download) |
+| US-02-01 | Local Whisper Transcription | P0 | ✅ Done (Built & Tested) | 8 | WhisperSttEngine.cs (Whisper.net, model auto-download) — now the fallback engine; sherpa streaming (US-02-09) is the default |
 | US-02-02 | Cloud STT Fallback (Azure) | P2 | ✅ Done (Built & Tested) | 5 | OpenAI Whisper API |
 | US-02-03 | Rolling Transcript Buffer | P0 | ✅ Done (Built & Tested) | 5 | TranscriptBuffer.cs (LinkedList + retention window) |
 | US-02-04 | Speaker Label Assignment (Me/Remote) | P1 | ✅ Done (Built & Tested) | 3 | TranscriptSegment.SpeakerLabel (Mic→"Me", Loopback→"Remote") |
 | US-02-05 | Language Detection & Multi-language | P2 | ✅ Done (Built & Tested) | 3 | |
 | US-02-06 | Transcript Cleanup & Formatting | P1 | ✅ Done (Built & Tested) | 2 | TranscriptCleaner.cs: noise tag stripping, music notation removal, word repetition reduction; expanded IsHallucination list |
 | US-02-07 | Transcript Export | P3 | ✅ Done (Built & Tested) | 2 | "↓" button in overlay header + tray "Export Transcript…"; SaveFileDialog → File.WriteAllText; delegates to MeetingOrchestrator.GetTranscriptExportText() |
-| US-02-08 | Context Window Preparation for LLM | P0 | ✅ Done (Built & Tested) | 5 | ContextExtractor.cs (token-budget-aware, 30s recency priority) |
+| US-02-08 | Context Window Preparation for LLM | P0 | ✅ Done (Built & Tested) | 5 | ContextExtractor.cs (token-budget-aware, 30s recency priority); now opt-in per query via IncludeTranscriptContext (S59) |
+| US-02-09 | Streaming STT (sherpa-onnx Zipformer) | P0 | ✅ Done (Built & Tested) | 8 | SherpaOnnxSttEngine.cs (S59): streaming Zipformer transducer, RTF ~0.1 on CPU (~10× real-time), no Whisper-style noise hallucinations; replaces ONNX DirectML Whisper; default STT engine |
 
-**Epic 02 Total:** 33 SP · 33 Done · 0 Built · 0 Scaffolded · 0 Yet to Start
+**Epic 02 Total:** 41 SP · 41 Done · 0 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -141,8 +143,9 @@ Each story is attributed to the project where its primary implementation lives.
 | US-04-05 | Hotkey Configuration UI | P1 | ✅ Done (Built & Tested) | 5 | TextBoxes in SettingsWindow.xaml; saved via SettingsService |
 | US-04-06 | Visual & Audio Feedback for Hotkey State | P1 | ✅ Done (Built & Tested) | 3 | Pulsing green ring (IsListening) + audio beeps: 880 Hz/60ms on hold start, 660 Hz/80ms on release — both on Task.Run to keep hook callback <1ms |
 | US-04-07 | Action Items Hotkey | P2 | ✅ Done (Built & Tested) | 3 | Ctrl+Alt+A registered; HandleActionItemsQueryAsync sends full transcript to LLM with "extract action items" prompt |
+| US-04-08 | Press-to-Record Query Modes | P0 | ✅ Done (Built & Tested) | 5 | S59: toggle records raw audio (VAD-independent); on stop, QueryMode picks LocalTranscribeToLlm (sherpa → text → LLM, shows "Q:/A:") or AudioToLlm (WAV → multimodal LLM); rolling transcript no longer auto-sent |
 
-**Epic 04 Total:** 26 SP · 26 Done · 0 Built · 0 Scaffolded · 0 Yet to Start
+**Epic 04 Total:** 31 SP · 31 Done · 0 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -256,9 +259,9 @@ Each story is attributed to the project where its primary implementation lives.
 | US-10-08 | Crash Reporting (Opt-in) | P3 | ✅ Done (Built & Tested) | 3 | CrashReporter.cs — local JSON dump, opt-in toggle in settings |
 | US-10-09 | Auto-Update Mechanism | P2 | ✅ Done (Built & Tested) | 5 | UpdateChecker.cs — GitHub Releases API + SHA256 + tray balloon |
 | US-10-10 | Low-Power Mode | P3 | ✅ Done (Built & Tested) | 3 | PowerMonitor.cs + SetLowPowerMode() + settings checkboxes; overlay badge |
-| US-10-11 | ONNX DirectML Transcription (iGPU) | P1 | ✅ Done (Built & Tested) | 8 | ISttEngine interface; MelSpectrogram.cs; OnnxWhisperSttEngine.cs — downloads whisper-small ONNX (~120 MB) from HuggingFace on first run; DirectML GPU execution provider (Intel/AMD/NVIDIA iGPU) with CPU fallback; ~10-20× faster than whisper.cpp CPU; MaxSegmentMs reduced 8s→5s for ~5.3s worst-case latency |
+| US-10-11 | ONNX DirectML Transcription (iGPU) | P1 | ⚠️ Superseded | 8 | S59: REMOVED. OnnxWhisperSttEngine deleted — its onnxruntime (DirectML 1.20.1) conflicted with sherpa-onnx's bundled runtime (1.24.4), and it caused a 7-min lag (batch Whisper, no KV cache). Replaced by US-02-09 (sherpa streaming, CPU, ~10× real-time). MelSpectrogram.cs retained + still tested |
 
-**Epic 10 Total:** 48 SP · 11 Done · 0 Built · 0 Scaffolded · 0 Yet to Start
+**Epic 10 Total:** 48 SP · 10 Done · 1 Superseded (US-10-11) · 0 Built · 0 Scaffolded · 0 Yet to Start
 
 ---
 
@@ -266,15 +269,16 @@ Each story is attributed to the project where its primary implementation lives.
 
 | Metric | Value |
 |--------|-------|
-| Total Stories | 88 |
-| Total Story Points | 340 SP |
-| P0 Stories | 16 stories · 84 SP · **all ✅ Done** |
-| P1 Stories | 35 stories · 133 SP · **all ✅ Done** |
+| Total Stories | 91 (90 active + 1 superseded) |
+| Total Story Points | 356 SP |
+| P0 Stories | 18 stories · 97 SP · **all ✅ Done** |
+| P1 Stories | 36 stories · 136 SP · **35 ✅ Done, 1 superseded (US-10-11)** |
 | P2 Stories | 27 stories · 91 SP · **all ✅ Done** |
 | P3 Stories | 10 stories · 32 SP · **all ✅ Done** |
-| ✅ Done | 88 stories · 340 SP (100%) |
+| ✅ Done | 90 stories · 348 SP (98%) |
+| ⚠️ Superseded | 1 story · 8 SP (US-10-11 → US-02-09) |
 | 🔵 Built | 0 stories · 0 SP (0%) |
 | 🟡 Scaffolded | 0 stories · 0 SP (0%) |
 | 🔴 Yet to Start | 0 stories · 0 SP (0%) |
 
-*Last updated: 2026-06-28 — Session 58: 186 unit tests written, all 88/88 stories marked ✅ Done*
+*Last updated: 2026-06-28 — Session 59: STT reworked to sherpa-onnx streaming + press-to-record query modes + noise suppression; 195 unit tests passing; added US-01-08/US-02-09/US-04-08, superseded US-10-11*

@@ -11,6 +11,7 @@
 | US-01-05 | Audio Ring Buffer | P0 — MVP | ✅ Done (Built & Tested) | 5 |
 | US-01-06 | Real-time Audio Level Meters | P2 — Medium | ✅ Done (Built & Tested) | 2 |
 | US-01-07 | Automatic Device Failover | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-01-08 | Noise Suppression | P1 — High | ✅ Done (Built & Tested) | 3 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

@@ -25,6 +25,13 @@ public sealed class AudioPipeline : IDisposable
     private readonly IAudioCapture _mic;
     private readonly IVad _loopbackVad;
     private readonly IVad _micVad;
+    private readonly bool _noiseSuppress;
+
+    // Press-to-record raw capture: accumulates ALL audio during the recording window,
+    // independent of VAD. Mic and loopback are kept separate so they can be mixed on stop.
+    private readonly object _rawRecLock = new();
+    private List<float>? _rawMic;
+    private List<float>? _rawLoop;
 
     // Pre-buffer: ring of recent raw chunks used to prepend to a new speech segment
     private readonly Queue<(float[] samples, AudioSource src)> _preBuffer = new();
@@ -54,12 +61,14 @@ public sealed class AudioPipeline : IDisposable
     private int _disconnectFired; // interlocked flag — ensures CaptureDisconnected fires at most once
 
     public AudioPipeline(IAudioCapture loopback, IAudioCapture mic,
-        IVad? loopbackVad = null, IVad? micVad = null, int outputChannelCapacity = 64)
+        IVad? loopbackVad = null, IVad? micVad = null,
+        bool enableNoiseSuppression = false, int outputChannelCapacity = 64)
     {
         _loopback = loopback;
         _mic = mic;
         _loopbackVad = loopbackVad ?? new EnergyVad();
         _micVad = micVad ?? new EnergyVad();
+        _noiseSuppress = enableNoiseSuppression;
         _maxPreBufferSamples = SampleRate * PreBufferMs / 1000;
         _postSilenceSamples = SampleRate * PostSilenceMs / 1000;
         _maxSegmentSamples = SampleRate * MaxSegmentMs / 1000;
@@ -87,6 +96,48 @@ public sealed class AudioPipeline : IDisposable
     public void Pause() => _paused = true;
     public void Resume() => _paused = false;
 
+    /// <summary>Begin accumulating raw audio (mic + loopback) for a press-to-record query, bypassing VAD.</summary>
+    public void StartRawRecording()
+    {
+        lock (_rawRecLock)
+        {
+            _rawMic = new List<float>(16_000 * 30);
+            _rawLoop = new List<float>(16_000 * 30);
+        }
+    }
+
+    /// <summary>
+    /// Stop raw recording and return the captured audio as a single mono mix of mic + loopback,
+    /// noise-suppressed if enabled. Returns null if no recording was active.
+    /// </summary>
+    public float[]? StopRawRecording()
+    {
+        float[]? mic, loop;
+        lock (_rawRecLock)
+        {
+            mic = _rawMic?.ToArray();
+            loop = _rawLoop?.ToArray();
+            _rawMic = null;
+            _rawLoop = null;
+        }
+
+        if (mic is null && loop is null) return null;
+        int n = Math.Max(mic?.Length ?? 0, loop?.Length ?? 0);
+        if (n == 0) return [];
+
+        // Both streams are continuous 16 kHz from StartRawRecording, so index-aligned summing is a
+        // good approximation of a time-aligned mix (no sample-accurate clock, but close enough for STT).
+        var mixed = new float[n];
+        for (int i = 0; i < n; i++)
+        {
+            float a = mic is not null && i < mic.Length ? mic[i] : 0f;
+            float b = loop is not null && i < loop.Length ? loop[i] : 0f;
+            mixed[i] = Math.Clamp(a + b, -1f, 1f);
+        }
+
+        return _noiseSuppress ? NoiseSuppressor.Process(mixed) : mixed;
+    }
+
     private void OnCaptureDisconnected(object? sender, EventArgs e)
     {
         // Interlocked ensures only one disconnect notification fires even if both devices fail simultaneously
@@ -108,6 +159,16 @@ public sealed class AudioPipeline : IDisposable
 
         float[] samples = AudioConverter.ToMono16kHz(e.Buffer, e.BytesRecorded, e.Format);
         if (samples.Length == 0) return;
+
+        // Press-to-record tap: capture everything, regardless of VAD, into the per-source buffer.
+        if (_rawMic is not null || _rawLoop is not null)
+        {
+            lock (_rawRecLock)
+            {
+                if (source == AudioSource.Loopback) _rawLoop?.AddRange(samples);
+                else _rawMic?.AddRange(samples);
+            }
+        }
 
         var vad = source == AudioSource.Loopback ? _loopbackVad : _micVad;
         bool speech = vad.IsSpeech(samples);
@@ -202,6 +263,8 @@ public sealed class AudioPipeline : IDisposable
         _segmentSamples = 0;
         _silenceSamples = 0;
         _inSpeech = false;
+
+        if (_noiseSuppress) merged = NoiseSuppressor.Process(merged);
 
         var audioChunk = new AudioChunk(merged, _currentSource, DateTimeOffset.UtcNow);
         _outputChannel.Writer.TryWrite(audioChunk);

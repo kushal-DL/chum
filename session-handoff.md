@@ -46,7 +46,68 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 ## Current Status
 
 **Date of last update:** 2026-06-28  
-**Phase:** 🎉 BACKLOG COMPLETE — ALL 88/88 stories 🔵 Built (340/340 SP, 100%) — 186 unit tests passing — pending end-to-end test run
+**Phase:** 🔧 MAJOR STT REWORK — replaced batch Whisper with sherpa-onnx streaming + press-to-record query modes. 195 unit tests passing. Needs end-to-end test on hardware.
+
+### What Was Done Session 59 (2026-06-28, Part 59) — STT rework
+
+**Why:** User reported the always-on Whisper transcript had a 7-MINUTE lag and was full of
+hallucinated sound-effect captions ("(gunshot)", "(camera clicks)", "Buh-bye") on a noisy mic.
+Root cause: Whisper is a batch model; the ONNX decoder had no KV cache (O(N²) per segment), the
+consumer drained a flooded queue sequentially, and the rolling transcript was being auto-sent to
+the LLM (which the user never wanted). User chose: switch to sherpa-onnx streaming + add a
+press-to-record query-mode toggle.
+
+**Architecture change — single ONNX runtime (sherpa's):**
+- Discovered `org.k2fsa.sherpa.onnx` bundles its own `onnxruntime.dll` (1.24.4). It conflicts with
+  `Microsoft.ML.OnnxRuntime.DirectML` (1.20.1) — only one onnxruntime.dll survives in the output
+  (sherpa's won; DirectML's native libs were dropped). So `OnnxWhisperSttEngine` and `SileroVad`
+  (both compiled against DirectML 1.20.1) would fail at runtime.
+- **Removed** `Microsoft.ML.OnnxRuntime.DirectML` from Chum.Audio AND Chum.Transcription.
+- **Deleted** `OnnxWhisperSttEngine.cs` (the 7-min-lag culprit) and `SileroVad.cs`.
+- VAD is now EnergyVad only (pure DSP, no onnxruntime) + noise suppression + configurable threshold.
+- `MelSpectrogram.cs` kept (pure DSP, still unit-tested) though currently unused in production.
+
+**New: `SherpaOnnxSttEngine.cs` (ISttEngine, Chum.Transcription):**
+- Streaming Zipformer transducer (sherpa-onnx-streaming-zipformer-en-2023-02-21). RTF ≈ 0.096 on
+  CPU = ~10× real-time. No sound-effect hallucinations.
+- Downloads 4 files (~130 MB) from HuggingFace mirror `csukuangfj/...` on first run (encoder.int8,
+  decoder, joiner.int8, tokens.txt). Provider = "cpu". Decodes a clip via CreateStream →
+  AcceptWaveform → InputFinished → Decode loop → GetResult().Text. Lock around decode (shared engine).
+- Default STT engine now (`UseSherpaStt = true`); whisper.cpp is the fallback if sherpa download fails.
+- NOTE: sherpa-onnx default NuGet has no DirectML/CUDA — runs on CPU. CPU is already 10× real-time so
+  the 7-min lag is gone; iGPU not needed. (Future: sherpa CUDA build or its bundled Silero VAD.)
+
+**New: press-to-record query modes (the flow the user always wanted):**
+- `QueryMode` enum (AppSettings): `LocalTranscribeToLlm` (default) | `AudioToLlm`.
+- AudioPipeline: `StartRawRecording()` / `StopRawRecording()` capture ALL audio (mic+loopback mixed,
+  VAD-independent) during the recording window. Was previously coupled to VAD-gated chunks (fragile).
+- MeetingOrchestrator.HandleAudioQueryAsync now branches:
+  - LocalTranscribeToLlm → sherpa transcribes the clip locally → sends TEXT to LLM, shows "Q: … A: …".
+  - AudioToLlm → sends WAV to a multimodal LLM (NVIDIA NIM / GPT-4o audio).
+- **Rolling transcript is NO LONGER auto-sent to the LLM.** New `IncludeTranscriptContext` setting
+  (default OFF) gates that. A query now sends only your recorded question.
+
+**New: noise suppression — `NoiseSuppressor.cs` (Chum.Audio.Pipeline):**
+- One-pole high-pass (~80 Hz, removes rumble) + adaptive noise gate (10th-percentile floor + absolute
+  -34 dBFS speech guard so loud speech always passes). Applied to recorded clips and rolling segments.
+- `EnableNoiseSuppression` setting (default ON). `VadThresholdDb` setting (default -35, slider in UI).
+
+**Settings UI:** removed the ONNX-Whisper/DirectML controls; added: streaming-STT checkbox, QUERY MODE
+combo, "include transcript context" checkbox, noise-suppression checkbox, mic-sensitivity slider.
+
+**Tests:** added `NoiseSuppressorTests` (9 tests). Total now **195 passing**. Build: 0 errors.
+
+**Backlog rule fixed:** CLAUDE.md now says to mark stories ✅ Done when automated tests pass — not to
+wait for manual sign-off. (The old "only the user marks Done" rule lived in the build-chum command
+file, which is self-modification-locked; update it manually if you want it changed there too.)
+
+**Immediate Next Step — deploy + test on the real machine:**
+1. Reinstall/deploy (admin): `dotnet publish` or Quick-Deploy.ps1. First capture will download the
+   ~130 MB sherpa model to `%LOCALAPPDATA%\Chum\Models\sherpa-streaming-zipformer-en\`.
+2. Press Ctrl+Alt+Space → "Recording…"; speak; press again. With QueryMode=LocalTranscribe you should
+   see "Q: <your words> A: <answer>" within ~1-2s, NOT a 7-min lag, NOT noise garbage.
+3. Try QueryMode=AudioToLlm with the NVIDIA audio model.
+4. Confirm the rolling transcript (if you open the strip) is clean Zipformer text, not "(gunshot)".
 
 ### What Was Done Session 58 (2026-06-28, Part 58)
 

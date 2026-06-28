@@ -18,6 +18,11 @@
           {
             "type": "command",
             "command": "powershell -ExecutionPolicy Bypass -File .claude/hooks/check-handoff.ps1"
+          },
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -NonInteractive -File .claude/hooks/play-chime.ps1",
+            "timeout": 12
           }
         ]
       }

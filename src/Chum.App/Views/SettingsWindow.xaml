@@ -126,33 +126,38 @@
 
             <!-- Transcription -->
             <Label Content="TRANSCRIPTION" Style="{StaticResource SectionHeader}"/>
-            <CheckBox x:Name="UseOnnxWhisperBox"
-                      Content="Use Intel/AMD/NVIDIA iGPU via DirectML (recommended — ~10-20× faster than CPU)"
+            <CheckBox x:Name="UseSherpaSttBox"
+                      Content="Fast local streaming STT (sherpa-onnx Zipformer — recommended)"
                       Margin="0,6,0,2" IsChecked="True"
-                      ToolTip="Downloads a ~120 MB ONNX Whisper model on first use. Runs inference on any DirectX 12 GPU including Intel integrated graphics. Falls back to CPU if DirectML is unavailable."/>
-            <StackPanel x:Name="GpuModelPanel">
-                <TextBlock Text="ONNX model quality" Foreground="#374151" FontSize="11" Margin="0,6,0,2"/>
-                <ComboBox x:Name="OnnxModelCombo">
-                    <ComboBoxItem Tag="small"          Content="small (~300 MB) — fast, decent accuracy"/>
-                    <ComboBoxItem Tag="medium"         Content="medium (~700 MB, recommended) — better for Indian/accented English" IsSelected="True"/>
-                    <ComboBoxItem Tag="large-v3-turbo" Content="large-v3-turbo (~1.5 GB) — best quality on iGPU"/>
-                </ComboBox>
-                <TextBlock x:Name="GpuHintText"
-                           Text="Model files are downloaded from huggingface.co/Xenova to %LOCALAPPDATA%\Chum\Models\ on first use. Changing model size requires restarting Chum."
-                           Style="{StaticResource Hint}"/>
-            </StackPanel>
-            <TextBlock x:Name="CpuHintText" Visibility="Collapsed"
-                       Text="CPU mode: uses whisper.cpp with the selected model size below. Slower (~12s latency)."
-                       Style="{StaticResource Hint}"/>
-            <StackPanel x:Name="CpuModelPanel" Visibility="Collapsed">
-                <TextBlock Text="Whisper model size (CPU mode only)" Foreground="#374151" FontSize="11" Margin="0,4,0,2"/>
-                <ComboBox x:Name="WhisperModelCombo">
-                    <ComboBoxItem Content="Tiny (39 MB) — fastest, lowest accuracy" Tag="Tiny"/>
-                    <ComboBoxItem Content="Base (74 MB) — fast, decent accuracy" Tag="Base"/>
-                    <ComboBoxItem Content="Small (244 MB) — recommended balance" Tag="Small" IsSelected="True"/>
-                    <ComboBoxItem Content="Medium (769 MB) — high accuracy, slower on CPU" Tag="Medium"/>
-                </ComboBox>
-            </StackPanel>
+                      ToolTip="Downloads a ~130 MB English streaming model on first use. Decodes faster than real-time on CPU and does not hallucinate noise captions like Whisper. Uncheck to use whisper.cpp instead."/>
+            <TextBlock Text="whisper.cpp model size (fallback / used when streaming STT is off)"
+                       Foreground="#374151" FontSize="11" Margin="0,6,0,2"/>
+            <ComboBox x:Name="WhisperModelCombo">
+                <ComboBoxItem Content="Tiny (39 MB) — fastest, lowest accuracy" Tag="Tiny"/>
+                <ComboBoxItem Content="Base (74 MB) — fast, decent accuracy" Tag="Base"/>
+                <ComboBoxItem Content="Small (244 MB) — recommended balance" Tag="Small" IsSelected="True"/>
+                <ComboBoxItem Content="Medium (769 MB) — high accuracy, slower on CPU" Tag="Medium"/>
+            </ComboBox>
+
+            <!-- Query mode -->
+            <Label Content="QUERY MODE (PRESS-TO-RECORD)" Style="{StaticResource SectionHeader}"/>
+            <TextBlock Text="When you press the hotkey again to stop recording:"
+                       Foreground="#374151" FontSize="11" Margin="0,4,0,2"/>
+            <ComboBox x:Name="QueryModeCombo">
+                <ComboBoxItem Tag="LocalTranscribeToLlm" Content="Transcribe locally, send text to the LLM (fast, private)" IsSelected="True"/>
+                <ComboBoxItem Tag="AudioToLlm" Content="Send recorded audio straight to the LLM (needs audio-capable model)"/>
+            </ComboBox>
+            <CheckBox x:Name="IncludeTranscriptBox"
+                      Content="Also include the rolling meeting transcript as context"
+                      Margin="0,8,0,2"
+                      ToolTip="Off by default — a query sends only your recorded question, not the whole meeting transcript."/>
+            <CheckBox x:Name="NoiseSuppressBox"
+                      Content="Noise suppression on captured audio (high-pass + adaptive gate)"
+                      Margin="0,4" IsChecked="True"/>
+            <TextBlock Text="Mic sensitivity (VAD threshold) — move right for noisy rooms"
+                       Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
+            <Slider x:Name="VadThresholdSlider" Minimum="-50" Maximum="-20" Value="-35"
+                    TickFrequency="5" IsSnapToTickEnabled="True"/>
 
             <!-- Hotkeys -->
             <Label Content="HOTKEYS" Style="{StaticResource SectionHeader}"/>

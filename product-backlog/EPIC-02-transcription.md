@@ -12,6 +12,7 @@
 | US-02-06 | Transcript Cleanup & Formatting | P1 — High | ✅ Done (Built & Tested) | 2 |
 | US-02-07 | Transcript Export | P3 — Low | ✅ Done (Built & Tested) | 2 |
 | US-02-08 | Context Window Preparation for LLM | P0 — MVP | ✅ Done (Built & Tested) | 5 |
+| US-02-09 | Streaming STT (sherpa-onnx Zipformer) | P0 — MVP | ✅ Done (Built & Tested) | 8 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

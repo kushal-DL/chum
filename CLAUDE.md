@@ -87,7 +87,7 @@ chum/
 **Status transition rules:**
 - Creating project structure / empty classes → `🟡 Scaffolded`
 - Implementing core logic (compiles, feature works in isolation) → `🔵 Built`
-- After manual or automated testing confirms the feature works end-to-end → `✅ Done (Built & Tested)`
+- **When automated tests for the story pass (or the user confirms it works), mark it `✅ Done (Built & Tested)` — do this automatically, do NOT wait for separate manual sign-off.**
 - Never skip from "Yet to Start" to "Done" — always pass through Scaffolded and Built
 
 ---

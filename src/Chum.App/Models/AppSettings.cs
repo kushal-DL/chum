@@ -1,5 +1,14 @@
 namespace Chum.App.Models;
 
+/// <summary>How a press-to-record query is processed when the user stops recording.</summary>
+public enum QueryMode
+{
+    /// <summary>Transcribe the recording locally (Sherpa), then send the text to the LLM. Fast, private.</summary>
+    LocalTranscribeToLlm,
+    /// <summary>Send the recorded audio (WAV) directly to a multimodal LLM that accepts audio input.</summary>
+    AudioToLlm,
+}
+
 public sealed class AppSettings
 {
     // --- LLM ---
@@ -16,14 +25,25 @@ public sealed class AppSettings
     public int TranscriptRetentionMinutes { get; set; } = 10;
 
     // --- Transcription ---
-    public string WhisperModel { get; set; } = "Small";  // GgmlType enum name
+    public string WhisperModel { get; set; } = "Small";  // GgmlType enum name (whisper.cpp fallback)
     public bool UseGpu { get; set; } = true;
-    // When true, use ONNX DirectML Whisper (iGPU/dGPU) instead of whisper.cpp CPU.
-    // Falls back to CPU whisper.cpp if DirectML is unavailable or model download fails.
-    public bool UseOnnxWhisper { get; set; } = true;
-    // ONNX model size: "small" (~300 MB), "medium" (~700 MB, recommended for Indian English),
-    // "large-v3-turbo" (~1.5 GB, best quality on iGPU). Each size has its own model directory.
-    public string OnnxWhisperModel { get; set; } = "small";
+    // When true, use the sherpa-onnx streaming Zipformer engine for local STT. It decodes faster
+    // than real-time on CPU and does not hallucinate sound-effect captions like Whisper does on noise.
+    // Falls back to whisper.cpp (CPU) if the sherpa model download fails.
+    public bool UseSherpaStt { get; set; } = true;
+
+    // --- Query mode (press-to-record) ---
+    // What happens when you press the hold-to-ask hotkey a second time to stop recording.
+    public QueryMode QueryMode { get; set; } = QueryMode.LocalTranscribeToLlm;
+    // Include the rolling meeting transcript as extra context with each query.
+    // Off by default: a query sends ONLY your recorded question, not the whole meeting transcript.
+    public bool IncludeTranscriptContext { get; set; } = false;
+
+    // --- Noise suppression / VAD ---
+    // Apply high-pass + adaptive noise gate to captured audio before STT/LLM.
+    public bool EnableNoiseSuppression { get; set; } = true;
+    // EnergyVad onset threshold in dBFS. Higher (e.g. -30) = less sensitive, better for noisy rooms.
+    public float VadThresholdDb { get; set; } = -35f;
 
     // --- Hotkeys (string representation, e.g. "Ctrl+Alt+Space") ---
     public string HoldToAskHotkey { get; set; } = "Ctrl+Alt+Space";

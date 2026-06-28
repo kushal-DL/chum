@@ -11,6 +11,7 @@
 | US-04-05 | Hotkey Configuration UI | P1 — High | ✅ Done (Built & Tested) | 5 |
 | US-04-06 | Visual and Audio Feedback | P1 — High | ✅ Done (Built & Tested) | 3 |
 | US-04-07 | Action Items Hotkey | P2 — Medium | ✅ Done (Built & Tested) | 3 |
+| US-04-08 | Press-to-Record Query Modes | P0 — MVP | ✅ Done (Built & Tested) | 5 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Drawing;
 using System.Threading.Channels;
+using Chum.App.Models;
 using Chum.App.ViewModels;
 using Timer = System.Threading.Timer;
 using Chum.Audio.Capture;
@@ -64,11 +65,6 @@ public sealed class MeetingOrchestrator : IDisposable
     public event EventHandler? SnipModeRequested;
     private Task? _transcriptionLoop;
     private bool _disposed;
-
-    // Raw audio accumulator for direct audio-to-LLM path.
-    // Non-null while HoldToAsk toggle is active; filled by the transcription loop before STT clears samples.
-    private readonly object _recordingLock = new();
-    private List<float>? _recordingBuffer;
 
     public MeetingOrchestrator(
         AudioPipeline audio,
@@ -177,7 +173,7 @@ public sealed class MeetingOrchestrator : IDisposable
             {
                 _overlay.SetListeningState(true);
                 _overlay.SetStatus(OverlayStatus.Listening, "Recording… (press Ctrl+Alt+Space to send)");
-                lock (_recordingLock) _recordingBuffer = [];
+                _audio.StartRawRecording();
                 // High short beep on background thread — hook callback must return in <1ms
                 _ = Task.Run(() => Console.Beep(880, 60));
             }
@@ -189,7 +185,8 @@ public sealed class MeetingOrchestrator : IDisposable
             {
                 // Lower beep signals end of capture, before async work begins
                 _ = Task.Run(() => Console.Beep(660, 80));
-                await HandleAudioQueryAsync(e.StartTime, e.EndTime);
+                var recorded = _audio.StopRawRecording();
+                await HandleAudioQueryAsync(recorded, e.EndTime);
             }
         };
 
@@ -485,11 +482,6 @@ public sealed class MeetingOrchestrator : IDisposable
                 Serilog.Log.Information("STT chunk received: {N} samples from {Src}",
                     chunk.Samples.Length, chunk.Source);
 
-                // Copy samples into the audio recording buffer BEFORE STT clears them for privacy
-                lock (_recordingLock)
-                    if (_recordingBuffer is not null)
-                        _recordingBuffer.AddRange(chunk.Samples);
-
                 var sw = Stopwatch.StartNew();
                 await TranscribeWithFallbackAsync(chunk.Samples, chunk.Source, ct);
                 sw.Stop();
@@ -630,34 +622,55 @@ public sealed class MeetingOrchestrator : IDisposable
         return sb.ToString();
     }
 
-    private async Task HandleAudioQueryAsync(DateTimeOffset holdStart, DateTimeOffset holdEnd)
+    private async Task HandleAudioQueryAsync(float[]? recordedSamples, DateTimeOffset holdEnd)
     {
+        var ct = _cts?.Token ?? CancellationToken.None;
         _overlay.SetListeningState(false);
         _overlay.SetStatus(OverlayStatus.Thinking, $"Asking {_llm.ProviderName}…");
         _overlay.StartNewResponse();
 
         try
         {
-            // Grab any audio accumulated during the recording window
-            float[]? recordedSamples;
-            lock (_recordingLock)
+            if (recordedSamples is not { Length: > 1600 }) // need ≥ 0.1s at 16 kHz
             {
-                recordedSamples = _recordingBuffer?.ToArray();
-                _recordingBuffer = null;
+                _overlay.ShowError("No audio captured — press the hotkey, speak, then press again to send.");
+                _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+                return;
             }
 
+            double secs = recordedSamples.Length / 16000.0;
+            var mode = _settings.Current.QueryMode;
             string? audioBase64 = null;
-            if (recordedSamples is { Length: > 1600 }) // at least 0.1s of audio at 16 kHz
+            string? localTranscript = null;
+
+            if (mode == QueryMode.LocalTranscribeToLlm && _stt.IsReady)
             {
+                // Transcribe the recording locally (fast, private) and send only the text.
+                _overlay.SetStatus(OverlayStatus.Thinking, "Transcribing locally…");
+                localTranscript = await _stt.TranscribeAsync(recordedSamples, AudioSource.Microphone, ct);
+                Array.Clear(recordedSamples);
+                Serilog.Log.Information("Local STT ({Secs:F1}s) → '{Text}'", secs, localTranscript);
+                if (string.IsNullOrWhiteSpace(localTranscript))
+                {
+                    _overlay.ShowError("Didn't catch any speech in the recording — try again.");
+                    _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+                    return;
+                }
+            }
+            else
+            {
+                // Send the recorded audio straight to a multimodal LLM that accepts audio input.
                 var wavBytes = WavEncoder.ToWavBytes(recordedSamples);
                 audioBase64 = Convert.ToBase64String(wavBytes);
-                Array.Clear(recordedSamples); // privacy — zero the copy
-                Serilog.Log.Information(
-                    "Audio-to-LLM: {Samples} samples ({Secs:F1}s) → {KB}KB WAV",
-                    recordedSamples.Length, recordedSamples.Length / 16000.0, wavBytes.Length / 1024);
+                Array.Clear(recordedSamples);
+                Serilog.Log.Information("Audio-to-LLM: {Secs:F1}s → {KB}KB WAV", secs, wavBytes.Length / 1024);
             }
 
-            var contextText = _context.BuildContext(holdEnd, _settings.Current.MaxResponseTokens);
+            // Only attach the rolling meeting transcript if the user explicitly opted in.
+            var contextText = _settings.Current.IncludeTranscriptContext
+                ? _context.BuildContext(holdEnd, _settings.Current.MaxResponseTokens)
+                : string.Empty;
+
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
@@ -669,18 +682,20 @@ public sealed class MeetingOrchestrator : IDisposable
             string user;
             if (audioBase64 is not null)
             {
-                // Audio path: ask model to state what it heard then answer
                 user = "Listen to the attached audio from a live meeting. " +
                        "Start your response with 'Q: ' followed by a one-line summary of the key question or statement you heard. " +
-                       "Then on a new line start with 'A: ' and provide a concise, helpful answer. " +
-                       "Keep the total response under 150 words.";
+                       "Then on a new line start with 'A: ' and give a concise, helpful answer. Keep it under 150 words.";
                 if (!string.IsNullOrWhiteSpace(contextText))
                     user += $"\n\nAdditional meeting transcript context:\n{contextText}";
             }
             else
             {
-                // Transcript path (no audio captured — VAD may not have triggered)
-                user = PromptBuilder.BuildUserMessage(contextText);
+                // Local path: show the recognised question, then ask the model to answer it.
+                _overlay.AppendResponseToken($"Q: {localTranscript}\n\nA: ");
+                user = $"I'm in a live meeting. Here is my question/statement, transcribed from audio:\n\n\"{localTranscript}\"\n\n" +
+                       "Respond concisely and helpfully in under 150 words. Do not repeat the question back.";
+                if (!string.IsNullOrWhiteSpace(contextText))
+                    user += $"\n\nMeeting context:\n{contextText}";
             }
 
             var request = new LlmRequest(system, user,
@@ -689,9 +704,9 @@ public sealed class MeetingOrchestrator : IDisposable
                 MaxTokens: _settings.Current.MaxResponseTokens,
                 Temperature: _settings.Current.Temperature);
 
-            Serilog.Log.Information("LLM request: provider={Provider} model={Model} type={Type}",
+            Serilog.Log.Information("LLM request: provider={Provider} model={Model} mode={Mode}",
                 _llm.ProviderName, _llm.ModelId,
-                audioBase64 is not null ? "AudioDirect" : "TextTranscript");
+                audioBase64 is not null ? "AudioToLlm" : "LocalTranscribeToLlm");
 
             await StreamWithRetryAsync(request, t => _latencyTracker.RecordLlmLatency(t));
 

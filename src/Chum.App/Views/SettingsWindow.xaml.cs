@@ -94,13 +94,12 @@ public partial class SettingsWindow : Window
         CloudSttFallbackBox.IsChecked = s.CloudSttFallback;
         CloudSttModelBox.Text = s.CloudSttModel;
 
-        UseOnnxWhisperBox.IsChecked = s.UseOnnxWhisper;
-        UseOnnxWhisperBox.Checked   += (_, _) => { GpuModelPanel.Visibility = System.Windows.Visibility.Visible;   CpuHintText.Visibility = System.Windows.Visibility.Collapsed; CpuModelPanel.Visibility = System.Windows.Visibility.Collapsed; };
-        UseOnnxWhisperBox.Unchecked += (_, _) => { GpuModelPanel.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible;   CpuModelPanel.Visibility = System.Windows.Visibility.Visible; };
-        if (!s.UseOnnxWhisper) { GpuModelPanel.Visibility = System.Windows.Visibility.Collapsed; CpuHintText.Visibility = System.Windows.Visibility.Visible; CpuModelPanel.Visibility = System.Windows.Visibility.Visible; }
-
-        foreach (System.Windows.Controls.ComboBoxItem item in OnnxModelCombo.Items)
-            if (item.Tag?.ToString() == s.OnnxWhisperModel) OnnxModelCombo.SelectedItem = item;
+        UseSherpaSttBox.IsChecked = s.UseSherpaStt;
+        IncludeTranscriptBox.IsChecked = s.IncludeTranscriptContext;
+        NoiseSuppressBox.IsChecked = s.EnableNoiseSuppression;
+        VadThresholdSlider.Value = s.VadThresholdDb;
+        foreach (System.Windows.Controls.ComboBoxItem item in QueryModeCombo.Items)
+            if (item.Tag?.ToString() == s.QueryMode.ToString()) QueryModeCombo.SelectedItem = item;
 
         RefreshDocumentList();
     }
@@ -238,9 +237,13 @@ public partial class SettingsWindow : Window
             s.CloudSttFallback = CloudSttFallbackBox.IsChecked == true;
             s.CloudSttModel = CloudSttModelBox.Text.Trim().Length > 0
                 ? CloudSttModelBox.Text.Trim() : "whisper-1";
-            s.UseOnnxWhisper = UseOnnxWhisperBox.IsChecked == true;
-            if (OnnxModelCombo.SelectedItem is ComboBoxItem onnxItem)
-                s.OnnxWhisperModel = onnxItem.Tag?.ToString() ?? s.OnnxWhisperModel;
+            s.UseSherpaStt = UseSherpaSttBox.IsChecked == true;
+            s.IncludeTranscriptContext = IncludeTranscriptBox.IsChecked == true;
+            s.EnableNoiseSuppression = NoiseSuppressBox.IsChecked == true;
+            s.VadThresholdDb = (float)VadThresholdSlider.Value;
+            if (QueryModeCombo.SelectedItem is ComboBoxItem qmItem &&
+                Enum.TryParse<Chum.App.Models.QueryMode>(qmItem.Tag?.ToString(), out var qm))
+                s.QueryMode = qm;
         });
 
         ((App)Application.Current).ReapplyHotkeys();

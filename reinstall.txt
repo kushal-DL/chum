@@ -1,0 +1,11 @@
+Stop-Process -Name "Chum.App" -Force -ErrorAction SilentlyContinue
+
+dotnet publish C:\Users\kushal.f.sharma\repos\chum\src\Chum.App\Chum.App.csproj `
+    -c Release -r win-x64 --self-contained false `
+    -o "$env:ProgramFiles\Chum\App" --nologo -v minimal
+
+schtasks /Run /TN "Chum Tray Application"
+
+
+
+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

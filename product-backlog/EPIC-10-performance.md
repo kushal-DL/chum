@@ -14,6 +14,7 @@
 | US-10-08 | Crash Reporting (Opt-in) | P3 — Low | ✅ Done (Built & Tested) | 3 |
 | US-10-09 | Auto-Update Mechanism | P2 — Medium | ✅ Done (Built & Tested) | 5 |
 | US-10-10 | Low-Power Mode | P3 — Low | ✅ Done (Built & Tested) | 3 |
+| US-10-11 | ONNX DirectML Transcription (iGPU) | P1 — High | ⚠️ Superseded by US-02-09 | 8 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

@@ -130,17 +130,19 @@ public partial class App : System.Windows.Application
 
         var loopback = new LoopbackCapture(Settings.Current.LoopbackDeviceId);
         var mic = new MicCapture(Settings.Current.MicDeviceId);
-        var audioPipeline = new AudioPipeline(loopback, mic, vadTask1.Result, vadTask2.Result);
+        var audioPipeline = new AudioPipeline(loopback, mic, vadTask1.Result, vadTask2.Result,
+            enableNoiseSuppression: Settings.Current.EnableNoiseSuppression);
 
         var modelType = Enum.TryParse<GgmlType>(Settings.Current.WhisperModel, out var gt) ? gt : GgmlType.Small;
         var modelDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Chum", "Models");
         ISttEngine stt;
         ISttEngine? cpuSttFallback = null;
-        if (Settings.Current.UseOnnxWhisper)
+        if (Settings.Current.UseSherpaStt)
         {
-            stt = new OnnxWhisperSttEngine(modelDir, Settings.Current.OnnxWhisperModel);
-            cpuSttFallback = new WhisperSttEngine(modelDir, modelType); // used if ONNX download fails
+            // Streaming Zipformer — faster than real-time on CPU, no Whisper-style noise hallucinations.
+            stt = new SherpaOnnxSttEngine(modelDir);
+            cpuSttFallback = new WhisperSttEngine(modelDir, modelType); // used if sherpa model download fails
         }
         else
         {
@@ -219,7 +221,8 @@ public partial class App : System.Windows.Application
         var s = Settings.Current;
         var newLoopback = new LoopbackCapture(s.LoopbackDeviceId);
         var newMic = new MicCapture(s.MicDeviceId);
-        var newPipeline = new AudioPipeline(newLoopback, newMic, BuildVad(), BuildVad());
+        var newPipeline = new AudioPipeline(newLoopback, newMic, BuildVad(), BuildVad(),
+            enableNoiseSuppression: s.EnableNoiseSuppression);
         _orchestrator.ReplaceAudio(newPipeline);
 
         if (wasStarted)
@@ -239,7 +242,8 @@ public partial class App : System.Windows.Application
         }
 
         // Rebuild with null device IDs = Windows default, without changing saved settings
-        var newPipeline = new AudioPipeline(new LoopbackCapture(null), new MicCapture(null), BuildVad(), BuildVad());
+        var newPipeline = new AudioPipeline(new LoopbackCapture(null), new MicCapture(null), BuildVad(), BuildVad(),
+            enableNoiseSuppression: Settings.Current.EnableNoiseSuppression);
         _orchestrator.ReplaceAudio(newPipeline);
 
         if (wasStarted)
@@ -266,34 +270,10 @@ public partial class App : System.Windows.Application
 
     private IVad BuildVad()
     {
-        var modelDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Chum", "Models");
-        var sileroPath = Path.Combine(modelDir, "silero_vad.onnx");
-
-        if (File.Exists(sileroPath))
-        {
-            Log.Information("SileroVad model found — using Silero VAD");
-            return new SileroVad(sileroPath);
-        }
-
-        // Model not yet downloaded — start background download for next launch, use EnergyVad now
-        Log.Information("Silero VAD model not found — using EnergyVad; downloading model in background (5s delay)");
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                // Defer 5s so the download doesn't compete with app startup on the network/CPU
-                await Task.Delay(TimeSpan.FromSeconds(5));
-                var dl = new ModelDownloadService(new HttpClient());
-                await dl.EnsureSileroAsync();
-                Log.Information("Silero VAD model download complete — will use on next launch");
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Silero VAD model download failed — EnergyVad will be used");
-            }
-        });
-        return new EnergyVad();
+        // EnergyVad is pure DSP (no ONNX runtime), so it never conflicts with sherpa-onnx's bundled
+        // runtime. Noise suppression + a configurable threshold handle noisy rooms instead of Silero.
+        var s = Settings.Current;
+        return new EnergyVad(onThresholdDb: s.VadThresholdDb, offThresholdDb: s.VadThresholdDb - 5f);
     }
 
     private ILlmProvider BuildLlmProvider()
