@@ -15,12 +15,13 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo  Launching Chum tray app...
-start "" "%ProgramFiles%\Chum\App\Chum.App.exe"
+echo  Launching Chum tray app via scheduled task (runs as current user)...
+schtasks /Run /TN "Chum Tray Application" >nul 2>&1
 
 echo.
 echo  Done. Chum is installed and running.
 echo  Look for the Chum icon in your system tray (bottom-right).
+echo  Click the ^ arrow near the clock if you don't see it.
 echo  Right-click the tray icon and choose Settings to enter your API key.
 echo.
 pause
