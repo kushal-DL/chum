@@ -10,7 +10,7 @@ namespace Chum.App.Views;
 public partial class SettingsWindow : Window
 {
     private readonly SettingsService _settings;
-    private readonly CredentialService _credentials;
+    private readonly ConfigFileService _config;
     private readonly DocumentContextService _docContext;
     private TemplateService? _templateService;
 
@@ -18,7 +18,7 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         _settings = ((App)Application.Current).Settings;
-        _credentials = ((App)Application.Current).Credentials;
+        _config = ((App)Application.Current).Config;
         _docContext = ((App)Application.Current).DocContext;
         _templateService = ((App)Application.Current).Orchestrator?.GetTemplateService();
         LoadCurrentSettings();
@@ -38,7 +38,7 @@ public partial class SettingsWindow : Window
         ProviderCombo_SelectionChanged(ProviderCombo, null!);
 
         // Show key status
-        var storedKey = s.LlmProvider == "Anthropic" ? _credentials.GetAnthropicKey() : _credentials.GetOpenAiKey();
+        var storedKey = s.LlmProvider == "Anthropic" ? _config.AnthropicApiKey : _config.OpenAiApiKey;
         if (storedKey is not null)
             ShowApiKeyStatus("✓ API key stored", true);
 
@@ -104,18 +104,18 @@ public partial class SettingsWindow : Window
 
         var tag = (ProviderCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string;
         if (tag == "Anthropic")
-            _credentials.SaveAnthropicKey(key);
+            _config.AnthropicApiKey = key;
         else
-            _credentials.SaveOpenAiKey(key);
+            _config.OpenAiApiKey = key;
 
         ApiKeyBox.Clear();
-        ShowApiKeyStatus("✓ Key saved securely", true);
+        ShowApiKeyStatus("✓ Key saved to config.json", true);
     }
 
     private async void TestApiKey_Click(object sender, RoutedEventArgs e)
     {
         var tag = (ProviderCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string;
-        var key = tag == "Anthropic" ? _credentials.GetAnthropicKey() : _credentials.GetOpenAiKey();
+        var key = tag == "Anthropic" ? _config.AnthropicApiKey : _config.OpenAiApiKey;
         if (key is null) { ShowApiKeyStatus("No key stored — save a key first.", false); return; }
 
         ShowApiKeyStatus("Testing...", true);
@@ -185,9 +185,9 @@ public partial class SettingsWindow : Window
         {
             var tag = (ProviderCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string;
             if (tag == "Anthropic")
-                _credentials.SaveAnthropicKey(ApiKeyBox.Password.Trim());
+                _config.AnthropicApiKey = ApiKeyBox.Password.Trim();
             else
-                _credentials.SaveOpenAiKey(ApiKeyBox.Password.Trim());
+                _config.OpenAiApiKey = ApiKeyBox.Password.Trim();
         }
 
         string? oldLoopback = _settings.Current.LoopbackDeviceId;

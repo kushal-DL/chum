@@ -21,7 +21,7 @@ public partial class App : System.Windows.Application
 {
     // Publicly accessible services (used by SettingsWindow)
     public SettingsService Settings { get; } = new();
-    public CredentialService Credentials { get; } = new();
+    public ConfigFileService Config { get; } = new();
     public DocumentContextService DocContext { get; } = new();
     public MeetingOrchestrator? Orchestrator => _orchestrator;
 
@@ -33,6 +33,7 @@ public partial class App : System.Windows.Application
     private DxgiScreenCapture? _screenCapture;
     private ClipboardMonitor? _clipboardMonitor;
     private bool _started;
+    private string? _pendingMeetingDeviceId;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -47,6 +48,7 @@ public partial class App : System.Windows.Application
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         Settings.Load();
+        Config.Load();
         DocContext.Load();
 
         // Create overlay early so we can show startup status immediately
@@ -55,8 +57,8 @@ public partial class App : System.Windows.Application
 
         bool localMode = Settings.Current.LocalOnlyMode;
         bool hasKey = localMode
-                   || Credentials.GetAnthropicKey() is not null
-                   || Credentials.GetOpenAiKey() is not null;
+                   || Config.AnthropicApiKey is not null
+                   || Config.OpenAiApiKey is not null;
         if (!hasKey)
         {
             Log.Information("No API key found — showing settings on first run");
@@ -64,8 +66,8 @@ public partial class App : System.Windows.Application
             setup.ShowDialog();
             localMode = Settings.Current.LocalOnlyMode;
             hasKey = localMode
-                  || Credentials.GetAnthropicKey() is not null
-                  || Credentials.GetOpenAiKey() is not null;
+                  || Config.AnthropicApiKey is not null
+                  || Config.OpenAiApiKey is not null;
             if (!hasKey)
             {
                 Log.Warning("No API key provided — exiting");
@@ -117,7 +119,7 @@ public partial class App : System.Windows.Application
         OpenAiSttProvider? cloudStt = null;
         if (Settings.Current.CloudSttFallback)
         {
-            var openAiKey = Credentials.GetOpenAiKey();
+            var openAiKey = Config.OpenAiApiKey;
             if (openAiKey is not null)
                 cloudStt = new OpenAiSttProvider(openAiKey, Settings.Current.CloudSttModel);
             else
@@ -158,6 +160,24 @@ public partial class App : System.Windows.Application
         {
             if (!Settings.Current.AutoStartCapture || !_orchestrator.IsRunning) return;
             await _orchestrator.StopAsync();
+        };
+
+        _orchestrator.AudioDeviceMismatchDetected += (_, e) =>
+        {
+            _pendingMeetingDeviceId = e.DeviceId;
+            _overlayVm?.ShowAudioDeviceMismatch(
+                $"⚠ {e.PlatformName} audio is on '{e.DeviceName}'. Switch Chum capture to match?");
+        };
+
+        _orchestrator.SnipModeRequested += (_, _) =>
+        {
+            _ = Dispatcher.InvokeAsync(async () =>
+            {
+                var snip = new SnipOverlayWindow();
+                var region = await snip.ShowAndGetSelectionAsync();
+                if (region is not null && _orchestrator is not null)
+                    await _orchestrator.HandleSnipCaptureAsync(region.Value);
+            });
         };
 
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
@@ -278,7 +298,7 @@ public partial class App : System.Windows.Application
 
         if (s.LlmProvider == "Anthropic")
         {
-            var key = Credentials.GetAnthropicKey()
+            var key = Config.AnthropicApiKey
                 ?? throw new InvalidOperationException("Anthropic API key not set — open Settings to add it");
             Log.Information("Using Anthropic provider: {Model}", s.LlmModel);
             return new AnthropicLlmProvider(key, s.LlmModel);
@@ -286,7 +306,7 @@ public partial class App : System.Windows.Application
 
         // OpenAI / NVIDIA / Custom — all OpenAI-compatible
         {
-            var key = Credentials.GetOpenAiKey()
+            var key = Config.OpenAiApiKey
                 ?? throw new InvalidOperationException("API key not set — open Settings to add it");
             var baseUrl = string.IsNullOrWhiteSpace(s.LlmApiBaseUrl) ? null : s.LlmApiBaseUrl;
             Log.Information("Using OpenAI-compatible provider ({Provider}): {Model} at {Url}",
@@ -317,6 +337,7 @@ public partial class App : System.Windows.Application
         var menu = new ContextMenuStrip();
         menu.Items.Add("Show Overlay", null, (_, _) => ShowOverlay());
         menu.Items.Add("Settings", null, (_, _) => OpenSettings());
+        menu.Items.Add("Export Transcript…", null, (_, _) => ExportTranscript());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Start Capture", null, async (_, _) => await StartCaptureAsync());
         menu.Items.Add("Stop Capture", null, async (_, _) =>
@@ -341,6 +362,48 @@ public partial class App : System.Windows.Application
     {
         var win = new SettingsWindow();
         win.ShowDialog();
+    }
+
+    public void SwitchToTeamsAudioDevice()
+    {
+        if (_pendingMeetingDeviceId is null || _orchestrator is null) return;
+        var deviceId = _pendingMeetingDeviceId;
+        _pendingMeetingDeviceId = null;
+        _overlayVm?.DismissAudioDeviceMismatch();
+        Settings.Update(s => s.LoopbackDeviceId = deviceId);
+        Log.Information("Switching loopback capture to meeting app audio device: {Id}", deviceId);
+        _ = ApplyAudioDevicesAsync();
+    }
+
+    public void DismissAudioDeviceMismatch()
+    {
+        _pendingMeetingDeviceId = null;
+        _overlayVm?.DismissAudioDeviceMismatch();
+    }
+
+    public void ExportTranscript()
+    {
+        if (_orchestrator is null) return;
+        var text = _orchestrator.GetTranscriptExportText();
+        if (string.IsNullOrEmpty(text))
+        {
+            System.Windows.MessageBox.Show(
+                "No transcript available yet — start capture and wait for speech.",
+                "Chum — Export Transcript", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export Transcript",
+            Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+            FileName = $"chum_transcript_{DateTime.Now:yyyyMMdd_HHmmss}.txt",
+            DefaultExt = ".txt"
+        };
+        if (dlg.ShowDialog() != true) return;
+
+        File.WriteAllText(dlg.FileName, text);
+        Log.Information("Transcript exported: {Path}", dlg.FileName);
     }
 
     protected override async void OnExit(ExitEventArgs e)
