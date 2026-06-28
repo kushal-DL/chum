@@ -23,9 +23,10 @@ public sealed record PromptTemplate(
         new("Detailed Explanation",
             "\n\nMode: DETAILED. Provide a thorough explanation with context, reasoning, and examples. Up to 500 words. Use headers if helpful.",
             MaxTokensOverride: 2048),
-        new("Action Items",
-            "\n\nMode: ACTION ITEMS. Extract all action items and owners from the transcript. Format: numbered list, each entry as \"[Owner]: [Action]\". Ignore the trigger question — focus on commitments stated in the meeting."),
         new("Devil's Advocate",
             "\n\nMode: DEVIL'S ADVOCATE. Counter the main position just raised. State the 2–3 strongest objections or risks. Be direct — no softening."),
+        new("Code",
+            "\n\nMode: CODE. Output complete, runnable code. Use the programming language from context (default to Python if unclear). Add brief inline comments only on non-obvious logic. If the question is architectural rather than implementation-specific, use pseudocode or a structured breakdown. No word limit — completeness beats brevity. Wrap code in fenced code blocks.",
+            MaxTokensOverride: 4096),
     ];
 }
