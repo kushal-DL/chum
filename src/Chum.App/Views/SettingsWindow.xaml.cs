@@ -143,6 +143,12 @@ public partial class SettingsWindow : Window
 
     private async void SaveSettings_Click(object sender, RoutedEventArgs e)
     {
+        // Auto-save API keys if typed in but not yet saved via individual Save buttons
+        if (!string.IsNullOrWhiteSpace(AnthropicKeyBox.Password))
+            _credentials.SaveAnthropicKey(AnthropicKeyBox.Password.Trim());
+        if (!string.IsNullOrWhiteSpace(OpenAiKeyBox.Password))
+            _credentials.SaveOpenAiKey(OpenAiKeyBox.Password.Trim());
+
         string? oldLoopback = _settings.Current.LoopbackDeviceId;
         string? oldMic = _settings.Current.MicDeviceId;
 
