@@ -75,13 +75,16 @@ public partial class App : System.Windows.Application
             }
         }
 
+        // Create tray icon immediately so the user sees Chum in the system tray
+        // even while the audio pipeline and models are still loading.
+        CreateTrayIcon();
+
         // Show overlay before component build so the user sees the app immediately
         _overlayWindow.Show();
         _overlayVm.SetStatus(OverlayStatus.Initialising, "Starting up…");
 
         await BuildAndWireComponentsAsync();
         ApplyCaptureExclusionToOverlay();
-        CreateTrayIcon();
 
         startupSw.Stop();
         var startupMs = startupSw.Elapsed.TotalMilliseconds;
