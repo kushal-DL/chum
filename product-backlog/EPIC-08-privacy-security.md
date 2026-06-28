@@ -4,17 +4,17 @@
 
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
-| US-08-01 | Local-only Processing Mode | P1 — High | 🔵 Built | 5 |
-| US-08-02 | Audio Buffer Auto-Purge | P0 — MVP | 🔵 Built | 3 |
-| US-08-03 | Transcript Retention Controls | P1 — High | 🔵 Built | 3 |
-| US-08-04 | Meeting Participant Disclosure Reminder | P2 — Medium | 🔵 Built | 2 |
-| US-08-05 | Privacy Pause Mode | P1 — High | 🔵 Built | 3 |
-| US-08-06 | Secure API Key Storage | P0 — MVP | 🔵 Built | 3 |
-| US-08-07 | Screen Capture Privacy Safeguards | P1 — High | 🔵 Built | 2 |
-| US-08-08 | Network Traffic Transparency | P2 — Medium | 🔵 Built | 3 |
-| US-08-09 | Audit Log | P3 — Low | 🔵 Built | 2 |
-| US-08-10 | Windows Service Installer (Admin-Elevated) | P1 — High | 🔵 Built | 5 |
-| US-08-11 | Process Identity — Run as Named System Service | P1 — High | 🔵 Built | 5 |
+| US-08-01 | Local-only Processing Mode | P1 — High | ✅ Done (Built & Tested) | 5 |
+| US-08-02 | Audio Buffer Auto-Purge | P0 — MVP | ✅ Done (Built & Tested) | 3 |
+| US-08-03 | Transcript Retention Controls | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-08-04 | Meeting Participant Disclosure Reminder | P2 — Medium | ✅ Done (Built & Tested) | 2 |
+| US-08-05 | Privacy Pause Mode | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-08-06 | Secure API Key Storage | P0 — MVP | ✅ Done (Built & Tested) | 3 |
+| US-08-07 | Screen Capture Privacy Safeguards | P1 — High | ✅ Done (Built & Tested) | 2 |
+| US-08-08 | Network Traffic Transparency | P2 — Medium | ✅ Done (Built & Tested) | 3 |
+| US-08-09 | Audit Log | P3 — Low | ✅ Done (Built & Tested) | 2 |
+| US-08-10 | Windows Service Installer (Admin-Elevated) | P1 — High | ✅ Done (Built & Tested) | 5 |
+| US-08-11 | Process Identity — Run as Named System Service | P1 — High | ✅ Done (Built & Tested) | 5 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

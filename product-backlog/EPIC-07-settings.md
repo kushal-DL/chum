@@ -4,17 +4,17 @@
 
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
-| US-07-01 | API Key Management | P0 — MVP | 🔵 Built | 5 |
-| US-07-02 | Audio Device Configuration | P1 — High | 🔵 Built | 3 |
-| US-07-03 | LLM Provider & Model Selection | P1 — High | 🔵 Built | 3 |
-| US-07-04 | Transcription Configuration | P1 — High | 🔵 Built | 3 |
-| US-07-05 | Hotkey Configuration | P1 — High | 🔵 Built | 3 |
-| US-07-06 | Overlay Appearance Settings | P2 — Medium | 🔵 Built | 2 |
-| US-07-07 | Startup & Run Behavior | P2 — Medium | 🔵 Built | 2 |
-| US-07-08 | Data Retention & Privacy Settings | P1 — High | 🔵 Built | 2 |
-| US-07-09 | Settings Import & Export | P3 — Low | 🔵 Built | 2 |
-| US-07-10 | About & Diagnostics Panel | P2 — Medium | 🔵 Built | 2 |
-| US-07-11 | Flexible Provider Settings UI (URL + key + model per provider) | P0 — MVP | 🔵 Built | 4 |
+| US-07-01 | API Key Management | P0 — MVP | ✅ Done (Built & Tested) | 5 |
+| US-07-02 | Audio Device Configuration | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-07-03 | LLM Provider & Model Selection | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-07-04 | Transcription Configuration | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-07-05 | Hotkey Configuration | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-07-06 | Overlay Appearance Settings | P2 — Medium | ✅ Done (Built & Tested) | 2 |
+| US-07-07 | Startup & Run Behavior | P2 — Medium | ✅ Done (Built & Tested) | 2 |
+| US-07-08 | Data Retention & Privacy Settings | P1 — High | ✅ Done (Built & Tested) | 2 |
+| US-07-09 | Settings Import & Export | P3 — Low | ✅ Done (Built & Tested) | 2 |
+| US-07-10 | About & Diagnostics Panel | P2 — Medium | ✅ Done (Built & Tested) | 2 |
+| US-07-11 | Flexible Provider Settings UI (URL + key + model per provider) | P0 — MVP | ✅ Done (Built & Tested) | 4 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

@@ -4,14 +4,14 @@
 
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
-| US-02-01 | Local Whisper Transcription | P0 — MVP | 🔵 Built | 8 |
-| US-02-02 | Cloud STT Fallback | P2 — Medium | 🔵 Built | 5 |
-| US-02-03 | Rolling Transcript Buffer | P0 — MVP | 🔵 Built | 5 |
-| US-02-04 | Speaker Label Assignment | P1 — High | 🔵 Built | 3 |
-| US-02-05 | Language Detection & Multi-language | P2 — Medium | 🔵 Built | 3 |
-| US-02-06 | Transcript Cleanup & Formatting | P1 — High | 🔵 Built | 2 |
-| US-02-07 | Transcript Export | P3 — Low | 🔵 Built | 2 |
-| US-02-08 | Context Window Preparation for LLM | P0 — MVP | 🔵 Built | 5 |
+| US-02-01 | Local Whisper Transcription | P0 — MVP | ✅ Done (Built & Tested) | 8 |
+| US-02-02 | Cloud STT Fallback | P2 — Medium | ✅ Done (Built & Tested) | 5 |
+| US-02-03 | Rolling Transcript Buffer | P0 — MVP | ✅ Done (Built & Tested) | 5 |
+| US-02-04 | Speaker Label Assignment | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-02-05 | Language Detection & Multi-language | P2 — Medium | ✅ Done (Built & Tested) | 3 |
+| US-02-06 | Transcript Cleanup & Formatting | P1 — High | ✅ Done (Built & Tested) | 2 |
+| US-02-07 | Transcript Export | P3 — Low | ✅ Done (Built & Tested) | 2 |
+| US-02-08 | Context Window Preparation for LLM | P0 — MVP | ✅ Done (Built & Tested) | 5 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

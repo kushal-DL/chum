@@ -4,16 +4,16 @@
 
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
-| US-03-01 | Anthropic Claude API Integration | P0 — MVP | 🔵 Built | 5 |
-| US-03-02 | OpenAI API Integration | P1 — High | 🔵 Built | 3 |
-| US-03-03 | Local LLM via Ollama | P2 — Medium | 🔵 Built | 5 |
-| US-03-04 | Meeting-Optimised System Prompt | P0 — MVP | 🔵 Built | 5 |
-| US-03-05 | Streaming Response Display | P0 — MVP | 🔵 Built | 3 |
-| US-03-06 | Response History | P1 — High | 🔵 Built | 3 |
-| US-03-07 | Cost Estimation & Token Tracking | P2 — Medium | 🔵 Built | 3 |
-| US-03-08 | Prompt Templates Library | P2 — Medium | 🔵 Built | 3 |
-| US-03-09 | OpenAI-Compatible Endpoint (custom base URL) | P0 — MVP | 🔵 Built | 4 |
-| US-03-10 | Document Context in LLM Requests | P1 — High | 🔵 Built | 4 |
+| US-03-01 | Anthropic Claude API Integration | P0 — MVP | ✅ Done (Built & Tested) | 5 |
+| US-03-02 | OpenAI API Integration | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-03-03 | Local LLM via Ollama | P2 — Medium | ✅ Done (Built & Tested) | 5 |
+| US-03-04 | Meeting-Optimised System Prompt | P0 — MVP | ✅ Done (Built & Tested) | 5 |
+| US-03-05 | Streaming Response Display | P0 — MVP | ✅ Done (Built & Tested) | 3 |
+| US-03-06 | Response History | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-03-07 | Cost Estimation & Token Tracking | P2 — Medium | ✅ Done (Built & Tested) | 3 |
+| US-03-08 | Prompt Templates Library | P2 — Medium | ✅ Done (Built & Tested) | 3 |
+| US-03-09 | OpenAI-Compatible Endpoint (custom base URL) | P0 — MVP | ✅ Done (Built & Tested) | 4 |
+| US-03-10 | Document Context in LLM Requests | P1 — High | ✅ Done (Built & Tested) | 4 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

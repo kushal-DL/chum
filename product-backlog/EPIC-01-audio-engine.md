@@ -4,13 +4,13 @@
 
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
-| US-01-01 | Capture System Audio Loopback | P0 — MVP | 🔵 Built | 5 |
-| US-01-02 | Capture Microphone Audio | P0 — MVP | 🔵 Built | 3 |
-| US-01-03 | Audio Device Selection | P1 — High | 🔵 Built | 3 |
-| US-01-04 | Voice Activity Detection | P0 — MVP | 🔵 Built | 8 |
-| US-01-05 | Audio Ring Buffer | P0 — MVP | 🔵 Built | 5 |
-| US-01-06 | Real-time Audio Level Meters | P2 — Medium | 🔵 Built | 2 |
-| US-01-07 | Automatic Device Failover | P1 — High | 🔵 Built | 3 |
+| US-01-01 | Capture System Audio Loopback | P0 — MVP | ✅ Done (Built & Tested) | 5 |
+| US-01-02 | Capture Microphone Audio | P0 — MVP | ✅ Done (Built & Tested) | 3 |
+| US-01-03 | Audio Device Selection | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-01-04 | Voice Activity Detection | P0 — MVP | ✅ Done (Built & Tested) | 8 |
+| US-01-05 | Audio Ring Buffer | P0 — MVP | ✅ Done (Built & Tested) | 5 |
+| US-01-06 | Real-time Audio Level Meters | P2 — Medium | ✅ Done (Built & Tested) | 2 |
+| US-01-07 | Automatic Device Failover | P1 — High | ✅ Done (Built & Tested) | 3 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

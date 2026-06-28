@@ -4,16 +4,16 @@
 
 | Story ID | Title | Priority | Status | SP |
 |----------|-------|----------|--------|----|
-| US-10-01 | Audio Pipeline Latency Profiling | P1 — High | 🔵 Built | 3 |
-| US-10-02 | CPU Usage Optimisation | P2 — Medium | 🔵 Built | 5 |
-| US-10-03 | GPU Acceleration for Whisper | P2 — Medium | 🔵 Built | 5 |
-| US-10-04 | Memory Management for Long Meetings | P1 — High | 🔵 Built | 5 |
-| US-10-05 | Graceful Error Recovery | P1 — High | 🔵 Built | 5 |
-| US-10-06 | End-to-End Latency Benchmark | P2 — Medium | 🔵 Built | 3 |
-| US-10-07 | App Startup Performance | P2 — Medium | 🔵 Built | 3 |
-| US-10-08 | Crash Reporting (Opt-in) | P3 — Low | 🔵 Built | 3 |
-| US-10-09 | Auto-Update Mechanism | P2 — Medium | 🔵 Built | 5 |
-| US-10-10 | Low-Power Mode | P3 — Low | 🔵 Built | 3 |
+| US-10-01 | Audio Pipeline Latency Profiling | P1 — High | ✅ Done (Built & Tested) | 3 |
+| US-10-02 | CPU Usage Optimisation | P2 — Medium | ✅ Done (Built & Tested) | 5 |
+| US-10-03 | GPU Acceleration for Whisper | P2 — Medium | ✅ Done (Built & Tested) | 5 |
+| US-10-04 | Memory Management for Long Meetings | P1 — High | ✅ Done (Built & Tested) | 5 |
+| US-10-05 | Graceful Error Recovery | P1 — High | ✅ Done (Built & Tested) | 5 |
+| US-10-06 | End-to-End Latency Benchmark | P2 — Medium | ✅ Done (Built & Tested) | 3 |
+| US-10-07 | App Startup Performance | P2 — Medium | ✅ Done (Built & Tested) | 3 |
+| US-10-08 | Crash Reporting (Opt-in) | P3 — Low | ✅ Done (Built & Tested) | 3 |
+| US-10-09 | Auto-Update Mechanism | P2 — Medium | ✅ Done (Built & Tested) | 5 |
+| US-10-10 | Low-Power Mode | P3 — Low | ✅ Done (Built & Tested) | 3 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)
