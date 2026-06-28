@@ -24,6 +24,11 @@ public static class PromptBuilder
         }
 
         var templateSuffix = template?.SystemPromptSuffix ?? string.Empty;
+        // When a template overrides the mode (e.g. Detailed Explanation, Quick Answer), let it
+        // set the length. Only apply the default 150-word cap for the Default (no-suffix) template.
+        var lengthRule = string.IsNullOrEmpty(templateSuffix)
+            ? "- Be CONCISE: ≤ 150 words. The user is in a live meeting."
+            : "- Follow the length and format specified by the template mode below.";
 
         return $"""
             You are Chum, a real-time AI assistant for professional meetings.
@@ -38,7 +43,7 @@ public static class PromptBuilder
             If there is no clear question, summarise the last topic discussed in 2–3 bullet points.
 
             Rules:
-            - Be CONCISE: default ≤ 150 words. The user is in a live meeting.
+            {lengthRule}
             - Use bullet points for multi-part answers.
             - Skip all preamble ("Great question!", "Certainly!", "Of course!").
             - State facts directly. If uncertain, say "I'm not sure — " briefly.

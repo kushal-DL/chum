@@ -678,7 +678,7 @@ public sealed class MeetingOrchestrator : IDisposable
             {
                 user = "Listen to the attached audio from a live meeting. " +
                        "Start your response with 'Q: ' followed by a one-line summary of the key question or statement you heard. " +
-                       "Then on a new line start with 'A: ' and give a concise, helpful answer. Keep it under 150 words.";
+                       "Then on a new line start with 'A: ' and give a helpful answer.";
                 if (!string.IsNullOrWhiteSpace(contextText))
                     user += $"\n\nAdditional meeting transcript context:\n{contextText}";
             }
@@ -687,15 +687,18 @@ public sealed class MeetingOrchestrator : IDisposable
                 // Local path: show the recognised question, then ask the model to answer it.
                 _overlay.AppendResponseToken($"Q: {localTranscript}\n\nA: ");
                 user = $"I'm in a live meeting. Here is my question/statement, transcribed from audio:\n\n\"{localTranscript}\"\n\n" +
-                       "Respond concisely and helpfully in under 150 words. Do not repeat the question back.";
+                       "Answer it helpfully. Do not repeat the question back.";
                 if (!string.IsNullOrWhiteSpace(contextText))
                     user += $"\n\nMeeting context:\n{contextText}";
             }
 
+            var activeTemplate = _templateService?.GetByName(_settings.Current.ActiveTemplateName);
+            int maxTokens = activeTemplate?.MaxTokensOverride ?? _settings.Current.MaxResponseTokens;
+
             var request = new LlmRequest(system, user,
                 AudioBase64: audioBase64,
                 AudioMediaType: audioBase64 is not null ? "audio/wav" : null,
-                MaxTokens: _settings.Current.MaxResponseTokens,
+                MaxTokens: maxTokens,
                 Temperature: _settings.Current.Temperature);
 
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} mode={Mode}",
