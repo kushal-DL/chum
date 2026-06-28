@@ -51,7 +51,7 @@ function Write-Skip([string]$Message) {
 }
 
 Write-Host "`nChum Uninstaller" -ForegroundColor White
-Write-Host "─────────────────────────────────────────" -ForegroundColor DarkGray
+Write-Host "-----------------------------------------" -ForegroundColor DarkGray
 
 # ── 1. Stop and delete Windows service ───────────────────────────────────────
 Write-Step "Stopping and removing $ServiceName service..."

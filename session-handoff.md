@@ -194,6 +194,30 @@ The solution (`src/Chum.sln`) now builds cleanly with .NET 10.0.301 SDK after fi
 
 ---
 
+### What Was Done Session 52 (2026-06-28, Part 52)
+
+**Service-based installer cleanup + README.md:**
+
+**Deleted files:**
+- `scripts\install.ps1` — wrong user-space installer (no service, no admin requirement); replaced by the existing `scripts\Install-Chum.ps1`.
+
+**Fixed files:**
+- `scripts\Install-Chum.ps1` — fixed two bugs: (1) replaced `─` box-drawing character (U+2500) in header `Write-Host` with ASCII `-` to prevent PowerShell 5.1 parse failure; (2) fixed scheduled task exe name from `Chum.exe` → `Chum.App.exe`.
+- `scripts\Uninstall-Chum.ps1` — same Unicode fix for `─` character in header.
+
+**New files:**
+- `install.cmd` — single-click installer wrapper at repo root. Detects whether already elevated; if not, re-launches itself via `Start-Process ... -Verb RunAs`. Once elevated, calls `scripts\Install-Chum.ps1 -StartService`. Requires admin — IT team must approve.
+- `README.md` — complete documentation: what Chum is, service architecture (ChumHostSvc + Chum.App.exe), prerequisites (.NET 10 WindowsDesktop runtime, API key), quick install via `install.cmd`, manual PowerShell install, running from source, first-run setup, default hotkeys, directory layout, audit trail, troubleshooting, MSI build, privacy summary.
+
+**Decisions:**
+- Admin elevation is mandatory — `#Requires -RunAsAdministrator` in `Install-Chum.ps1` + `install.cmd` UAC prompt. This is intentional: IT team approval is required to install a Windows service.
+- `install.cmd` uses `Start-Process ... -Verb RunAs -Wait` so the cmd window stays open until install completes.
+- README documents that service runs under LocalSystem and is visible in Services tab of Task Manager and in Event Log under Source "Chum" — full OS-level visibility/auditability.
+
+**Build:** 0 errors, 8 warnings (unchanged — no C# changes this session).
+
+---
+
 ### What Was Done Session 51 (2026-06-28, Part 51)
 
 **Low-Power Mode — US-10-10 → 🔵 Built:**  
@@ -1120,11 +1144,16 @@ Status updated from 🟡 Scaffolded → 🔵 Built. No code written. SP totals u
 
 ## Immediate Next Step
 
-**US-10-09 — Auto-Update Mechanism (P2, 5 SP):**
+**End-to-End Testing (all 84 stories are 🔵 Built):**
 
-Check GitHub Releases API (`GET https://api.github.com/repos/kushal-DL/chum/releases/latest`), compare version against app's assembly version, show tray balloon notification if newer. Download installer in background (with SHA256 verification if release asset checksum is published), run with `/S` flag for silent install. Must be blocked while a meeting capture is in progress. See EPIC-10-performance.md for full spec.
-
-Other remaining stories: US-09-04 (Screen Share Detection per Platform, P3, 5 SP), US-09-07 (Platform Testing Matrix, P3, 3 SP), US-10-08 (Crash Reporting Opt-in, P3, 3 SP), US-10-10 (Low-Power Mode, P3, 3 SP).
+1. Run `install.cmd` (double-click, approve UAC) — verify service installs and starts
+2. Check tray app appears in notification area
+3. Open Settings, enter Anthropic API key, confirm Test returns OK
+4. Join a Teams/Zoom call, verify audio capture and transcription appear in overlay
+5. Press `Ctrl+Alt+Space` (hold-to-ask hotkey) — verify LLM response streams in
+6. Use `product-backlog/PLATFORM-COMPAT-TEST-MATRIX.md` as the manual test guide
+7. Promote stories from 🔵 Built → ✅ Done (Built & Tested) as each is verified
+8. After first successful end-to-end run: create GitHub Release `v0.1.0` and attach installer
 
 ---
 

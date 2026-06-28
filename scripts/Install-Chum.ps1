@@ -73,7 +73,7 @@ function Write-Ok([string]$Message) {
 
 # ── 1. Verify dotnet SDK is available ────────────────────────────────────────
 Write-Host "`nChum Installer" -ForegroundColor White
-Write-Host "─────────────────────────────────────────" -ForegroundColor DarkGray
+Write-Host "-----------------------------------------" -ForegroundColor DarkGray
 
 Write-Step "Checking .NET SDK..."
 try {
@@ -183,7 +183,7 @@ Write-Ok "ChumHostSvc service registered (auto-start, LocalSystem)"
 
 # ── 9. Create scheduled task for tray app ────────────────────────────────────
 Write-Step "Creating scheduled task '$TaskName'..."
-$taskAction  = New-ScheduledTaskAction -Execute "$AppInstallDir\Chum.exe"
+$taskAction  = New-ScheduledTaskAction -Execute "$AppInstallDir\Chum.App.exe"
 $taskTrigger = New-ScheduledTaskTrigger -AtLogOn
 $taskPrincipal = New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Users' -RunLevel Limited
 $taskSettings  = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 0)
