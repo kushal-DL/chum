@@ -15,13 +15,14 @@
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
 | ✅ Done | 0 | 0 SP | 0% |
-| 🔵 Built | 71 | 271 SP | 85% |
+| 🔵 Built | 74 | 283 SP | 85% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
 | 🔴 Yet to Start | 13 | 49 SP | 15% |
-| **Total** | **84** | **320 SP** | |
+| **Total** | **87** | **332 SP** | |
 
 > **All 16 P0 (MVP) stories are 🔵 Built — MVP is code-complete, pending first end-to-end test run.**
 > **All P1 stories are 🔵 Built — no scaffolded stories remain.**
+> **3 new stories added (US-03-09, US-03-10, US-07-11) — all 🔵 Built**
 
 ---
 
@@ -31,15 +32,15 @@
 |------|---------|----------|---------|----------|--------------|-----------------|
 | 01 · Core Audio Engine | 7 | 29 SP | — | 7 (29 SP) | — | — |
 | 02 · Transcription & Context | 8 | 33 SP | — | 7 (31 SP) | — | 1 (2 SP) |
-| 03 · LLM Integration | 8 | 30 SP | — | 8 (30 SP) | — | — |
+| 03 · LLM Integration | 10 | 38 SP | — | 10 (38 SP) | — | — |
 | 04 · Hotkey & Trigger System | 7 | 26 SP | — | 7 (26 SP) | — | — |
 | 05 · Overlay UI & Display | 9 | 42 SP | — | 9 (42 SP) | — | — |
 | 06 · Screen Capture & Vision | 7 | 30 SP | — | 5 (20 SP) | — | 2 (10 SP) |
-| 07 · Settings & Configuration | 10 | 27 SP | — | 9 (25 SP) | — | 1 (2 SP) |
+| 07 · Settings & Configuration | 11 | 31 SP | — | 10 (29 SP) | — | 1 (2 SP) |
 | 08 · Privacy & Security | 11 | 36 SP | — | 11 (36 SP) | — | — |
 | 09 · Platform Compatibility | 7 | 27 SP | — | 2 (8 SP) | — | 5 (19 SP) |
 | 10 · Performance & Reliability | 10 | 40 SP | — | 6 (24 SP) | — | 4 (16 SP) |
-| **Total** | **84** | **320 SP** | **0** | **71 (271 SP)** | **0** | **13 (49 SP)** |
+| **Total** | **87** | **332 SP** | **0** | **74 (283 SP)** | **0** | **13 (49 SP)** |
 
 ---
 

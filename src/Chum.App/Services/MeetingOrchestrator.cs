@@ -41,6 +41,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private readonly PipelineLatencyTracker _latencyTracker = new();
     private readonly SessionCostTracker _costTracker = new();
     private TemplateService? _templateService;
+    private readonly DocumentContextService? _docContext;
     private CancellationTokenSource? _cts;
     private MeetingPlatform _lastPlatform = MeetingPlatform.Unknown;
 
@@ -67,7 +68,8 @@ public sealed class MeetingOrchestrator : IDisposable
         DxgiScreenCapture? screenCapture = null,
         ClipboardMonitor? clipboardMonitor = null,
         OpenAiSttProvider? cloudStt = null,
-        TemplateService? templateService = null)
+        TemplateService? templateService = null,
+        DocumentContextService? docContext = null)
     {
         _audio = audio;
         _stt = stt;
@@ -81,6 +83,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _screenCapture = screenCapture;
         _clipboardMonitor = clipboardMonitor;
         _templateService = templateService;
+        _docContext = docContext;
 
         if (_clipboardMonitor is not null)
             _clipboardMonitor.ImageAvailable += (_, _) => _overlay.SetClipboardPending(true);
@@ -482,6 +485,9 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
+            var docBlock = _docContext?.BuildContextBlock();
+            if (docBlock is not null)
+                system = system + "\n\n" + docBlock;
             var user = PromptBuilder.BuildUserMessage(contextText);
             var request = new LlmRequest(system, user,
                 MaxTokens: _settings.Current.MaxResponseTokens,
@@ -531,6 +537,9 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
+            var docBlock2 = _docContext?.BuildContextBlock();
+            if (docBlock2 is not null)
+                system = system + "\n\n" + docBlock2;
             var user = $"Extract all action items, decisions, and owners from this meeting transcript. Format as a bulleted list with owner names where identifiable.\n\n{sb}";
             var request = new LlmRequest(system, user, MaxTokens: 1024);
 
@@ -587,6 +596,9 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
+            var docBlock3 = _docContext?.BuildContextBlock();
+            if (docBlock3 is not null)
+                system = system + "\n\n" + docBlock3;
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
             var request = new LlmRequest(system, user,
                 ImageBase64: imageBase64,
@@ -669,6 +681,9 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
+            var docBlock4 = _docContext?.BuildContextBlock();
+            if (docBlock4 is not null)
+                system = system + "\n\n" + docBlock4;
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
             var request = new LlmRequest(system, user,
                 ImageBase64: imageBase64,

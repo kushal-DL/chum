@@ -22,6 +22,7 @@ public partial class App : System.Windows.Application
     // Publicly accessible services (used by SettingsWindow)
     public SettingsService Settings { get; } = new();
     public CredentialService Credentials { get; } = new();
+    public DocumentContextService DocContext { get; } = new();
     public MeetingOrchestrator? Orchestrator => _orchestrator;
 
     private HotkeyService? _hotkeys;
@@ -46,6 +47,7 @@ public partial class App : System.Windows.Application
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         Settings.Load();
+        DocContext.Load();
 
         // Create overlay early so we can show startup status immediately
         _overlayVm = new OverlayViewModel(Dispatcher);
@@ -139,7 +141,7 @@ public partial class App : System.Windows.Application
 
         _orchestrator = new MeetingOrchestrator(
             audioPipeline, stt, transcriptBuffer, contextExtractor,
-            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates);
+            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates, DocContext);
 
         _overlayWindow!.ImageFileDropped += (_, path) =>
             _ = _orchestrator.HandleDroppedImageQueryAsync(path);
@@ -268,30 +270,29 @@ public partial class App : System.Windows.Application
     {
         var s = Settings.Current;
 
-        if (s.LocalOnlyMode)
+        if (s.LocalOnlyMode || s.LlmProvider == "Ollama")
         {
             Log.Information("Local-only mode — using Ollama: {Model} at {Url}", s.OllamaModel, s.OllamaBaseUrl);
             return new OllamaLlmProvider(s.OllamaModel, s.OllamaBaseUrl);
         }
 
-        var model = s.LlmModel;
-        bool isOpenAi = model.StartsWith("gpt", StringComparison.OrdinalIgnoreCase);
-
-        if (isOpenAi)
+        if (s.LlmProvider == "Anthropic")
         {
-            var key = Credentials.GetOpenAiKey();
-            if (key is not null)
-            {
-                Log.Information("Using OpenAI provider: {Model}", model);
-                return new OpenAiLlmProvider(key, model);
-            }
-            Log.Warning("OpenAI model selected but no key stored — falling back to Anthropic");
+            var key = Credentials.GetAnthropicKey()
+                ?? throw new InvalidOperationException("Anthropic API key not set — open Settings to add it");
+            Log.Information("Using Anthropic provider: {Model}", s.LlmModel);
+            return new AnthropicLlmProvider(key, s.LlmModel);
         }
 
-        var anthropicKey = Credentials.GetAnthropicKey()
-            ?? throw new InvalidOperationException("No API key configured — cannot start LLM provider");
-        Log.Information("Using Anthropic provider: {Model}", model);
-        return new AnthropicLlmProvider(anthropicKey, model);
+        // OpenAI / NVIDIA / Custom — all OpenAI-compatible
+        {
+            var key = Credentials.GetOpenAiKey()
+                ?? throw new InvalidOperationException("API key not set — open Settings to add it");
+            var baseUrl = string.IsNullOrWhiteSpace(s.LlmApiBaseUrl) ? null : s.LlmApiBaseUrl;
+            Log.Information("Using OpenAI-compatible provider ({Provider}): {Model} at {Url}",
+                s.LlmProvider, s.LlmModel, baseUrl ?? "https://api.openai.com/v1");
+            return new OpenAiLlmProvider(key, s.LlmModel, baseUrl);
+        }
     }
 
     private async Task StartCaptureAsync()

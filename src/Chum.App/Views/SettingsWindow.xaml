@@ -55,42 +55,55 @@
                        FontWeight="Bold" Margin="0,0,0,4"/>
             <TextBlock Text="v0.1.0" Foreground="#666" FontSize="11"/>
 
-            <!-- ── API Keys ── -->
+            <!-- AI Provider -->
             <Label Content="AI PROVIDER" Style="{StaticResource SectionHeader}"/>
-            <TextBlock Text="Anthropic API Key" Foreground="#999" FontSize="11" Margin="0,0,0,2"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <PasswordBox x:Name="AnthropicKeyBox" Grid.Column="0"/>
-                <Button Grid.Column="1" Content="Save" Margin="6,0,0,0" Click="SaveAnthropicKey_Click"/>
-                <Button Grid.Column="2" Content="Test" Margin="6,0,0,0" Background="#22C55E"
-                        Click="TestAnthropicKey_Click"/>
-            </Grid>
-            <TextBlock x:Name="AnthropicKeyStatus" Foreground="#22C55E" FontSize="11"
-                       Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
-
-            <TextBlock Text="OpenAI API Key" Foreground="#999" FontSize="11" Margin="0,8,0,2"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <PasswordBox x:Name="OpenAiKeyBox" Grid.Column="0"/>
-                <Button Grid.Column="1" Content="Save" Margin="6,0,0,0" Click="SaveOpenAiKey_Click"/>
-            </Grid>
-            <TextBlock x:Name="OpenAiKeyStatus" Foreground="#22C55E" FontSize="11"
-                       Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
-
-            <TextBlock Text="Model" Foreground="#999" FontSize="11" Margin="0,8,0,2"/>
-            <ComboBox x:Name="ModelCombo" SelectedValuePath="Tag">
-                <ComboBoxItem Content="Claude Haiku 4.5 — Fast, cheap (recommended)" Tag="claude-haiku-4-5-20251001" IsSelected="True"/>
-                <ComboBoxItem Content="Claude Sonnet 4.6 — Higher quality, vision" Tag="claude-sonnet-4-6"/>
-                <ComboBoxItem Content="GPT-4o Mini — Fast, cheap (OpenAI)" Tag="gpt-4o-mini"/>
-                <ComboBoxItem Content="GPT-4o — Higher quality, vision (OpenAI)" Tag="gpt-4o"/>
+            <TextBlock Text="Provider" Foreground="#374151" FontSize="11" Margin="0,0,0,3"/>
+            <ComboBox x:Name="ProviderCombo" SelectionChanged="ProviderCombo_SelectionChanged">
+                <ComboBoxItem Content="Anthropic (Claude)" Tag="Anthropic"/>
+                <ComboBoxItem Content="OpenAI (GPT)" Tag="OpenAI"/>
+                <ComboBoxItem Content="NVIDIA NIM (OpenAI-compatible)" Tag="NVIDIA"/>
+                <ComboBoxItem Content="Ollama (local)" Tag="Ollama"/>
+                <ComboBoxItem Content="Custom (OpenAI-compatible)" Tag="Custom"/>
             </ComboBox>
+
+            <!-- API Base URL — shown for OpenAI / NVIDIA / Custom -->
+            <StackPanel x:Name="ApiUrlPanel" Visibility="Collapsed" Margin="0,6,0,0">
+                <TextBlock Text="API Base URL" Foreground="#374151" FontSize="11" Margin="0,0,0,3"/>
+                <TextBox x:Name="ApiBaseUrlBox" ToolTip="e.g. https://integrate.api.nvidia.com/v1"/>
+                <TextBlock Text="Leave blank to use the provider default endpoint."
+                           Foreground="#555" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <!-- API Key — shown for Anthropic / OpenAI / NVIDIA / Custom -->
+            <StackPanel x:Name="ApiKeyPanel" Visibility="Collapsed" Margin="0,6,0,0">
+                <TextBlock x:Name="ApiKeyLabel" Text="API Key" Foreground="#374151" FontSize="11" Margin="0,0,0,3"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <PasswordBox x:Name="ApiKeyBox" Grid.Column="0"/>
+                    <Button Grid.Column="1" Content="Save" Margin="6,0,0,0" Click="SaveApiKey_Click"/>
+                    <Button Grid.Column="2" Content="Test" Margin="6,0,0,0" Background="#16A34A"
+                            Click="TestApiKey_Click"/>
+                </Grid>
+                <TextBlock x:Name="ApiKeyStatus" Foreground="#16A34A" FontSize="11"
+                           Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
+            </StackPanel>
+
+            <!-- Ollama URL — shown only for Ollama -->
+            <StackPanel x:Name="OllamaInlinePanel" Visibility="Collapsed" Margin="0,6,0,0">
+                <TextBlock Text="Ollama Base URL" Foreground="#374151" FontSize="11" Margin="0,0,0,3"/>
+                <TextBox x:Name="OllamaInlineUrlBox" Text="http://localhost:11434"/>
+            </StackPanel>
+
+            <!-- Model — always shown -->
+            <TextBlock Text="Model" Foreground="#374151" FontSize="11" Margin="0,8,0,3"/>
+            <TextBox x:Name="ModelCombo"
+                     ToolTip="Model identifier — e.g. nvidia/nemotron-3-nano-omni-30b-a3b-reasoning, gpt-4o, claude-haiku-4-5-20251001"/>
+            <TextBlock Text="Enter the exact model ID for your selected provider."
+                       Foreground="#555" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
 
             <!-- ── Audio Devices ── -->
             <Label Content="AUDIO DEVICES" Style="{StaticResource SectionHeader}"/>
@@ -241,6 +254,21 @@
                       Foreground="#AAAAAA" Margin="0,8,0,0"/>
             <TextBlock Text="Reminds you to inform meeting participants that AI assistance is active."
                        Foreground="#555" FontSize="10" Margin="16,2,0,0" TextWrapping="Wrap"/>
+
+            <!-- Document Context -->
+            <Label Content="DOCUMENT CONTEXT" Style="{StaticResource SectionHeader}"/>
+            <TextBlock Text="Attach documents so Chum can reference them when answering questions."
+                       Foreground="#555" FontSize="10" Margin="0,0,0,6" TextWrapping="Wrap"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <Button Content="Add PDF / TXT file…" Padding="10,5" Background="#E5E7EB" Foreground="#374151"
+                        Click="AddDocument_Click" Margin="0,0,8,0"/>
+                <Button Content="Remove selected" Padding="10,5" Background="#FEE2E2" Foreground="#DC2626"
+                        Click="RemoveDocument_Click"/>
+            </StackPanel>
+            <ListBox x:Name="DocumentList" Height="80" Background="White" BorderBrush="#D1D5DB"
+                     BorderThickness="1" FontSize="11" Foreground="#374151"/>
+            <TextBlock Text="Documents are stored in %APPDATA%\Chum\documents.json and included in every LLM query."
+                       Foreground="#555" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
 
             <!-- ── Buttons ── -->
             <Grid Margin="0,20,0,0">

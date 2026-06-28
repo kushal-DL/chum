@@ -12,6 +12,8 @@
 | US-03-06 | Response History | P1 — High | 🔵 Built | 3 |
 | US-03-07 | Cost Estimation & Token Tracking | P2 — Medium | 🔵 Built | 3 |
 | US-03-08 | Prompt Templates Library | P2 — Medium | 🔵 Built | 3 |
+| US-03-09 | OpenAI-Compatible Endpoint (custom base URL) | P0 — MVP | 🔵 Built | 4 |
+| US-03-10 | Document Context in LLM Requests | P1 — High | 🔵 Built | 4 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

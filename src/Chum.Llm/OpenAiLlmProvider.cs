@@ -12,7 +12,7 @@ namespace Chum.Llm;
 /// </summary>
 public sealed class OpenAiLlmProvider : ILlmProvider
 {
-    private const string ApiBase = "https://api.openai.com/v1/chat/completions";
+    private readonly string _apiBase;
 
     private readonly HttpClient _http;
     private readonly string _apiKey;
@@ -22,11 +22,14 @@ public sealed class OpenAiLlmProvider : ILlmProvider
 
     public event EventHandler<LlmUsage>? UsageRecorded;
 
-    public OpenAiLlmProvider(string apiKey, string modelId = "gpt-4o-mini")
+    public OpenAiLlmProvider(string apiKey, string modelId = "gpt-4o-mini", string? baseUrl = null)
     {
         _apiKey = apiKey;
         ModelId = modelId;
         _http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        _apiBase = string.IsNullOrWhiteSpace(baseUrl)
+            ? "https://api.openai.com/v1/chat/completions"
+            : baseUrl.TrimEnd('/') + "/chat/completions";
     }
 
     public async IAsyncEnumerable<string> StreamResponseAsync(
@@ -34,7 +37,7 @@ public sealed class OpenAiLlmProvider : ILlmProvider
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         var body = BuildRequestBody(request);
-        using var req = new HttpRequestMessage(HttpMethod.Post, ApiBase);
+        using var req = new HttpRequestMessage(HttpMethod.Post, _apiBase);
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
         req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
         req.Content = new StringContent(body, Encoding.UTF8, "application/json");
