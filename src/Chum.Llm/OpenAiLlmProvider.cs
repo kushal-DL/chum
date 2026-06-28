@@ -77,8 +77,12 @@ public sealed class OpenAiLlmProvider : ILlmProvider
             try
             {
                 var node = JsonNode.Parse(json);
-                delta = node?["choices"]?[0]?["delta"]?["content"]?.GetValue<string>();
-                // Usage arrives in the final chunk when stream_options.include_usage = true
+                // choices is [] on the final usage-only chunk (NVIDIA NIM, some other providers)
+                var choices = node?["choices"]?.AsArray();
+                if (choices is { Count: > 0 })
+                    delta = choices[0]?["delta"]?["content"]?.GetValue<string>();
+
+                // Usage may arrive in the final chunk (stream_options.include_usage) or top-level
                 if (node?["usage"] is { } usage)
                 {
                     inputTokens = usage["prompt_tokens"]?.GetValue<int>() ?? inputTokens;
