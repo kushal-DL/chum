@@ -26,7 +26,7 @@ public sealed class OllamaLlmProvider : ILlmProvider
     {
         ModelId = model;
         _baseUrl = baseUrl.TrimEnd('/');
-        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        _http = new HttpClient(new WinHttpHandler()) { Timeout = TimeSpan.FromSeconds(120) };
     }
 
     public async IAsyncEnumerable<string> StreamResponseAsync(

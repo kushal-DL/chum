@@ -6,6 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <!-- No external SDK dependency: Anthropic REST API called via HttpClient + SSE parsing -->
+  <ItemGroup>
+    <!-- WinHttpHandler uses the Windows native HTTP stack (WinHTTP), which automatically handles
+         corporate SSL inspection proxies (ZScaler, Netskope, etc.) via the Windows certificate store.
+         This prevents SSL handshake failures on corporate networks where SocketsHttpHandler may fail. -->
+    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="9.0.0" />
+  </ItemGroup>
 
 </Project>

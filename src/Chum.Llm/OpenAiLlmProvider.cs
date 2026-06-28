@@ -26,7 +26,7 @@ public sealed class OpenAiLlmProvider : ILlmProvider
     {
         _apiKey = apiKey;
         ModelId = modelId;
-        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        _http = new HttpClient(new WinHttpHandler()) { Timeout = TimeSpan.FromSeconds(120) };
         _apiBase = string.IsNullOrWhiteSpace(baseUrl)
             ? "https://api.openai.com/v1/chat/completions"
             : baseUrl.TrimEnd('/') + "/chat/completions";

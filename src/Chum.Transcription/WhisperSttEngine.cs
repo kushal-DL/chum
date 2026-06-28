@@ -67,8 +67,14 @@ public sealed class WhisperSttEngine : IDisposable
         }
 
         _factory = WhisperFactory.FromPath(_modelPath);
+
+        // Use half the logical cores (min 4) to keep UI responsive while maximising throughput.
+        // Whisper.net uses whisper.cpp which is single-threaded per-segment but benefits from
+        // multiple threads during spectrogram computation and GGML matrix ops.
+        int threads = Math.Max(4, Environment.ProcessorCount / 2);
         _processor = _factory.CreateBuilder()
             .WithLanguage("auto")
+            .WithThreads(threads)
             .Build();
 
         // Whisper.net 1.7.x GPU acceleration is determined by which native runtime package is installed:

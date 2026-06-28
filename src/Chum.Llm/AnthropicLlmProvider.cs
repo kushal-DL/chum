@@ -29,7 +29,7 @@ public sealed class AnthropicLlmProvider : ILlmProvider
     {
         _apiKey = apiKey;
         ModelId = modelId;
-        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        _http = new HttpClient(new WinHttpHandler()) { Timeout = TimeSpan.FromSeconds(120) };
     }
 
     public async IAsyncEnumerable<string> StreamResponseAsync(
