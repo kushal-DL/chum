@@ -126,18 +126,8 @@
 
             <!-- Transcription -->
             <Label Content="TRANSCRIPTION" Style="{StaticResource SectionHeader}"/>
-            <CheckBox x:Name="UseSherpaSttBox"
-                      Content="Fast local streaming STT (sherpa-onnx Zipformer — recommended)"
-                      Margin="0,6,0,2" IsChecked="True"
-                      ToolTip="Downloads a ~130 MB English streaming model on first use. Decodes faster than real-time on CPU and does not hallucinate noise captions like Whisper. Uncheck to use whisper.cpp instead."/>
-            <TextBlock Text="whisper.cpp model size (fallback / used when streaming STT is off)"
-                       Foreground="#374151" FontSize="11" Margin="0,6,0,2"/>
-            <ComboBox x:Name="WhisperModelCombo">
-                <ComboBoxItem Content="Tiny (39 MB) — fastest, lowest accuracy" Tag="Tiny"/>
-                <ComboBoxItem Content="Base (74 MB) — fast, decent accuracy" Tag="Base"/>
-                <ComboBoxItem Content="Small (244 MB) — recommended balance" Tag="Small" IsSelected="True"/>
-                <ComboBoxItem Content="Medium (769 MB) — high accuracy, slower on CPU" Tag="Medium"/>
-            </ComboBox>
+            <TextBlock TextWrapping="Wrap" Foreground="#6B7280" FontSize="11" Margin="0,4,0,0"
+                       Text="Local STT: sherpa-onnx Zipformer (fast on CPU, ~130 MB model). Used for rolling transcript. For press-to-record queries with better technical-vocabulary accuracy, enable Cloud STT below."/>
 
             <!-- Query mode -->
             <Label Content="QUERY MODE (PRESS-TO-RECORD)" Style="{StaticResource SectionHeader}"/>
@@ -209,14 +199,19 @@
                          ToolTip="Warn in overlay when session API spend exceeds this amount in USD. Set to 0 to disable."/>
             </StackPanel>
 
-            <!-- Cloud STT Fallback -->
-            <Label Content="CLOUD STT FALLBACK (OPENAI WHISPER)" Style="{StaticResource SectionHeader}"/>
+            <!-- Cloud STT -->
+            <Label Content="CLOUD STT (NVIDIA / OPENAI)" Style="{StaticResource SectionHeader}"/>
             <CheckBox x:Name="CloudSttFallbackBox"
-                      Content="Fall back to OpenAI Whisper API when local STT fails"
+                      Content="Use cloud STT for press-to-record queries (better accuracy for technical terms)"
                       Margin="0,4"
-                      ToolTip="Uses your OpenAI API key. Falls back automatically if local Whisper cannot initialize. Billed per minute of audio."/>
-            <TextBlock Text="Cloud STT model" Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
-            <TextBox x:Name="CloudSttModelBox" Text="whisper-1"/>
+                      ToolTip="When enabled, press-to-record queries are transcribed by the cloud API instead of local sherpa-onnx. NVIDIA Canary-1B or OpenAI Whisper-large give much better accuracy on technical vocabulary (AWS, Kubernetes, APIs, etc.)."/>
+            <TextBlock Text="API base URL (leave empty for OpenAI; set to NVIDIA URL for NVIDIA)"
+                       Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
+            <TextBox x:Name="CloudSttBaseUrlBox" Text="https://integrate.api.nvidia.com/v1"
+                     ToolTip="NVIDIA: https://integrate.api.nvidia.com/v1 · OpenAI: leave empty"/>
+            <TextBlock Text="Model name" Foreground="#374151" FontSize="11" Margin="0,6,0,2"/>
+            <TextBox x:Name="CloudSttModelBox" Text="nvidia/canary-1b"
+                     ToolTip="NVIDIA: nvidia/canary-1b or nvidia/parakeet-ctc-1.1b-asr · OpenAI: whisper-1"/>
 
             <!-- Local Processing -->
             <Label Content="LOCAL PROCESSING (OLLAMA)" Style="{StaticResource SectionHeader}"/>

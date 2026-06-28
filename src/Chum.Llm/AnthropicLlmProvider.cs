@@ -22,6 +22,7 @@ public sealed class AnthropicLlmProvider : ILlmProvider
 
     public string ProviderName => "Anthropic";
     public string ModelId { get; }
+    public bool SupportsAudioInput => false;
 
     public event EventHandler<LlmUsage>? UsageRecorded;
 

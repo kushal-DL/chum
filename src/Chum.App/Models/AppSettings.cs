@@ -25,12 +25,8 @@ public sealed class AppSettings
     public int TranscriptRetentionMinutes { get; set; } = 10;
 
     // --- Transcription ---
-    public string WhisperModel { get; set; } = "Small";  // GgmlType enum name (whisper.cpp fallback)
-    public bool UseGpu { get; set; } = true;
-    // When true, use the sherpa-onnx streaming Zipformer engine for local STT. It decodes faster
-    // than real-time on CPU and does not hallucinate sound-effect captions like Whisper does on noise.
-    // Falls back to whisper.cpp (CPU) if the sherpa model download fails.
-    public bool UseSherpaStt { get; set; } = true;
+    // Local STT engine: sherpa-onnx streaming Zipformer (fast, runs on CPU at ~10x real-time).
+    // Used for the rolling transcript. For press-to-record queries, see CloudSttFallback below.
 
     // --- Query mode (press-to-record) ---
     // What happens when you press the hold-to-ask hotkey a second time to stop recording.
@@ -79,10 +75,15 @@ public sealed class AppSettings
     // Prevents accidental screen captures that send sensitive content to the cloud LLM.
     public bool ConfirmScreenCapture { get; set; } = false;
 
-    // --- Cloud STT fallback (OpenAI Whisper API) ---
-    // When true: if local Whisper is not ready or throws, fall back to the cloud provider.
+    // --- Cloud STT for press-to-record queries ---
+    // When true: press-to-record queries are transcribed by the cloud API instead of local sherpa-onnx.
+    // Use NVIDIA NIM (nvidia/canary-1b) or OpenAI (whisper-1) for significantly better accuracy on
+    // technical vocabulary. Requires API key for the selected provider.
     public bool CloudSttFallback { get; set; } = false;
-    public string CloudSttModel { get; set; } = "whisper-1";
+    // Model name sent to the cloud STT endpoint. NVIDIA: "nvidia/canary-1b". OpenAI: "whisper-1".
+    public string CloudSttModel { get; set; } = "nvidia/canary-1b";
+    // Base URL for cloud STT. Empty = OpenAI. Set to "https://integrate.api.nvidia.com/v1" for NVIDIA.
+    public string CloudSttBaseUrl { get; set; } = "https://integrate.api.nvidia.com/v1";
 
     // --- Local-only mode (Ollama) ---
     public bool LocalOnlyMode { get; set; } = false;
@@ -122,8 +123,6 @@ public sealed class AppSettings
     // --- Low-power mode (US-10-10) ---
     // When true: auto-activate low-power mode on battery (detected via SystemInformation.PowerStatus).
     // When on battery in low-power mode: GC timer interval doubles; overlay shows "Low power" badge.
-    // Next restart with low-power mode active will select the "Base" Whisper model automatically
-    // (smaller, faster, lower CPU) rather than the user-selected model.
     public bool AutoLowPowerOnBattery { get; set; } = true;
     // Manual override: forces low-power mode regardless of power state.
     public bool ForceLowPowerMode { get; set; } = false;

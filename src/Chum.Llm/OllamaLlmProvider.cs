@@ -18,6 +18,7 @@ public sealed class OllamaLlmProvider : ILlmProvider
 
     public string ProviderName => "Ollama (local)";
     public string ModelId { get; }
+    public bool SupportsAudioInput => false;
 
     // Local inference has no API cost — UsageRecorded is never fired for Ollama.
     public event EventHandler<LlmUsage>? UsageRecorded;

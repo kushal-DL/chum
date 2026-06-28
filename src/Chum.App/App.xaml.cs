@@ -13,7 +13,6 @@ using Chum.Audio.Vad;
 using Chum.Llm;
 using Chum.Transcription;
 using Serilog;
-using Whisper.net.Ggml;
 
 namespace Chum.App;
 
@@ -119,11 +118,17 @@ public partial class App : System.Windows.Application
         OpenAiSttProvider? cloudStt = null;
         if (Settings.Current.CloudSttFallback)
         {
-            var openAiKey = Config.OpenAiApiKey;
-            if (openAiKey is not null)
-                cloudStt = new OpenAiSttProvider(openAiKey, Settings.Current.CloudSttModel);
+            var key = Config.OpenAiApiKey ?? Config.AnthropicApiKey;
+            if (key is not null)
+            {
+                var sttBase = string.IsNullOrWhiteSpace(Settings.Current.CloudSttBaseUrl)
+                    ? null : Settings.Current.CloudSttBaseUrl;
+                cloudStt = new OpenAiSttProvider(key, Settings.Current.CloudSttModel, sttBase);
+                Log.Information("Cloud STT enabled: {Model} @ {Base}", Settings.Current.CloudSttModel,
+                    sttBase ?? "OpenAI");
+            }
             else
-                Log.Warning("CloudSttFallback enabled but no OpenAI API key stored — fallback disabled");
+                Log.Warning("Cloud STT enabled but no API key found (NVIDIA or OpenAI) — cloud STT disabled");
         }
 
         await Task.WhenAll(vadTask1, vadTask2, templatesTask);
@@ -133,21 +138,11 @@ public partial class App : System.Windows.Application
         var audioPipeline = new AudioPipeline(loopback, mic, vadTask1.Result, vadTask2.Result,
             enableNoiseSuppression: Settings.Current.EnableNoiseSuppression);
 
-        var modelType = Enum.TryParse<GgmlType>(Settings.Current.WhisperModel, out var gt) ? gt : GgmlType.Small;
         var modelDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Chum", "Models");
-        ISttEngine stt;
-        ISttEngine? cpuSttFallback = null;
-        if (Settings.Current.UseSherpaStt)
-        {
-            // Streaming Zipformer — faster than real-time on CPU, no Whisper-style noise hallucinations.
-            stt = new SherpaOnnxSttEngine(modelDir);
-            cpuSttFallback = new WhisperSttEngine(modelDir, modelType); // used if sherpa model download fails
-        }
-        else
-        {
-            stt = new WhisperSttEngine(modelDir, modelType);
-        }
+        // Sherpa-onnx streaming Zipformer: fast on CPU (~10x real-time), no noise hallucinations.
+        // Used for rolling transcript and as local fallback for press-to-record queries.
+        ISttEngine stt = new SherpaOnnxSttEngine(modelDir);
 
         var retentionWindow = TimeSpan.FromMinutes(Settings.Current.TranscriptRetentionMinutes);
         var transcriptBuffer = new TranscriptBuffer(retentionWindow);
@@ -155,7 +150,7 @@ public partial class App : System.Windows.Application
 
         _orchestrator = new MeetingOrchestrator(
             audioPipeline, stt, transcriptBuffer, contextExtractor,
-            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates, DocContext, cpuSttFallback);
+            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates, DocContext);
 
         _overlayWindow!.ImageFileDropped += (_, path) =>
             _ = _orchestrator.HandleDroppedImageQueryAsync(path);

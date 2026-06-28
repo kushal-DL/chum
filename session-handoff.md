@@ -45,8 +45,36 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 
 ## Current Status
 
-**Date of last update:** 2026-06-28  
-**Phase:** 🔧 MAJOR STT REWORK — replaced batch Whisper with sherpa-onnx streaming + press-to-record query modes. 195 unit tests passing. Needs end-to-end test on hardware.
+**Date of last update:** 2026-06-29  
+**Phase:** 🔧 Bug fixes — Whisper removed, NVIDIA Phi-4 multimodal audio format fixed. Needs deploy + test.
+
+### What Was Done Session 60 (2026-06-29) — NVIDIA Phi-4 multimodal audio format + Whisper removal
+
+**Fixes in this session:**
+
+1. **Ctrl+Alt+Space no longer opens Settings** — `HotkeyService.cs`: when a hotkey combo matches, now returns `(IntPtr)1` (suppresses the key) instead of calling `CallNextHookEx`, which was letting Space fall through to WPF's focused Settings button.
+
+2. **Settings window hidden from screen share** — `SettingsWindow.xaml.cs`: `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` applied unconditionally in `OnSourceInitialized`. API keys, model config, etc. will not appear in Teams/Zoom recordings.
+
+3. **AudioToLlm silent failure fixed** — `OpenAiLlmProvider.cs`: NVIDIA returns HTTP 200 but with `{"error":{...}}` in the SSE body instead of `choices[]`. Added SSE error detection. Also added `_llm.SupportsAudioInput` upfront check — if false, logs warning and falls back gracefully to local STT.
+
+4. **Whisper removed entirely** — `WhisperSttEngine.cs` deleted; `Whisper.net` + `Whisper.net.Runtime` packages removed; `WhisperModel`/`UseGpu`/`UseSherpaStt` settings removed; Whisper UI removed from Settings. All references in `AboutWindow`, `App.xaml.cs`, `AppSettings`, `MeetingOrchestrator` updated.
+
+5. **NVIDIA cloud STT** — `OpenAiSttProvider` now URL-configurable. `CloudSttBaseUrl` defaults to `https://integrate.api.nvidia.com/v1`; `CloudSttModel` defaults to `nvidia/canary-1b`. Settings UI has base URL + model text boxes.
+
+6. **NVIDIA Phi-4 multimodal audio format fixed** — `OpenAiLlmProvider.cs`: NVIDIA NIM uses `audio_url` content blocks with a data URI (`data:audio/wav;base64,...`), not OpenAI's `input_audio` format. Added `_useAudioUrlFormat` flag (true when base URL contains `nvidia.com`). `SupportsAudioInput` now also true for NVIDIA base URL and models containing "multimodal". `BuildRequestBody` uses the correct format per provider.
+
+**To use Phi-4 multimodal for audio queries:**
+1. Settings → LLM: base URL = `https://integrate.api.nvidia.com/v1`, model = `microsoft/phi-4-multimodal-instruct`
+2. Settings → Cloud STT: enable, base URL = `https://integrate.api.nvidia.com/v1`, model = `nvidia/canary-1b`
+3. Settings → Query Mode: select "Audio to LLM"
+4. Press Ctrl+Alt+Space, speak, press again — audio goes to Phi-4 in one shot (transcription + answer together)
+
+**Build:** 0 errors (5 pre-existing warnings).
+
+**Immediate Next Step:** Deploy with `Quick-Deploy.ps1` (run as admin), then test the end-to-end flow.
+
+---
 
 ### What Was Done Session 59 (2026-06-28, Part 59) — STT rework
 

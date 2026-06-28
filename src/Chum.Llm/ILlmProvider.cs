@@ -16,6 +16,13 @@ public interface ILlmProvider
     string ProviderName { get; }
     string ModelId { get; }
 
+    /// <summary>
+    /// True only for models that accept raw audio via the input_audio content block
+    /// (currently: OpenAI gpt-4o-audio-preview). All other providers/models return false
+    /// and the orchestrator will fall back to local transcription → text → LLM.
+    /// </summary>
+    bool SupportsAudioInput { get; }
+
     /// <summary>Fired after each stream completes with actual token counts and estimated cost.</summary>
     event EventHandler<LlmUsage>? UsageRecorded;
 

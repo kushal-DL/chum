@@ -25,8 +25,8 @@ public partial class AboutWindow : Window
 
         ProviderLabel.Text = s.LocalOnlyMode ? "Ollama (local)" : s.LlmProvider;
         ModelLabel.Text = s.LocalOnlyMode ? s.OllamaModel : s.LlmModel;
-        WhisperModelLabel.Text = s.WhisperModel;
-        AccelLabel.Text = app.Orchestrator?.GetSttAccelerationMode() ?? "CPU";
+        WhisperModelLabel.Text = s.CloudSttFallback ? $"Cloud: {s.CloudSttModel}" : "sherpa-onnx (local)";
+        AccelLabel.Text = s.CloudSttFallback ? "Cloud GPU" : "CPU";
 
         if (app.Orchestrator is { } orch)
         {
@@ -92,8 +92,8 @@ public partial class AboutWindow : Window
         sb.AppendLine($"Chum v{version} — Diagnostics — {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss}");
         sb.AppendLine($"LLM provider : {(s.LocalOnlyMode ? "Ollama (local)" : s.LlmProvider)}");
         sb.AppendLine($"LLM model    : {(s.LocalOnlyMode ? s.OllamaModel : s.LlmModel)}");
-        sb.AppendLine($"Whisper model: {s.WhisperModel}");
-        sb.AppendLine($"Whisper accel: {(orch?.GetSttAccelerationMode() ?? "CPU")}");
+        sb.AppendLine($"STT engine   : {(s.CloudSttFallback ? $"Cloud ({s.CloudSttModel})" : "sherpa-onnx (local)")}");
+        sb.AppendLine($"STT accel    : {(s.CloudSttFallback ? "Cloud GPU" : "CPU")}");
 
         if (orch is not null)
         {

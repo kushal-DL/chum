@@ -149,7 +149,9 @@ public sealed class HotkeyService : IDisposable
                         _activeActionId = null;
                     }
                 }
-                break;
+                // Suppress the key — prevent it from reaching any other window (e.g. Space
+                // activating a focused WPF button in the overlay)
+                return (IntPtr)1;
             }
         }
         return CallNextHookEx(_hookId, nCode, wParam, lParam);

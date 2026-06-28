@@ -13,12 +13,17 @@ namespace Chum.Llm;
 public sealed class OpenAiLlmProvider : ILlmProvider
 {
     private readonly string _apiBase;
+    private readonly bool _useAudioUrlFormat; // NVIDIA NIM uses audio_url; OpenAI uses input_audio
 
     private readonly HttpClient _http;
     private readonly string _apiKey;
 
     public string ProviderName => "OpenAI";
     public string ModelId { get; }
+    public bool SupportsAudioInput =>
+        ModelId.Contains("audio", StringComparison.OrdinalIgnoreCase) ||
+        ModelId.Contains("multimodal", StringComparison.OrdinalIgnoreCase) ||
+        _useAudioUrlFormat;
 
     public event EventHandler<LlmUsage>? UsageRecorded;
 
@@ -30,6 +35,9 @@ public sealed class OpenAiLlmProvider : ILlmProvider
         _apiBase = string.IsNullOrWhiteSpace(baseUrl)
             ? "https://api.openai.com/v1/chat/completions"
             : baseUrl.TrimEnd('/') + "/chat/completions";
+        // NVIDIA NIM expects audio_url data-URL content blocks; OpenAI uses input_audio
+        _useAudioUrlFormat = !string.IsNullOrWhiteSpace(baseUrl) &&
+                             baseUrl.Contains("nvidia.com", StringComparison.OrdinalIgnoreCase);
     }
 
     public async IAsyncEnumerable<string> StreamResponseAsync(
@@ -77,6 +85,12 @@ public sealed class OpenAiLlmProvider : ILlmProvider
             try
             {
                 var node = JsonNode.Parse(json);
+
+                // Some providers (NVIDIA NIM, Azure) surface errors inside the SSE stream
+                // rather than as HTTP 4xx — detect and throw so the caller sees a real error.
+                if (node?["error"] is { } errNode)
+                    throw new LlmException($"API stream error: {errNode["message"]?.GetValue<string>() ?? errNode.ToJsonString()}");
+
                 // choices is [] on the final usage-only chunk (NVIDIA NIM, some other providers)
                 var choices = node?["choices"]?.AsArray();
                 if (choices is { Count: > 0 })
@@ -89,6 +103,7 @@ public sealed class OpenAiLlmProvider : ILlmProvider
                     outputTokens = usage["completion_tokens"]?.GetValue<int>() ?? outputTokens;
                 }
             }
+            catch (LlmException) { throw; } // don't swallow real errors
             catch (JsonException)
             {
                 continue; // malformed SSE line — skip
@@ -110,20 +125,39 @@ public sealed class OpenAiLlmProvider : ILlmProvider
         JsonNode userContent;
         if (request.AudioBase64 is not null)
         {
-            // Audio input — OpenAI-compatible format used by GPT-4o audio and NVIDIA NIM audio models
-            userContent = new JsonArray
+            if (_useAudioUrlFormat)
             {
-                new JsonObject
+                // NVIDIA NIM Phi-4 multimodal: audio_url with data URI
+                userContent = new JsonArray
                 {
-                    ["type"] = "input_audio",
-                    ["input_audio"] = new JsonObject
+                    new JsonObject
                     {
-                        ["data"] = request.AudioBase64,
-                        ["format"] = "wav"
-                    }
-                },
-                new JsonObject { ["type"] = "text", ["text"] = request.UserMessage }
-            };
+                        ["type"] = "audio_url",
+                        ["audio_url"] = new JsonObject
+                        {
+                            ["url"] = $"data:audio/wav;base64,{request.AudioBase64}"
+                        }
+                    },
+                    new JsonObject { ["type"] = "text", ["text"] = request.UserMessage }
+                };
+            }
+            else
+            {
+                // OpenAI GPT-4o-audio-preview: input_audio content block
+                userContent = new JsonArray
+                {
+                    new JsonObject
+                    {
+                        ["type"] = "input_audio",
+                        ["input_audio"] = new JsonObject
+                        {
+                            ["data"] = request.AudioBase64,
+                            ["format"] = "wav"
+                        }
+                    },
+                    new JsonObject { ["type"] = "text", ["text"] = request.UserMessage }
+                };
+            }
         }
         else if (request.ImageBase64 is not null)
         {

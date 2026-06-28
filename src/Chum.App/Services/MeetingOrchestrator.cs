@@ -26,7 +26,6 @@ public sealed class MeetingOrchestrator : IDisposable
 {
     private AudioPipeline _audio;
     private ISttEngine _stt;
-    private ISttEngine? _cpuSttFallback;
     private readonly OpenAiSttProvider? _cloudStt;
     private readonly TranscriptBuffer _transcript;
     private readonly ContextExtractor _context;
@@ -79,12 +78,10 @@ public sealed class MeetingOrchestrator : IDisposable
         ClipboardMonitor? clipboardMonitor = null,
         OpenAiSttProvider? cloudStt = null,
         TemplateService? templateService = null,
-        DocumentContextService? docContext = null,
-        ISttEngine? cpuSttFallback = null)
+        DocumentContextService? docContext = null)
     {
         _audio = audio;
         _stt = stt;
-        _cpuSttFallback = cpuSttFallback;
         _cloudStt = cloudStt;
         _transcript = transcript;
         _context = context;
@@ -453,23 +450,10 @@ public sealed class MeetingOrchestrator : IDisposable
             {
                 await _stt.InitializeAsync(ct: ct);
             }
-            catch (Exception ex) when (_cloudStt != null || _cpuSttFallback != null)
+            catch (Exception ex) when (_cloudStt != null)
             {
-                if (_cloudStt != null)
-                {
-                    Serilog.Log.Warning(ex, "Local STT init failed — running on cloud STT fallback");
-                    _overlay.ShowError("Local Whisper unavailable — using cloud STT (OpenAI Whisper)");
-                }
-                else
-                {
-                    // ONNX download/init failed; fall back to CPU whisper.cpp automatically
-                    Serilog.Log.Warning(ex, "ONNX STT init failed — switching to CPU Whisper fallback");
-                    _overlay.ShowError("⚠ GPU model unavailable — switched to CPU Whisper automatically");
-                    _stt.Dispose();
-                    _stt = _cpuSttFallback!;
-                    _cpuSttFallback = null;
-                    throw; // re-enter the outer loop → retries RunTranscriptionCycleAsync with CPU engine
-                }
+                Serilog.Log.Warning(ex, "Local STT init failed — continuing; cloud STT available for queries");
+                _overlay.ShowError("Local STT unavailable — cloud STT will be used for queries");
             }
         }
 
@@ -643,9 +627,27 @@ public sealed class MeetingOrchestrator : IDisposable
             string? audioBase64 = null;
             string? localTranscript = null;
 
-            if (mode == QueryMode.LocalTranscribeToLlm && _stt.IsReady)
+            bool useAudioToLlm = mode == QueryMode.AudioToLlm && _llm.SupportsAudioInput;
+            if (mode == QueryMode.AudioToLlm && !_llm.SupportsAudioInput)
             {
-                // Transcribe the recording locally (fast, private) and send only the text.
+                // Provider doesn't accept audio — fall back to local transcription silently.
+                // (Only gpt-4o-audio-preview supports input_audio; NVIDIA NIM and others silently drop it.)
+                _overlay.SetStatus(OverlayStatus.Thinking,
+                    $"Audio-to-LLM not supported by {_llm.ModelId} — transcribing locally…");
+                Serilog.Log.Warning("AudioToLlm requested but {Model} does not support audio input — falling back to local STT", _llm.ModelId);
+            }
+
+            if (useAudioToLlm)
+            {
+                // Send the recorded audio straight to a multimodal LLM that accepts audio input.
+                var wavBytes = WavEncoder.ToWavBytes(recordedSamples);
+                audioBase64 = Convert.ToBase64String(wavBytes);
+                Array.Clear(recordedSamples);
+                Serilog.Log.Information("Audio-to-LLM: {Secs:F1}s → {KB}KB WAV", secs, wavBytes.Length / 1024);
+            }
+            else
+            {
+                // Transcribe locally and send text — covers LocalTranscribeToLlm and AudioToLlm fallback.
                 _overlay.SetStatus(OverlayStatus.Thinking, "Transcribing locally…");
                 localTranscript = await _stt.TranscribeAsync(recordedSamples, AudioSource.Microphone, ct);
                 Array.Clear(recordedSamples);
@@ -656,14 +658,6 @@ public sealed class MeetingOrchestrator : IDisposable
                     _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
                     return;
                 }
-            }
-            else
-            {
-                // Send the recorded audio straight to a multimodal LLM that accepts audio input.
-                var wavBytes = WavEncoder.ToWavBytes(recordedSamples);
-                audioBase64 = Convert.ToBase64String(wavBytes);
-                Array.Clear(recordedSamples);
-                Serilog.Log.Information("Audio-to-LLM: {Secs:F1}s → {KB}KB WAV", secs, wavBytes.Length / 1024);
             }
 
             // Only attach the rolling meeting transcript if the user explicitly opted in.
@@ -1006,7 +1000,6 @@ public sealed class MeetingOrchestrator : IDisposable
         _latencyLogTimer?.Dispose();
         _audio.Dispose();
         _stt.Dispose();
-        _cpuSttFallback?.Dispose();
         _cloudStt?.Dispose();
         _hotkeys.Dispose();
         _shareDetector.Dispose();

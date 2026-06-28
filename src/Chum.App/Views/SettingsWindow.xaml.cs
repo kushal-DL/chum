@@ -1,4 +1,6 @@
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 using Chum.App.Services;
 using Chum.Audio.Capture;
 using Application = System.Windows.Application;
@@ -9,6 +11,10 @@ namespace Chum.App.Views;
 
 public partial class SettingsWindow : Window
 {
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint dwAffinity);
+    private const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
+
     private readonly SettingsService _settings;
     private readonly ConfigFileService _config;
     private readonly DocumentContextService _docContext;
@@ -22,6 +28,14 @@ public partial class SettingsWindow : Window
         _docContext = ((App)Application.Current).DocContext;
         _templateService = ((App)Application.Current).Orchestrator?.GetTemplateService();
         LoadCurrentSettings();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        // Always hide settings from screen share — API keys, model config, etc. must not leak.
+        var hwnd = new WindowInteropHelper(this).Handle;
+        SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
     }
 
     private void LoadCurrentSettings()
@@ -50,12 +64,6 @@ public partial class SettingsWindow : Window
 
         // Model text box
         ModelCombo.Text = s.LlmModel;
-
-        foreach (System.Windows.Controls.ComboBoxItem item in WhisperModelCombo.Items)
-        {
-            if (item.Tag?.ToString() == s.WhisperModel)
-                WhisperModelCombo.SelectedItem = item;
-        }
 
         PopulateDeviceCombo(LoopbackDeviceCombo, AudioDeviceEnumerator.GetRenderDevices(), s.LoopbackDeviceId);
         PopulateDeviceCombo(MicDeviceCombo, AudioDeviceEnumerator.GetCaptureDevices(), s.MicDeviceId);
@@ -92,9 +100,9 @@ public partial class SettingsWindow : Window
         ActiveTemplateCombo.SelectionChanged += (_, _) => LoadTemplateIntoEditor();
 
         CloudSttFallbackBox.IsChecked = s.CloudSttFallback;
+        CloudSttBaseUrlBox.Text = s.CloudSttBaseUrl;
         CloudSttModelBox.Text = s.CloudSttModel;
 
-        UseSherpaSttBox.IsChecked = s.UseSherpaStt;
         IncludeTranscriptBox.IsChecked = s.IncludeTranscriptContext;
         NoiseSuppressBox.IsChecked = s.EnableNoiseSuppression;
         VadThresholdSlider.Value = s.VadThresholdDb;
@@ -209,9 +217,6 @@ public partial class SettingsWindow : Window
             if (s.LlmProvider == "Ollama")
                 s.OllamaBaseUrl = OllamaInlineUrlBox.Text.Trim();
 
-            if (WhisperModelCombo.SelectedItem is ComboBoxItem whisperItem)
-                s.WhisperModel = whisperItem.Tag?.ToString() ?? s.WhisperModel;
-
             s.LoopbackDeviceId = (LoopbackDeviceCombo.SelectedItem as ComboBoxItem)?.Tag as string;
             s.MicDeviceId = (MicDeviceCombo.SelectedItem as ComboBoxItem)?.Tag as string;
 
@@ -235,9 +240,9 @@ public partial class SettingsWindow : Window
             if (ActiveTemplateCombo.SelectedItem is string tName)
                 s.ActiveTemplateName = tName;
             s.CloudSttFallback = CloudSttFallbackBox.IsChecked == true;
+            s.CloudSttBaseUrl = CloudSttBaseUrlBox.Text.Trim();
             s.CloudSttModel = CloudSttModelBox.Text.Trim().Length > 0
-                ? CloudSttModelBox.Text.Trim() : "whisper-1";
-            s.UseSherpaStt = UseSherpaSttBox.IsChecked == true;
+                ? CloudSttModelBox.Text.Trim() : "nvidia/canary-1b";
             s.IncludeTranscriptContext = IncludeTranscriptBox.IsChecked == true;
             s.EnableNoiseSuppression = NoiseSuppressBox.IsChecked == true;
             s.VadThresholdDb = (float)VadThresholdSlider.Value;

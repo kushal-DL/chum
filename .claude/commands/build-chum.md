@@ -133,7 +133,7 @@ Commit message format: `feat(US-NN-NN): brief description of what was built`
 ## What NOT to do
 
 - Do not start multiple stories in one session — finish one completely before touching the next.
-- Do not mark a story ✅ Done — only the user marks stories Done after manual testing.
+- Do not skip status transitions — always move through Scaffolded → Built → Done in order. Mark ✅ Done automatically when automated tests pass (do not wait for manual sign-off).
 - Do not refactor, rename, or clean up code that is not part of the chosen story.
 - Do not create files outside the structure defined in `REPO_STRUCTURE.md` without updating that file.
 - Do not install new NuGet packages without checking if an existing package already covers the need.
