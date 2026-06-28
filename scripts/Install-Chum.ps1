@@ -45,6 +45,8 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $ScriptDir = $PSScriptRoot
+if (-not $ScriptDir) { $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
+if (-not $ScriptDir) { throw "Cannot determine script directory. Run as: powershell -File scripts\Install-Chum.ps1" }
 $RepoRoot  = Split-Path $ScriptDir -Parent
 $SrcRoot   = Join-Path $RepoRoot 'src'
 
