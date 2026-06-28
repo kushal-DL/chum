@@ -5,7 +5,8 @@
         Width="500" Height="740"
         Background="#F9FAFB"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
 
     <Window.Resources>
         <!-- Section header label -->

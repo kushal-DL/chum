@@ -5,7 +5,8 @@
         Width="420" Height="510"
         Background="#1E1E1E"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
 
     <Window.Resources>
         <Style TargetType="TextBlock" x:Key="Label">
