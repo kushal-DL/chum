@@ -104,3 +104,4 @@ publish/
 *.tmp
 *.temp
 ~$*
+_workspace/
