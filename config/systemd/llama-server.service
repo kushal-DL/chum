@@ -1,0 +1,14 @@
+[Unit]
+Description=Chum llama-server (ROCm, Mistral 7B Q4_K_M)
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+Environment=LLAMA_MODEL=/home/%i/models/mistral-7b/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf
+ExecStart=/home/%i/repos/chum/scripts/wsl/start-llama-server.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

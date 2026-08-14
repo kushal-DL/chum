@@ -1,0 +1,14 @@
+[Unit]
+Description=Chum whisper-server (ROCm, large-v3-turbo)
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+Environment=WHISPER_MODEL=/home/%i/models/whisper-large-v3-turbo/ggml-large-v3-turbo.bin
+ExecStart=/home/%i/repos/chum/scripts/wsl/start-whisper-server.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
