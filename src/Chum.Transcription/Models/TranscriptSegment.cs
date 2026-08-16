@@ -10,5 +10,5 @@ public sealed record TranscriptSegment(
 )
 {
     /// Speaker label shown in transcript and LLM context.
-    public string SpeakerLabel => Source == AudioSource.Microphone ? "Me" : "Remote";
+    public string SpeakerLabel => Source == AudioSource.Microphone ? "[User]" : "[Room]";
 }
