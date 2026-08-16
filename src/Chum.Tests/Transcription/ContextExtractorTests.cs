@@ -32,11 +32,11 @@ public sealed class ContextExtractorTests
     {
         var (buf, ext) = Make();
         var t = DateTimeOffset.UtcNow;
-        // AudioSource.Microphone → SpeakerLabel "Me"
+        // AudioSource.Microphone → SpeakerLabel "[User]"
         buf.Add(Seg("hello world", t, AudioSource.Microphone));
 
         var ctx = ext.BuildContext(t.AddSeconds(5));
-        Assert.Contains("Me", ctx);
+        Assert.Contains("[User]", ctx);
         Assert.Contains("hello world", ctx);
         // Timestamp formatted as HH:mm:ss
         Assert.Contains(t.ToString("HH:mm:ss"), ctx);
