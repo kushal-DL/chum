@@ -45,8 +45,64 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 
 ## Current Status
 
-**Date of last update:** 2026-06-29  
-**Phase:** 🔧 Bug fixes — Whisper removed, NVIDIA Phi-4 multimodal audio format fixed. Needs deploy + test.
+**Date of last update:** 2026-08-17  
+**Phase:** 🔬 STT research — Whisper LoRA fine-tune COMPLETE. Fine-tuned model saved and wired into whisper_api_server.py.
+
+### What Was Done Session 63 (2026-08-17) — Whisper LoRA fine-tune completed
+
+**Fine-tuning pipeline completed end-to-end:**
+
+Training finished successfully. Two bugs fixed during this session:
+
+1. **`weights_only=True` crash** — `CachedEncoderDataset.__getitem__` had `torch.load(..., weights_only=True)`. PyTorch 2.4.1's new `weights_only` unpickler can't process the legacy tensor format. Fixed to `weights_only=False`.
+
+2. **Corrupt cache files from DirectML crash** — 2 cache files (`00280_us_guyneural.pt`, `00581_au_williamneural.pt`) had all-zero magic bytes (written during the DirectML GPU crash from Session 62, mid-save). `_is_zipfile` returned False → `_legacy_load` → tar extraction failed. Fixed by deleting the 2 corrupt files; Phase 1 re-encoded them.
+
+**Final training results:**
+- Phase 1: Encoder precomputation — 269 samples encoded in 19.7 min (531 already cached)
+- Phase 2: Decoder LoRA training — 7.8 min
+  - Epoch 1: train=1.5645, val=0.7916
+  - Epoch 2: train=0.6635, val=0.6791
+  - Epoch 3: train=0.5441, val=0.5760 (best)
+- LoRA adapters merged into base model, saved as full HF model
+
+**Output:**
+- `F:\repos\chum\models\whisper-large-v3-turbo-tech\` — 3.1 GB safetensors, tokenizer, processor
+- `scripts\whisper_api_server.py` — `MODEL_ID` updated to the local fine-tuned model path
+
+**Immediate Next Steps:**
+1. **Test the fine-tuned model** — start whisper_api_server.py and send audio containing technical terms (Kubernetes, Databricks, LoRA, etc.). Compare accuracy against base model.
+   ```powershell
+   cd F:\repos\chum\scripts
+   uvicorn whisper_api_server:app --host 0.0.0.0 --port 8000
+   ```
+2. **Retrain with more data if needed** — current training used 800 records (3 voices). Can add `en-AU-WilliamNeural`, `en-US-RogerNeural` voices to gen_training_data.py for more variation.
+3. **If model performance is poor** — increase LoRA r from 8 to 16 or 32, or train more epochs.
+
+**To retrain from scratch:**
+```powershell
+python -u F:\repos\chum\scripts\whisper-finetune\finetune_whisper.py
+```
+Encoder cache in `training_data/encoder_cache/` persists. Phase 1 only encodes missing/new samples.
+
+### What Was Done Session 62 (2026-08-17) — Whisper LoRA fine-tune pipeline built
+
+**Pipeline completed and training launched:**
+- TTS data generation done: 6000 WAV files + metadata.jsonl (3 voices × 2000 sentences, from two separate gen runs)
+- `finetune_whisper.py` fully built with:
+  - Encoder output precomputation (cached to `training_data/encoder_cache/*.pt`) — eliminates 32-layer encoder from every training step (10× speedup)
+  - Greedy vocabulary subset selection: 800 records chosen from 6000 to maximise coverage of all 748 technical terms
+  - LoRA decoder training: r=8, alpha=16, q_proj+v_proj in all 4 turbo decoder layers, batch=8, 3 epochs
+  - Fixed PEFT `PeftModelForSeq2SeqLM` bug: calls `model.base_model.model(encoder_outputs=..., labels=...)` directly (bypasses hardcoded `input_ids` in PEFT wrapper)
+  - Correct Whisper label format: `[<|en|>, <|transcribe|>, <|notimestamps|>, text_tokens..., EOT]`
+  - Merges LoRA into base model and saves HF format to `models/whisper-large-v3-turbo-tech/`
+
+**GPU limitations discovered:**
+- DirectML training: RX 6800 XT triggers Windows TDR (Timeout Detection & Recovery) when loading the full 809M-param model (3.2 GB fp32) to DirectML for training. CPU only.
+- DirectML encoder inference: Also triggers TDR on the 32-layer encoder during the first forward pass (even at fp16, 1.2 GB). DirectML on Windows supports small-model inference; large transformers are not viable.
+- AMD ROCm requires /dev/kfd (Kernel Fusion Driver) which WSL2 on Windows does not expose. No AMD GPU path available on Windows without Linux dual-boot.
+
+---
 
 ### What Was Done Session 60 (2026-06-29) — NVIDIA Phi-4 multimodal audio format + Whisper removal
 

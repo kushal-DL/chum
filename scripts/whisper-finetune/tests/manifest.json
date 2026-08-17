@@ -1,0 +1,47 @@
+﻿[
+    {
+        "domain":  "aws",
+        "file":  "F:\\repos\\chum\\scripts\\whisper-finetune\\tests\\test_aws.mp3",
+        "text":  "The EMR cluster is writing Parquet files to S3 and we have a Glue crawler refreshing the Athena table every hour."
+    },
+    {
+        "domain":  "azure",
+        "file":  "F:\\repos\\chum\\scripts\\whisper-finetune\\tests\\test_azure.mp3",
+        "text":  "We migrated the workload to Azure Kubernetes Service and enabled KEDA for autoscaling the event-driven pods."
+    },
+    {
+        "domain":  "cloud",
+        "file":  "F:\\repos\\chum\\scripts\\whisper-finetune\\tests\\test_cloud.mp3",
+        "text":  "Our Lambda functions are deployed behind an API Gateway with WAF rules blocking SQL injection attempts."
+    },
+    {
+        "domain":  "databricks",
+        "file":  "F:\\repos\\chum\\scripts\\whisper-finetune\\tests\\test_databricks.mp3",
+        "text":  "Delta Live Tables ingests the Kafka topic, applies a schema merge, and the downstream DLT pipeline runs in continuous mode."
+    },
+    {
+        "domain":  "kafka",
+        "file":  "F:\\repos\\chum\\scripts\\whisper-finetune\\tests\\test_kafka.mp3",
+        "text":  "The Kafka Streams topology joins the clickstream topic with the user enrichment KTable and sinks to the compacted output topic."
+    },
+    {
+        "domain":  "kubernetes",
+        "file":  "F:\\repos\\chum\\scripts\\whisper-finetune\\tests\\test_kubernetes.mp3",
+        "text":  "The Helm chart installs a HorizontalPodAutoscaler targeting seventy percent CPU utilization across the StatefulSet replicas."
+    },
+    {
+        "domain":  "llmops",
+        "file":  "F:\\repos\\chum\\scripts\\whisper-finetune\\tests\\test_llmops.mp3",
+        "text":  "We use MLflow to track the LoRA fine-tuning runs and LangSmith for tracing the LangChain RAG pipeline in production."
+    },
+    {
+        "domain":  "ml",
+        "file":  "F:\\repos\\chum\\scripts\\whisper-finetune\\tests\\test_ml.mp3",
+        "text":  "The transformer encoder uses multi-head self-attention with rotary positional embeddings and we quantize to INT4 using GPTQ."
+    },
+    {
+        "domain":  "python",
+        "file":  "F:\\repos\\chum\\scripts\\whisper-finetune\\tests\\test_python.mp3",
+        "text":  "Use a dataclass with a frozen equals true flag and override dunder hash so it can be used as a dictionary key in the defaultdict."
+    }
+]

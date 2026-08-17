@@ -1,1 +1,1 @@
-Langfuse;OpenLineage;KEDA;Databricks;EventBridge;Blackline;CreditManager;LoRA;Step Functions;Order-to-Cash;OpenLineage;LangChain;agentic;multiagent;Pub/Sub;WASAPI;whisper;microservices;ETL;DDL;DML;ERP;RAG;Accenture;Infosys;ZS Associates;pharma;traceability;orchestrator;observability;autoscaling
+MLflow;Weaviate;multiagent;CreditManager;LlamaIndex;LangGraph;Milvus;Claude;RAG;Pub/Sub;WASAPI

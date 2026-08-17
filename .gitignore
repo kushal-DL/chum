@@ -6,6 +6,7 @@ obj/
 .vs/
 *.rsuser
 *.DotSettings.user
+local-llm/
 
 # NuGet
 packages/
@@ -57,6 +58,11 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 *.lnk
+
+# ML model output directories (large binaries — fine-tuned models go here)
+models/
+__pycache__/
+*.pyc
 
 # App runtime data (never commit these)
 AppData/
