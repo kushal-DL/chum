@@ -4,8 +4,6 @@ using Chum.Llm;
 using Chum.Transcription;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Whisper.net.Ggml;
-
 namespace Chum.Service;
 
 /// <summary>
@@ -43,7 +41,7 @@ public sealed class ChumWorker : BackgroundService
         var loopback = new LoopbackCapture();
         var mic = new MicCapture();
         var pipeline = new AudioPipeline(loopback, mic);
-        var stt = new WhisperSttEngine(modelDir, GgmlType.Small);
+        var stt = new SherpaOnnxSttEngine(modelDir);
         var buffer = new TranscriptBuffer(TimeSpan.FromMinutes(10));
         var extractor = new ContextExtractor(buffer);
         ILlmProvider llm = new AnthropicLlmProvider(apiKey);
@@ -55,7 +53,7 @@ public sealed class ChumWorker : BackgroundService
 
         if (!stt.IsReady)
         {
-            _log.LogInformation("Loading Whisper model...");
+            _log.LogInformation("Loading Sherpa STT model...");
             await stt.InitializeAsync(ct: ct);
         }
 
