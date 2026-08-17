@@ -25,8 +25,8 @@ public partial class AboutWindow : Window
 
         ProviderLabel.Text = s.LocalOnlyMode ? "Ollama (local)" : s.LlmProvider;
         ModelLabel.Text = s.LocalOnlyMode ? s.OllamaModel : s.LlmModel;
-        WhisperModelLabel.Text = s.CloudSttFallback ? $"Cloud: {s.CloudSttModel}" : "sherpa-onnx (local)";
-        AccelLabel.Text = s.CloudSttFallback ? "Cloud GPU" : "CPU";
+        WhisperModelLabel.Text = $"Whisper API: {s.CloudSttModel} @ {(string.IsNullOrWhiteSpace(s.CloudSttBaseUrl) ? "OpenAI" : s.CloudSttBaseUrl)}";
+        AccelLabel.Text = "CPU (local server)";
 
         if (app.Orchestrator is { } orch)
         {
@@ -92,8 +92,8 @@ public partial class AboutWindow : Window
         sb.AppendLine($"Chum v{version} — Diagnostics — {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss}");
         sb.AppendLine($"LLM provider : {(s.LocalOnlyMode ? "Ollama (local)" : s.LlmProvider)}");
         sb.AppendLine($"LLM model    : {(s.LocalOnlyMode ? s.OllamaModel : s.LlmModel)}");
-        sb.AppendLine($"STT engine   : {(s.CloudSttFallback ? $"Cloud ({s.CloudSttModel})" : "sherpa-onnx (local)")}");
-        sb.AppendLine($"STT accel    : {(s.CloudSttFallback ? "Cloud GPU" : "CPU")}");
+        sb.AppendLine($"STT engine   : Whisper API ({s.CloudSttModel})");
+        sb.AppendLine($"STT accel    : CPU (local server)");
 
         if (orch is not null)
         {

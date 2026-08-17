@@ -26,7 +26,6 @@ public sealed class MeetingOrchestrator : IDisposable
 {
     private AudioPipeline _audio;
     private ISttEngine _stt;
-    private readonly OpenAiSttProvider? _cloudStt;
     private readonly TranscriptBuffer _transcript;
     private readonly ContextExtractor _context;
     private readonly ILlmProvider _llm;
@@ -76,13 +75,11 @@ public sealed class MeetingOrchestrator : IDisposable
         SettingsService settings,
         DxgiScreenCapture? screenCapture = null,
         ClipboardMonitor? clipboardMonitor = null,
-        OpenAiSttProvider? cloudStt = null,
         TemplateService? templateService = null,
         DocumentContextService? docContext = null)
     {
         _audio = audio;
         _stt = stt;
-        _cloudStt = cloudStt;
         _transcript = transcript;
         _context = context;
         _llm = llm;
@@ -171,8 +168,6 @@ public sealed class MeetingOrchestrator : IDisposable
                 _overlay.SetListeningState(true);
                 _overlay.SetStatus(OverlayStatus.Listening, "Recording… (press Ctrl+Alt+Space to send)");
                 _audio.StartRawRecording();
-                // High short beep on background thread — hook callback must return in <1ms
-                _ = Task.Run(() => Console.Beep(880, 60));
             }
         };
 
@@ -180,8 +175,6 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             if (e.ActionId == "HoldToAsk")
             {
-                // Lower beep signals end of capture, before async work begins
-                _ = Task.Run(() => Console.Beep(660, 80));
                 var recorded = _audio.StopRawRecording();
                 await HandleAudioQueryAsync(recorded, e.EndTime);
             }
@@ -446,15 +439,7 @@ public sealed class MeetingOrchestrator : IDisposable
         if (!_stt.IsReady)
         {
             _overlay.SetStatus(OverlayStatus.Initialising, "Loading Whisper model...");
-            try
-            {
-                await _stt.InitializeAsync(ct: ct);
-            }
-            catch (Exception ex) when (_cloudStt != null)
-            {
-                Serilog.Log.Warning(ex, "Local STT init failed — continuing; cloud STT available for queries");
-                _overlay.ShowError("Local STT unavailable — cloud STT will be used for queries");
-            }
+            await _stt.InitializeAsync(ct: ct);
         }
 
         _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
@@ -463,16 +448,10 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             try
             {
-                Serilog.Log.Information("STT chunk received: {N} samples from {Src}",
-                    chunk.Samples.Length, chunk.Source);
-
                 var sw = Stopwatch.StartNew();
-                await TranscribeWithFallbackAsync(chunk.Samples, chunk.Source, ct);
+                await _stt.TranscribeAsync(chunk.Samples, chunk.Source, ct);
                 sw.Stop();
                 _latencyTracker.Record(sw.Elapsed);
-                Serilog.Log.Verbose("STT segment: {Duration:F1}s  e2e: {E2E:F1}s",
-                    sw.Elapsed.TotalSeconds,
-                    (DateTimeOffset.UtcNow - chunk.Timestamp).TotalSeconds);
             }
             catch (OperationCanceledException) { break; }
             catch (Exception ex)
@@ -480,28 +459,6 @@ public sealed class MeetingOrchestrator : IDisposable
                 Serilog.Log.Error(ex, "Transcription error — skipping segment");
             }
         }
-    }
-
-    private async Task TranscribeWithFallbackAsync(float[] samples, AudioSource source, CancellationToken ct)
-    {
-        if (_stt.IsReady)
-        {
-            try
-            {
-                await _stt.TranscribeAsync(samples, source, ct);
-                return;
-            }
-            catch (OperationCanceledException) { throw; }
-            catch (Exception ex) when (_cloudStt != null)
-            {
-                Serilog.Log.Warning(ex, "Local STT failed — retrying via cloud fallback");
-            }
-        }
-
-        if (_cloudStt != null)
-            await _cloudStt.TranscribeAsync(samples, source, ct);
-        else
-            await _stt.TranscribeAsync(samples, source, ct); // will throw with clear message
     }
 
     // Streams with exponential-backoff retry on LlmException (max 3 attempts: 1s, 2s, 4s gaps).
@@ -1003,7 +960,6 @@ public sealed class MeetingOrchestrator : IDisposable
         _latencyLogTimer?.Dispose();
         _audio.Dispose();
         _stt.Dispose();
-        _cloudStt?.Dispose();
         _hotkeys.Dispose();
         _shareDetector.Dispose();
         _platformDetector.Dispose();

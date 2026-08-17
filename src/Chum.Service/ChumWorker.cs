@@ -33,15 +33,10 @@ public sealed class ChumWorker : BackgroundService
             return;
         }
 
-        var modelDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "Chum", "Models");
-        Directory.CreateDirectory(modelDir);
-
         var loopback = new LoopbackCapture();
         var mic = new MicCapture();
         var pipeline = new AudioPipeline(loopback, mic);
-        var stt = new SherpaOnnxSttEngine(modelDir);
+        var stt = new OpenAiSttProvider("", "whisper-large-v3-turbo", "http://localhost:8000");
         var buffer = new TranscriptBuffer(TimeSpan.FromMinutes(10));
         var extractor = new ContextExtractor(buffer);
         ILlmProvider llm = new AnthropicLlmProvider(apiKey);
@@ -50,12 +45,6 @@ public sealed class ChumWorker : BackgroundService
 
         await using var ipc = new IpcServer(llm, extractor, _audit,
             _log as ILogger<IpcServer> ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<IpcServer>.Instance);
-
-        if (!stt.IsReady)
-        {
-            _log.LogInformation("Loading Sherpa STT model...");
-            await stt.InitializeAsync(ct: ct);
-        }
 
         pipeline.Start();
         ipc.Start();

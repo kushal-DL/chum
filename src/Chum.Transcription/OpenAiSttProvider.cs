@@ -6,19 +6,23 @@ using Chum.Transcription.Models;
 namespace Chum.Transcription;
 
 /// <summary>
-/// Cloud STT using an OpenAI-compatible /v1/audio/transcriptions endpoint.
-/// Works with OpenAI (whisper-1) or NVIDIA NIM (nvidia/canary-1b, nvidia/parakeet-ctc-1.1b-asr).
-/// Configure <paramref name="baseUrl"/> to switch provider — leave null for OpenAI.
+/// Primary STT engine backed by a local Whisper server at http://localhost:8000 (or any
+/// OpenAI-compatible /v1/audio/transcriptions endpoint).  Implements ISttEngine so it
+/// drives the rolling transcript and press-to-record queries without sherpa-onnx.
 /// </summary>
-public sealed class OpenAiSttProvider : IDisposable
+public sealed class OpenAiSttProvider : ISttEngine
 {
     private readonly HttpClient _http;
     private readonly string _model;
     private readonly string _transcriptionUrl;
 
+    public bool IsReady => true;
+    public string AccelerationMode => "Whisper API (local)";
+    public string? DetectedLanguage => null;
+
     public event EventHandler<TranscriptSegment>? SegmentTranscribed;
 
-    public OpenAiSttProvider(string apiKey, string model = "whisper-1", string? baseUrl = null)
+    public OpenAiSttProvider(string apiKey = "", string model = "whisper-large-v3-turbo", string? baseUrl = null)
     {
         _model = model;
         var apiBase = string.IsNullOrWhiteSpace(baseUrl)
@@ -26,9 +30,13 @@ public sealed class OpenAiSttProvider : IDisposable
             : baseUrl.TrimEnd('/');
         _transcriptionUrl = apiBase + "/audio/transcriptions";
 
-        _http = new HttpClient();
-        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        if (!string.IsNullOrWhiteSpace(apiKey))
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
     }
+
+    public Task InitializeAsync(IProgress<double>? downloadProgress = null, CancellationToken ct = default)
+        => Task.CompletedTask;
 
     /// <summary>
     /// Transcribes float PCM (16 kHz, mono) via the cloud Whisper-compatible API.

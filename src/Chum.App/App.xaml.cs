@@ -115,23 +115,6 @@ public partial class App : System.Windows.Application
         DxgiScreenCapture.TryCreate(out _screenCapture);
         _clipboardMonitor = new ClipboardMonitor();
 
-        OpenAiSttProvider? cloudStt = null;
-        if (Settings.Current.CloudSttFallback)
-        {
-            // Prefer a dedicated Cloud STT key; fall back to the LLM key if not set
-            var key = Config.CloudSttApiKey ?? Config.OpenAiApiKey ?? Config.AnthropicApiKey;
-            if (key is not null)
-            {
-                var sttBase = string.IsNullOrWhiteSpace(Settings.Current.CloudSttBaseUrl)
-                    ? null : Settings.Current.CloudSttBaseUrl;
-                cloudStt = new OpenAiSttProvider(key, Settings.Current.CloudSttModel, sttBase);
-                Log.Information("Cloud STT enabled: {Model} @ {Base}", Settings.Current.CloudSttModel,
-                    sttBase ?? "OpenAI");
-            }
-            else
-                Log.Warning("Cloud STT enabled but no API key found — cloud STT disabled");
-        }
-
         await Task.WhenAll(vadTask1, vadTask2, templatesTask);
 
         var loopback = new LoopbackCapture(Settings.Current.LoopbackDeviceId);
@@ -139,11 +122,10 @@ public partial class App : System.Windows.Application
         var audioPipeline = new AudioPipeline(loopback, mic, vadTask1.Result, vadTask2.Result,
             enableNoiseSuppression: Settings.Current.EnableNoiseSuppression);
 
-        var modelDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Chum", "Models");
-        // Sherpa-onnx streaming Zipformer: fast on CPU (~10x real-time), no noise hallucinations.
-        // Used for rolling transcript and as local fallback for press-to-record queries.
-        ISttEngine stt = new SherpaOnnxSttEngine(modelDir);
+        var sttBaseUrl = string.IsNullOrWhiteSpace(Settings.Current.CloudSttBaseUrl)
+            ? null : Settings.Current.CloudSttBaseUrl;
+        ISttEngine stt = new OpenAiSttProvider(
+            Config.CloudSttApiKey ?? "", Settings.Current.CloudSttModel, sttBaseUrl);
 
         var retentionWindow = TimeSpan.FromMinutes(Settings.Current.TranscriptRetentionMinutes);
         var transcriptBuffer = new TranscriptBuffer(retentionWindow);
@@ -151,7 +133,7 @@ public partial class App : System.Windows.Application
 
         _orchestrator = new MeetingOrchestrator(
             audioPipeline, stt, transcriptBuffer, contextExtractor,
-            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, cloudStt, templates, DocContext);
+            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, templates, DocContext);
 
         _overlayWindow!.ImageFileDropped += (_, path) =>
             _ = _orchestrator.HandleDroppedImageQueryAsync(path);
@@ -266,8 +248,8 @@ public partial class App : System.Windows.Application
 
     private IVad BuildVad()
     {
-        // EnergyVad is pure DSP (no ONNX runtime), so it never conflicts with sherpa-onnx's bundled
-        // runtime. Noise suppression + a configurable threshold handle noisy rooms instead of Silero.
+        // EnergyVad is pure DSP — no ONNX runtime conflicts. Noise suppression + a configurable
+        // threshold handle noisy rooms instead of Silero.
         var s = Settings.Current;
         return new EnergyVad(onThresholdDb: s.VadThresholdDb, offThresholdDb: s.VadThresholdDb - 5f);
     }

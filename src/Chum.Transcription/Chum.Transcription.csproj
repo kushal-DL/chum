@@ -14,7 +14,6 @@
 
   <ItemGroup>
     <PackageReference Include="System.Net.Http.WinHttpHandler" Version="9.0.0" />
-    <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.13.3" />
   </ItemGroup>
 
   <ItemGroup>

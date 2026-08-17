@@ -25,8 +25,8 @@ public sealed class AppSettings
     public int TranscriptRetentionMinutes { get; set; } = 10;
 
     // --- Transcription ---
-    // Local STT engine: sherpa-onnx streaming Zipformer (fast, runs on CPU at ~10x real-time).
-    // Used for the rolling transcript. For press-to-record queries, see CloudSttFallback below.
+    // Primary STT engine: local Whisper server (whisper_api_server.py on port 8000).
+    // Fine-tuned on tech vocabulary (Azure, AWS, Databricks, Kubernetes, LLMOps, etc.).
 
     // --- Query mode (press-to-record) ---
     // What happens when you press the hold-to-ask hotkey a second time to stop recording.
@@ -38,8 +38,9 @@ public sealed class AppSettings
     // --- Noise suppression / VAD ---
     // Apply high-pass + adaptive noise gate to captured audio before STT/LLM.
     public bool EnableNoiseSuppression { get; set; } = true;
-    // EnergyVad onset threshold in dBFS. Higher (e.g. -30) = less sensitive, better for noisy rooms.
-    public float VadThresholdDb { get; set; } = -35f;
+    // EnergyVad onset threshold in dBFS. Higher = less sensitive — raise toward -20 for noisy rooms.
+    // -25 dBFS is a good default: filters fan/HVAC noise while still catching quiet speech.
+    public float VadThresholdDb { get; set; } = -25f;
 
     // --- Hotkeys (string representation, e.g. "Ctrl+Alt+Space") ---
     public string HoldToAskHotkey { get; set; } = "Ctrl+Alt+Space";
@@ -75,15 +76,14 @@ public sealed class AppSettings
     // Prevents accidental screen captures that send sensitive content to the cloud LLM.
     public bool ConfirmScreenCapture { get; set; } = false;
 
-    // --- Cloud STT for press-to-record queries ---
-    // When true: press-to-record queries are transcribed by the cloud API instead of local sherpa-onnx.
-    // Use NVIDIA NIM (nvidia/canary-1b) or OpenAI (whisper-1) for significantly better accuracy on
-    // technical vocabulary. Requires API key for the selected provider.
-    public bool CloudSttFallback { get; set; } = false;
-    // Model name sent to the cloud STT endpoint. NVIDIA: "nvidia/canary-1b". OpenAI: "whisper-1".
-    public string CloudSttModel { get; set; } = "nvidia/canary-1b";
-    // Base URL for cloud STT. Empty = OpenAI. Set to "https://integrate.api.nvidia.com/v1" for NVIDIA.
-    public string CloudSttBaseUrl { get; set; } = "https://integrate.api.nvidia.com/v1";
+    // --- Whisper STT (primary rolling-transcript + press-to-record engine) ---
+    // Points at the local whisper_api_server.py running on port 8000 (fine-tuned on tech vocabulary).
+    // CloudSttFallback is retained for UI compatibility but no longer gates the primary STT path.
+    public bool CloudSttFallback { get; set; } = true;
+    // Model name forwarded to the Whisper server in the multipart form field.
+    public string CloudSttModel { get; set; } = "whisper-large-v3-turbo";
+    // Base URL of the local Whisper server. Leave empty to use public OpenAI endpoint instead.
+    public string CloudSttBaseUrl { get; set; } = "http://localhost:8000";
 
     // --- Local-only mode (Ollama) ---
     public bool LocalOnlyMode { get; set; } = false;

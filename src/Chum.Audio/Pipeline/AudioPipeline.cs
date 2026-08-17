@@ -171,7 +171,10 @@ public sealed class AudioPipeline : IDisposable
         }
 
         var vad = source == AudioSource.Loopback ? _loopbackVad : _micVad;
-        bool speech = vad.IsSpeech(samples);
+        // Run VAD on noise-suppressed audio so fan/HVAC noise doesn't trigger false positives.
+        // The original samples are still accumulated in the segment buffer for Whisper quality.
+        var vadInput = _noiseSuppress ? NoiseSuppressor.Process(samples) : samples;
+        bool speech = vad.IsSpeech(vadInput);
 
         // Fire level event before entering the lock — pure read on local array, no shared state
         var rms = ComputeRms(samples);

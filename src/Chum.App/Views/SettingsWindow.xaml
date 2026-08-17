@@ -127,7 +127,7 @@
             <!-- Transcription -->
             <Label Content="TRANSCRIPTION" Style="{StaticResource SectionHeader}"/>
             <TextBlock TextWrapping="Wrap" Foreground="#6B7280" FontSize="11" Margin="0,4,0,0"
-                       Text="Local STT: sherpa-onnx Zipformer (fast on CPU, ~130 MB model). Used for rolling transcript. For press-to-record queries with better technical-vocabulary accuracy, enable Cloud STT below."/>
+                       Text="STT: local Whisper server (whisper_api_server.py on port 8000), fine-tuned on technical vocabulary (Azure, AWS, Databricks, Kubernetes, LLMOps). Used for rolling transcript and press-to-record queries."/>
 
             <!-- Query mode -->
             <Label Content="QUERY MODE (PRESS-TO-RECORD)" Style="{StaticResource SectionHeader}"/>
@@ -204,7 +204,7 @@
             <CheckBox x:Name="CloudSttFallbackBox"
                       Content="Use cloud STT for press-to-record queries (better accuracy for technical terms)"
                       Margin="0,4"
-                      ToolTip="When enabled, press-to-record queries are transcribed by the cloud API instead of local sherpa-onnx. NVIDIA Canary-1B or OpenAI Whisper-large give much better accuracy on technical vocabulary (AWS, Kubernetes, APIs, etc.)."/>
+                      ToolTip="When enabled, press-to-record queries use the configured Whisper API endpoint. Configure the URL and model below to point at the local server (http://localhost:8000)."/>
             <TextBlock Text="Cloud STT API Key" Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
             <Grid>
                 <Grid.ColumnDefinitions>

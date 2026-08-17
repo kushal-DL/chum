@@ -20,20 +20,31 @@ public static partial class TranscriptCleaner
     // Music/lyric lines surrounded by musical notes (♪ ... ♪ or ♫ ... ♫)
     private static readonly Regex MusicNote = MusicNotePattern();
 
+    // Whisper repetition loop: same short phrase repeated 4+ times via comma-space.
+    // e.g. "and the other, and the other, and the other, and the other"
+    private static readonly Regex PhraseLoop = PhraseLoopPattern();
+
+    // Character-hyphen loop: Whisper stuck on a sound, e.g. "sma-o-o-o-o-o-o-o"
+    private static readonly Regex CharHyphenLoop = CharHyphenLoopPattern();
+
     public static string Clean(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
 
-        // 1. Remove bracketed/parenthesized noise tags embedded in speech
+        // 1. Discard Whisper repetition loops before any other processing
+        if (PhraseLoop.IsMatch(text) || CharHyphenLoop.IsMatch(text))
+            return string.Empty;
+
+        // 2. Remove bracketed/parenthesized noise tags embedded in speech
         text = NoiseTags.Replace(text, " ");
 
-        // 2. Remove music notation lines
+        // 3. Remove music notation lines
         text = MusicNote.Replace(text, " ");
 
-        // 3. Reduce word-level repetitions (covers filler stuttering and Whisper looping)
+        // 4. Reduce word-level repetitions (covers filler stuttering and Whisper looping)
         text = WordRepeat.Replace(text, "$1");
 
-        // 4. Collapse multiple spaces → single space; trim
+        // 5. Collapse multiple spaces → single space; trim
         text = CollapseSpaces(text);
 
         return text;
@@ -76,4 +87,17 @@ public static partial class TranscriptCleaner
         @"♪.*?♪|♫.*?♫",
         RegexOptions.Compiled)]
     private static partial Regex MusicNotePattern();
+
+    // A phrase of 2-6 words repeated ≥4 times separated by ", " or " and "
+    // Catches: "and the other, and the other, and the other, and the other"
+    [GeneratedRegex(
+        @"(\b(?:\w+\s+){1,5}\w+\b)(?:(?:,?\s+(?:and\s+)?)(?:\b(?:\w+\s+){1,5}\w+\b))*(?:(?:,\s*|\s+and\s+)\1){3,}",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex PhraseLoopPattern();
+
+    // Letter-hyphen sequence repeated ≥6 times: "sma-o-o-o-o-o-o"
+    [GeneratedRegex(
+        @"[a-z]{1,4}(?:-[a-z]{1,4}){6,}",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex CharHyphenLoopPattern();
 }
