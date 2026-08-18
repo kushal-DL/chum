@@ -77,13 +77,17 @@ public sealed class AppSettings
     public bool ConfirmScreenCapture { get; set; } = false;
 
     // --- Whisper STT (primary rolling-transcript + press-to-record engine) ---
-    // Points at the local whisper_api_server.py running on port 8000 (fine-tuned on tech vocabulary).
+    // Points at the local whisper.cpp server (whisper-server.exe, Vulkan GPU) on port 8000,
+    // serving the fine-tuned tech model in ggml. Started by scripts\start-whisper-api.ps1.
     // CloudSttFallback is retained for UI compatibility but no longer gates the primary STT path.
     public bool CloudSttFallback { get; set; } = true;
-    // Model name forwarded to the Whisper server in the multipart form field.
+    // Model name forwarded to the Whisper server in the multipart form field (label only —
+    // whisper-server uses whichever ggml model it was launched with).
     public string CloudSttModel { get; set; } = "whisper-large-v3-turbo";
-    // Base URL of the local Whisper server. Leave empty to use public OpenAI endpoint instead.
-    public string CloudSttBaseUrl { get; set; } = "http://localhost:8000";
+    // Base URL of the local Whisper server. The provider appends "/audio/transcriptions",
+    // so this must end in "/v1" to hit whisper-server's /v1/audio/transcriptions endpoint.
+    // Leave empty to use the public OpenAI endpoint instead.
+    public string CloudSttBaseUrl { get; set; } = "http://127.0.0.1:8000/v1";
 
     // --- Local-only mode (Ollama) ---
     public bool LocalOnlyMode { get; set; } = false;
