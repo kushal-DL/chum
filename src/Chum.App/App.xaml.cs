@@ -31,6 +31,7 @@ public partial class App : System.Windows.Application
     private NotifyIcon? _trayIcon;
     private DxgiScreenCapture? _screenCapture;
     private ClipboardMonitor? _clipboardMonitor;
+    private RegionSelectionService? _regionSelection;
     private bool _started;
     private string? _pendingMeetingDeviceId;
 
@@ -168,6 +169,23 @@ public partial class App : System.Windows.Application
                 if (region is not null && _orchestrator is not null)
                     await _orchestrator.HandleSnipCaptureAsync(region.Value);
             });
+        };
+
+        // Screenshot mode: two double-clicks on screen define opposite corners of the
+        // region to send to the vision model. Reuses the orchestrator's region-capture path.
+        _regionSelection = new RegionSelectionService(Dispatcher);
+        _regionSelection.FirstPointCaptured += (_, _) =>
+            _overlayVm?.SetScreenshotMode(true, "First corner set — double-click the opposite corner to capture");
+        _regionSelection.RegionSelected += (_, region) =>
+        {
+            _overlayVm?.SetScreenshotMode(false, string.Empty);
+            if (region.Width < 5 || region.Height < 5)
+            {
+                _overlayVm?.ShowError("Selected region is too small — try two corners further apart.");
+                return;
+            }
+            if (_orchestrator is not null)
+                _ = _orchestrator.HandleSnipCaptureAsync(region);
         };
 
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
@@ -349,6 +367,32 @@ public partial class App : System.Windows.Application
         _overlayVm?.DismissAudioDeviceMismatch();
     }
 
+    /// <summary>Toolbar button: start/stop recording a spoken question (parallels the hotkey).</summary>
+    public void ToggleRecording() => _orchestrator?.ToggleRecording();
+
+    /// <summary>Toolbar button: stop the in-progress LLM response.</summary>
+    public void StopResponse() => _orchestrator?.CancelResponse();
+
+    /// <summary>
+    /// Toolbar button: toggle screenshot mode. Entering arms the double-click region picker;
+    /// clicking again before the second double-click cancels it.
+    /// </summary>
+    public void ToggleScreenshotMode()
+    {
+        if (_regionSelection is null) return;
+        if (_regionSelection.IsArmed)
+        {
+            _regionSelection.Disarm();
+            _overlayVm?.SetScreenshotMode(false, string.Empty);
+        }
+        else
+        {
+            _regionSelection.Arm();
+            _overlayVm?.SetScreenshotMode(true,
+                "Screenshot mode: double-click the first corner on screen (click ▣ again to cancel)");
+        }
+    }
+
     public void ExportTranscript()
     {
         if (_orchestrator is null) return;
@@ -382,6 +426,7 @@ public partial class App : System.Windows.Application
         if (_orchestrator is not null)
             await _orchestrator.StopAsync();
         _orchestrator?.Dispose();
+        _regionSelection?.Dispose();
         _screenCapture?.Dispose();
         _clipboardMonitor?.Dispose();
         Settings.Save(); // persist overlay position and runtime setting changes

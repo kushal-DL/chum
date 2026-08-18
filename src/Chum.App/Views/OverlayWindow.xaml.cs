@@ -162,6 +162,15 @@ public partial class OverlayWindow : Window
         ((UIElement)sender).ReleaseMouseCapture();
     }
 
+    private void RecordToggle_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).ToggleRecording();
+
+    private void ScreenshotMode_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).ToggleScreenshotMode();
+
+    private void StopResponse_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).StopResponse();
+
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         var win = new SettingsWindow();

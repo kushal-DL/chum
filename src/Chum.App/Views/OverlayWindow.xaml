@@ -38,6 +38,29 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Record toggle: grey ● normally, red ⏹ while recording -->
+        <Style x:Key="RecordButtonStyle" TargetType="Button" BasedOn="{StaticResource ChumButton}">
+            <Setter Property="Content" Value="●"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                    <Setter Property="Content" Value="⏹"/>
+                    <Setter Property="Foreground" Value="#EF4444"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Screenshot (region snapshot) mode: turns purple while armed -->
+        <Style x:Key="ScreenshotButtonStyle" TargetType="Button" BasedOn="{StaticResource ChumButton}">
+            <Setter Property="Content" Value="▣"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsScreenshotMode}" Value="True">
+                    <Setter Property="Foreground" Value="#8B5CF6"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -104,6 +127,18 @@
 
                 <!-- Close / settings buttons -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,4,0">
+                    <!-- Record toggle: click to start recording a question, click again to send -->
+                    <Button Style="{StaticResource RecordButtonStyle}" Margin="2,4"
+                            ToolTip="Record a question (click to start, click again to send)"
+                            Click="RecordToggle_Click"/>
+                    <!-- Screenshot mode: double-click two opposite corners on screen to snapshot a region -->
+                    <Button Style="{StaticResource ScreenshotButtonStyle}" Margin="2,4"
+                            ToolTip="Screenshot mode: double-click two opposite corners on screen (click again to cancel)"
+                            Click="ScreenshotMode_Click"/>
+                    <!-- Stop the current AI response -->
+                    <Button Style="{StaticResource ChumButton}" Content="■" Margin="2,4"
+                            ToolTip="Stop the current AI response" Click="StopResponse_Click"/>
+                    <Border Width="1" Background="#33FFFFFF" Margin="3,6"/>
                     <Button Style="{StaticResource ChumButton}" Content="↓" Margin="2,4"
                             ToolTip="Export transcript to file" Click="ExportTranscript_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="⧉" Margin="2,4"
@@ -207,6 +242,14 @@
                         Visibility="{Binding HasPendingScreenCapture, Converter={StaticResource BoolToVisibilityConverter}}">
                     <TextBlock Text="⚠  Screenshot pending — press Ctrl+Alt+S again to send (5s to cancel)"
                                Foreground="#8B5CF6" FontSize="11" FontWeight="SemiBold"/>
+                </Border>
+                <!-- Screenshot (region snapshot) mode hint -->
+                <Border Background="#1F8B5CF6" BorderBrush="#8B5CF6"
+                        BorderThickness="0,1,0,0" Padding="10,5"
+                        Visibility="{Binding IsScreenshotMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="{Binding ScreenshotHint}"
+                               Foreground="#A78BFA" FontSize="11" FontWeight="SemiBold"
+                               TextWrapping="Wrap"/>
                 </Border>
                 <!-- Audio device mismatch — shown when Teams/Zoom uses a different device than Chum's loopback -->
                 <Border Background="#1F06B6D4" BorderBrush="#06B6D4"

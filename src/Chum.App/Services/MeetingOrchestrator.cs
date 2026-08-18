@@ -47,6 +47,11 @@ public sealed class MeetingOrchestrator : IDisposable
     private TemplateService? _templateService;
     private readonly DocumentContextService? _docContext;
     private CancellationTokenSource? _cts;
+    // Separate scope for the current LLM response so the user can stop a reply without
+    // stopping the transcription pipeline (which lives on _cts).
+    private CancellationTokenSource? _responseCts;
+    // UI record-toggle state (button-driven; parallels the HoldToAsk hotkey toggle).
+    private bool _uiRecording;
     private MeetingPlatform _lastPlatform = MeetingPlatform.Unknown;
 
     public bool IsRunning => _cts != null;
@@ -389,6 +394,37 @@ public sealed class MeetingOrchestrator : IDisposable
         else Pause();
     }
 
+    /// <summary>
+    /// UI record toggle (parallels the HoldToAsk hotkey): first call starts raw recording,
+    /// second call stops it and sends the recorded question to the LLM.
+    /// </summary>
+    public void ToggleRecording()
+    {
+        if (!_uiRecording)
+        {
+            _uiRecording = true;
+            _overlay.SetRecording(true);
+            _overlay.SetListeningState(true);
+            _overlay.SetStatus(OverlayStatus.Listening, "Recording… (click ● again to send)");
+            _audio.StartRawRecording();
+        }
+        else
+        {
+            _uiRecording = false;
+            _overlay.SetRecording(false);
+            var recorded = _audio.StopRawRecording();
+            _ = HandleAudioQueryAsync(recorded, DateTimeOffset.UtcNow);
+        }
+    }
+
+    /// <summary>Stops the current LLM response without affecting the transcription pipeline.</summary>
+    public void CancelResponse()
+    {
+        _responseCts?.Cancel();
+        _overlay.SetListeningState(false); // clears the streaming indicator
+        _overlay.SetStatus(OverlayStatus.Listening, "Response stopped");
+    }
+
     private async Task TryHandleScreenCaptureAsync()
     {
         if (_settings.Current.ConfirmScreenCapture && !_captureConfirming)
@@ -465,7 +501,11 @@ public sealed class MeetingOrchestrator : IDisposable
     // onFirstToken fires with elapsed time at the moment the first token is received.
     private async Task StreamWithRetryAsync(LlmRequest request, Action<TimeSpan>? onFirstToken = null)
     {
-        var ct = _cts?.Token ?? CancellationToken.None;
+        // Each response gets its own cancellation scope (linked to the pipeline token) so
+        // "Stop response" cancels only the reply, leaving transcription running.
+        _responseCts?.Dispose();
+        _responseCts = CancellationTokenSource.CreateLinkedTokenSource(_cts?.Token ?? CancellationToken.None);
+        var ct = _responseCts.Token;
         int[] retryDelaysMs = [1000, 2000, 4000];
         for (int attempt = 0; attempt <= retryDelaysMs.Length; attempt++)
         {
@@ -955,6 +995,8 @@ public sealed class MeetingOrchestrator : IDisposable
         _disposed = true;
         _cts?.Cancel();
         _cts?.Dispose();
+        _responseCts?.Cancel();
+        _responseCts?.Dispose();
         _captureConfirmTimer?.Dispose();
         _gcTimer?.Dispose();
         _latencyLogTimer?.Dispose();
