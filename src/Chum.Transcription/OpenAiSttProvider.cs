@@ -38,13 +38,26 @@ public sealed class OpenAiSttProvider : ISttEngine
     public Task InitializeAsync(IProgress<double>? downloadProgress = null, CancellationToken ct = default)
         => Task.CompletedTask;
 
+    // whisper.cpp returns nothing for audio shorter than ~1s ("input is too short — consider
+    // padding the input audio with silence"). The rolling transcript's short VAD segments hit
+    // that floor and were silently dropped, so pad them with trailing silence to a safe minimum.
+    private const int MinTranscribeSamples = 16_000 * 6 / 5; // 1.2s at 16 kHz
+
     /// <summary>
     /// Transcribes float PCM (16 kHz, mono) via the cloud Whisper-compatible API.
     /// Clears the sample buffer after transcription (privacy: don't keep audio in memory).
     /// </summary>
     public async Task<string> TranscribeAsync(float[] samples, AudioSource source, CancellationToken ct = default)
     {
-        var wavBytes = WavEncoder.ToWavBytes(samples);
+        // Pad clips below whisper.cpp's 1s floor so they aren't dropped (see MinTranscribeSamples).
+        float[] toSend = samples;
+        if (samples.Length is > 0 and < MinTranscribeSamples)
+        {
+            toSend = new float[MinTranscribeSamples];
+            Array.Copy(samples, toSend, samples.Length);
+        }
+
+        var wavBytes = WavEncoder.ToWavBytes(toSend);
         using var wavStream = new MemoryStream(wavBytes);
 
         using var content = new MultipartFormDataContent();
