@@ -569,6 +569,15 @@ public sealed class MeetingOrchestrator : IDisposable
 
     public string GetSttAccelerationMode() => _stt.AccelerationMode;
 
+    private string GetModeInstruction() => _overlay.ResponseMode switch
+    {
+        2 => "Respond concisely. Limit your answer to 1-3 sentences.",
+        3 => "Give a detailed explanation with examples and context.",
+        4 => "Take a devil's advocate stance. Challenge assumptions and identify risks or alternative perspectives.",
+        5 => "Respond with code examples. Prefer code over prose.",
+        _ => string.Empty
+    };
+
     /// <summary>
     /// Activates or deactivates low-power mode. In low-power mode, the periodic GC
     /// interval doubles (less CPU overhead from GC). The overlay status indicates the
@@ -669,6 +678,9 @@ public sealed class MeetingOrchestrator : IDisposable
             var docBlock = _docContext?.BuildContextBlock();
             if (docBlock is not null)
                 system = system + "\n\n" + docBlock;
+            var modeHint = GetModeInstruction();
+            if (!string.IsNullOrEmpty(modeHint))
+                system = system + "\n\n" + modeHint;
 
             string user;
             if (audioBase64 is not null)
@@ -746,6 +758,9 @@ public sealed class MeetingOrchestrator : IDisposable
             var docBlock2 = _docContext?.BuildContextBlock();
             if (docBlock2 is not null)
                 system = system + "\n\n" + docBlock2;
+            var modeHint2 = GetModeInstruction();
+            if (!string.IsNullOrEmpty(modeHint2))
+                system = system + "\n\n" + modeHint2;
             var user = $"Extract all action items, decisions, and owners from this meeting transcript. Format as a bulleted list with owner names where identifiable.\n\n{sb}";
             var request = new LlmRequest(system, user, MaxTokens: 1024);
 
@@ -805,6 +820,9 @@ public sealed class MeetingOrchestrator : IDisposable
             var docBlock3 = _docContext?.BuildContextBlock();
             if (docBlock3 is not null)
                 system = system + "\n\n" + docBlock3;
+            var modeHint3 = GetModeInstruction();
+            if (!string.IsNullOrEmpty(modeHint3))
+                system = system + "\n\n" + modeHint3;
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
             var request = new LlmRequest(system, user,
                 ImageBase64: imageBase64,
@@ -890,6 +908,9 @@ public sealed class MeetingOrchestrator : IDisposable
             var docBlock4 = _docContext?.BuildContextBlock();
             if (docBlock4 is not null)
                 system = system + "\n\n" + docBlock4;
+            var modeHint4 = GetModeInstruction();
+            if (!string.IsNullOrEmpty(modeHint4))
+                system = system + "\n\n" + modeHint4;
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
             var request = new LlmRequest(system, user,
                 ImageBase64: imageBase64,

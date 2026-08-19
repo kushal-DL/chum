@@ -199,6 +199,9 @@ public partial class OverlayWindow : Window
             System.Windows.Clipboard.SetText(vm.ResponseText);
     }
 
+    private void ModeToggle_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).CycleResponseMode();
+
     private void DismissDisclosure_Click(object sender, RoutedEventArgs e)
     {
         ((OverlayViewModel)DataContext).DismissDisclosureReminder();

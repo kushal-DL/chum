@@ -373,6 +373,9 @@ public partial class App : System.Windows.Application
     /// <summary>Toolbar button: stop the in-progress LLM response.</summary>
     public void StopResponse() => _orchestrator?.CancelResponse();
 
+    /// <summary>Toolbar button: cycle response mode 1→2→3→4→5→1.</summary>
+    public void CycleResponseMode() => _overlayVm?.CycleResponseMode();
+
     /// <summary>
     /// Toolbar button: toggle screenshot mode. Entering arms the double-click region picker;
     /// clicking again before the second double-click cancels it.

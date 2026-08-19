@@ -214,6 +214,20 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
 
     public void SetRecording(bool active) => Invoke(() => IsRecording = active);
 
+    // ── Response mode (1=Default 2=Quick 3=Detailed 4=Devil's Advocate 5=Code) ──
+
+    private int _responseMode = 1;
+    public int ResponseMode
+    {
+        get => _responseMode;
+        private set { _responseMode = value; OnPropertyChanged(); OnPropertyChanged(nameof(ResponseModeLabel)); }
+    }
+
+    public string ResponseModeLabel => _responseMode.ToString();
+
+    public void CycleResponseMode()
+        => Invoke(() => ResponseMode = _responseMode >= 5 ? 1 : _responseMode + 1);
+
     // ── Screenshot (region snapshot) mode state ───────────────────────────
 
     private bool _isScreenshotMode;

@@ -21,7 +21,7 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="8,4"/>
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Cursor" Value="Arrow"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -127,26 +127,23 @@
 
                 <!-- Close / settings buttons -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,4,0">
-                    <!-- Record toggle: click to start recording a question, click again to send -->
                     <Button Style="{StaticResource RecordButtonStyle}" Margin="2,4"
-                            ToolTip="Record a question (click to start, click again to send)"
                             Click="RecordToggle_Click"/>
-                    <!-- Screenshot mode: double-click two opposite corners on screen to snapshot a region -->
                     <Button Style="{StaticResource ScreenshotButtonStyle}" Margin="2,4"
-                            ToolTip="Screenshot mode: double-click two opposite corners on screen (click again to cancel)"
                             Click="ScreenshotMode_Click"/>
-                    <!-- Stop the current AI response -->
                     <Button Style="{StaticResource ChumButton}" Content="■" Margin="2,4"
-                            ToolTip="Stop the current AI response" Click="StopResponse_Click"/>
+                            Click="StopResponse_Click"/>
+                    <Button Style="{StaticResource ChumButton}" Content="{Binding ResponseModeLabel}"
+                            Margin="2,4" Click="ModeToggle_Click"/>
                     <Border Width="1" Background="#33FFFFFF" Margin="3,6"/>
                     <Button Style="{StaticResource ChumButton}" Content="↓" Margin="2,4"
-                            ToolTip="Export transcript to file" Click="ExportTranscript_Click"/>
+                            Click="ExportTranscript_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="⧉" Margin="2,4"
-                            ToolTip="Copy response to clipboard" Click="CopyResponse_Click"/>
+                            Click="CopyResponse_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="⚙" Margin="2,4"
-                            ToolTip="Settings" Click="Settings_Click"/>
+                            Click="Settings_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="✕" Margin="2,4"
-                            ToolTip="Hide overlay (Ctrl+Alt+H)" Click="Close_Click"/>
+                            Click="Close_Click"/>
                 </StackPanel>
             </Grid>
 
@@ -195,13 +192,13 @@
                     </Grid.ColumnDefinitions>
                     <Button Grid.Column="0" Style="{StaticResource ChumButton}" Content="◀"
                             IsEnabled="{Binding CanGoBack}"
-                            Click="HistoryPrev_Click" ToolTip="Previous response"/>
+                            Click="HistoryPrev_Click"/>
                     <TextBlock Grid.Column="1" Text="{Binding HistoryLabel}"
                                Foreground="#666" FontSize="10"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <Button Grid.Column="2" Style="{StaticResource ChumButton}" Content="▶"
                             IsEnabled="{Binding CanGoForward}"
-                            Click="HistoryNext_Click" ToolTip="Next response / back to live"/>
+                            Click="HistoryNext_Click"/>
                 </Grid>
             </Border>
 
