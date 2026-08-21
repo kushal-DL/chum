@@ -127,17 +127,17 @@ $thinkingLabel = if ($EnableThinking) { "ON" } else { "OFF (fast mode)" }
 $keyLabel      = if ($NoAuth) { "(none - auth disabled)" } else { if ($ApiKey) { $ApiKey } else { "chum-llm-key-2026 (default)" } }
 
 # Open firewall so other machines on the LAN can reach this server.
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-$fwRule  = "Chum LLM API port $Port"
-if ($isAdmin) {
-    if (-not (Get-NetFirewallRule -DisplayName $fwRule -ErrorAction SilentlyContinue)) {
-        Write-Host "Adding Windows Firewall inbound rule for port $Port ..." -ForegroundColor Yellow
+#     Only needed once — UAC prompt appears the first time, rule persists forever.
+$fwRule = "Chum LLM API port $Port"
+if (-not (Get-NetFirewallRule -DisplayName $fwRule -ErrorAction SilentlyContinue)) {
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if ($isAdmin) {
         New-NetFirewallRule -DisplayName $fwRule -Direction Inbound -Protocol TCP -LocalPort $Port -Action Allow | Out-Null
-        Write-Host "Firewall rule added." -ForegroundColor Green
+    } else {
+        Write-Host "Adding firewall rule for port $Port (UAC prompt will appear - one time only)..." -ForegroundColor Yellow
+        Start-Process powershell -Verb RunAs -Wait -ArgumentList "-ExecutionPolicy Bypass -NoProfile -Command `"New-NetFirewallRule -DisplayName '$fwRule' -Direction Inbound -Protocol TCP -LocalPort $Port -Action Allow | Out-Null`""
     }
-} else {
-    Write-Host "NOTE: Not running as Administrator - firewall rule skipped." -ForegroundColor Yellow
-    Write-Host "      If other machines cannot connect, right-click the script and choose 'Run as Administrator' once." -ForegroundColor Yellow
+    Write-Host "Firewall rule added for port $Port." -ForegroundColor Green
 }
 
 $lanIp = (Get-NetIPAddress -AddressFamily IPv4 |
