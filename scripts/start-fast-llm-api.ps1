@@ -31,7 +31,7 @@
 #>
 param(
     [int]$Port         = 8003,
-    [string]$ModelRepo = "bartowski/Qwen3-4B-GGUF",
+    [string]$ModelRepo = "Qwen/Qwen3-4B-GGUF",
     [string]$ModelFile = "Qwen3-4B-Q4_K_M.gguf",
     [int]$ContextSize  = 2048,
     [string]$ApiKey    = "",
@@ -76,6 +76,13 @@ if (-not (Test-Path $modelPath)) {
     Write-Host "Fast model not found, downloading $ModelFile from $ModelRepo..." -ForegroundColor Yellow
     New-Item -ItemType Directory -Force -Path $ModelsDir | Out-Null
     curl.exe -L -C - -o $modelPath "https://huggingface.co/$ModelRepo/resolve/main/$ModelFile"
+
+    # Validate: first 4 bytes must be "GGUF" (0x47 0x47 0x55 0x46)
+    $bytes = [System.IO.File]::ReadAllBytes($modelPath)
+    if ($bytes.Count -lt 4 -or [System.Text.Encoding]::ASCII.GetString($bytes[0..3]) -ne "GGUF") {
+        Remove-Item $modelPath -Force -ErrorAction SilentlyContinue
+        throw "Download failed - file is not a valid GGUF. Got: $([System.Text.Encoding]::ASCII.GetString($bytes[0..[Math]::Min(15,$bytes.Count-1)])). Check ModelRepo='$ModelRepo' and ModelFile='$ModelFile'."
+    }
     Write-Host "Fast model downloaded to $modelPath" -ForegroundColor Green
 }
 

@@ -47,6 +47,6 @@ if not args.thinking:
 if not args.no_auth:
     cmd += ["--api-key", args.api_key]
 
-print(f"Starting llama-server (thinking={'ON' if args.thinking else 'OFF'}, vision=ON) ...")
+print(f"Starting llama-server (thinking={'ON' if args.thinking else 'OFF'}, vision={'OFF' if args.no_mmproj else 'ON'}) ...")
 proc = subprocess.run(cmd)
 sys.exit(proc.returncode)
