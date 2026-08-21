@@ -105,6 +105,10 @@ public partial class SettingsWindow : Window
         CloudSttBaseUrlBox.Text = s.CloudSttBaseUrl;
         CloudSttModelBox.Text = s.CloudSttModel;
 
+        FastLlmBaseUrlBox.Text = s.FastLlmApiBaseUrl;
+        FastLlmApiKeyBox.Text = s.FastLlmApiKey;
+        FastLlmModelBox.Text = s.FastLlmModel;
+
         IncludeTranscriptBox.IsChecked = s.IncludeTranscriptContext;
         NoiseSuppressBox.IsChecked = s.EnableNoiseSuppression;
         VadThresholdSlider.Value = s.VadThresholdDb;
@@ -193,6 +197,73 @@ public partial class SettingsWindow : Window
         CloudSttKeyStatus.Visibility = System.Windows.Visibility.Visible;
     }
 
+    private async void TestCloudStt_Click(object sender, RoutedEventArgs e)
+    {
+        var baseUrl = CloudSttBaseUrlBox.Text.Trim();
+        if (string.IsNullOrEmpty(baseUrl)) { ShowCloudSttTestStatus("Enter an API base URL first.", false); return; }
+
+        ShowCloudSttTestStatus("Testing...", true);
+        try
+        {
+            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(4) };
+            var resp = await client.GetAsync(baseUrl + "/models");
+            ShowCloudSttTestStatus($"✓ Server responding (HTTP {(int)resp.StatusCode})", true);
+        }
+        catch (System.Net.Http.HttpRequestException)
+        {
+            ShowCloudSttTestStatus("✗ Cannot reach server — is start-whisper-api.ps1 running?", false);
+        }
+        catch (TaskCanceledException)
+        {
+            ShowCloudSttTestStatus("✗ Connection timed out", false);
+        }
+        catch (Exception ex)
+        {
+            ShowCloudSttTestStatus($"✗ {ex.Message}", false);
+        }
+    }
+
+    private void ShowCloudSttTestStatus(string msg, bool success)
+    {
+        CloudSttTestStatus.Text = msg;
+        CloudSttTestStatus.Foreground = success
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.OrangeRed;
+        CloudSttTestStatus.Visibility = System.Windows.Visibility.Visible;
+    }
+
+    private async void TestFastLlm_Click(object sender, RoutedEventArgs e)
+    {
+        var baseUrl = FastLlmBaseUrlBox.Text.Trim();
+        var key = FastLlmApiKeyBox.Text.Trim().Length > 0 ? FastLlmApiKeyBox.Text.Trim() : _settings.Current.FastLlmApiKey;
+        var model = FastLlmModelBox.Text.Trim().Length > 0 ? FastLlmModelBox.Text.Trim() : _settings.Current.FastLlmModel;
+        if (string.IsNullOrEmpty(baseUrl)) { ShowFastLlmTestStatus("Enter a base URL first.", false); return; }
+
+        ShowFastLlmTestStatus("Testing...", true);
+        try
+        {
+            var provider = new Chum.Llm.OpenAiLlmProvider(key, model, baseUrl);
+            var sb = new System.Text.StringBuilder();
+            await foreach (var tok in provider.StreamResponseAsync(
+                new Chum.Llm.LlmRequest("You are a test assistant.", "Reply with only: OK", MaxTokens: 10)))
+                sb.Append(tok);
+            ShowFastLlmTestStatus($"✓ Connected — replied: {sb}", true);
+        }
+        catch (Exception ex)
+        {
+            ShowFastLlmTestStatus($"✗ {ex.Message}", false);
+        }
+    }
+
+    private void ShowFastLlmTestStatus(string msg, bool success)
+    {
+        FastLlmTestStatus.Text = msg;
+        FastLlmTestStatus.Foreground = success
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.OrangeRed;
+        FastLlmTestStatus.Visibility = System.Windows.Visibility.Visible;
+    }
+
     private void ProviderCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         var tag = (ProviderCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string;
@@ -263,6 +334,12 @@ public partial class SettingsWindow : Window
             s.CloudSttBaseUrl = CloudSttBaseUrlBox.Text.Trim();
             s.CloudSttModel = CloudSttModelBox.Text.Trim().Length > 0
                 ? CloudSttModelBox.Text.Trim() : "nvidia/canary-1b";
+            s.FastLlmApiBaseUrl = FastLlmBaseUrlBox.Text.Trim().Length > 0
+                ? FastLlmBaseUrlBox.Text.Trim() : s.FastLlmApiBaseUrl;
+            if (FastLlmApiKeyBox.Text.Trim().Length > 0)
+                s.FastLlmApiKey = FastLlmApiKeyBox.Text.Trim();
+            s.FastLlmModel = FastLlmModelBox.Text.Trim().Length > 0
+                ? FastLlmModelBox.Text.Trim() : s.FastLlmModel;
             s.IncludeTranscriptContext = IncludeTranscriptBox.IsChecked == true;
             s.EnableNoiseSuppression = NoiseSuppressBox.IsChecked == true;
             s.VadThresholdDb = (float)VadThresholdSlider.Value;

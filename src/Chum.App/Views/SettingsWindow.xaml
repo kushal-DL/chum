@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Chum Settings"
-        Width="500" Height="740"
+        Width="500" Height="860"
         Background="#F9FAFB"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
@@ -210,20 +210,49 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <PasswordBox x:Name="CloudSttApiKeyBox" Grid.Column="0"/>
                 <Button Grid.Column="1" Content="Save" Margin="6,0,0,0" Click="SaveCloudSttApiKey_Click"/>
+                <Button Grid.Column="2" Content="Test" Margin="6,0,0,0" Background="#16A34A"
+                        Click="TestCloudStt_Click"/>
             </Grid>
             <TextBlock x:Name="CloudSttKeyStatus" Foreground="#16A34A" FontSize="11"
+                       Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
+            <TextBlock x:Name="CloudSttTestStatus" Foreground="#16A34A" FontSize="11"
                        Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
             <TextBlock Text="If blank, falls back to the LLM API key above. Use this to set a separate key for NVIDIA STT."
                        Style="{StaticResource Hint}"/>
             <TextBlock Text="API base URL" Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
             <TextBox x:Name="CloudSttBaseUrlBox" Text="https://integrate.api.nvidia.com/v1"
-                     ToolTip="NVIDIA: https://integrate.api.nvidia.com/v1 · OpenAI: leave empty"/>
+                     ToolTip="NVIDIA: https://integrate.api.nvidia.com/v1 · local Whisper: http://127.0.0.1:8000/v1"/>
             <TextBlock Text="Model name" Foreground="#374151" FontSize="11" Margin="0,6,0,2"/>
             <TextBox x:Name="CloudSttModelBox" Text="nvidia/canary-1b"
                      ToolTip="NVIDIA: nvidia/canary-1b or nvidia/parakeet-ctc-1.1b-asr · OpenAI: whisper-1"/>
+
+            <!-- Fast LLM -->
+            <Label Content="FAST LLM (LOCAL, PORT 8003)" Style="{StaticResource SectionHeader}"/>
+            <TextBlock TextWrapping="Wrap" Foreground="#6B7280" FontSize="11" Margin="0,4,0,0"
+                       Text="Small fast model (Qwen3-4B) for lower first-token latency. Toggled at runtime via the lightning / brain button on the overlay. Start with scripts\start-fast-llm-api.ps1."/>
+            <TextBlock Text="Base URL" Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
+            <TextBox x:Name="FastLlmBaseUrlBox" Text="http://127.0.0.1:8003/v1"
+                     ToolTip="LAN host: change 127.0.0.1 to the host machine's IP"/>
+            <TextBlock Text="API Key" Foreground="#374151" FontSize="11" Margin="0,6,0,2"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="FastLlmApiKeyBox" Grid.Column="0"
+                         ToolTip="Must match the key set in start-fast-llm-api.ps1 (default: chum-llm-key-2026)"/>
+                <Button Grid.Column="1" Content="Test" Margin="6,0,0,0" Background="#16A34A"
+                        Click="TestFastLlm_Click"/>
+            </Grid>
+            <TextBlock x:Name="FastLlmTestStatus" Foreground="#16A34A" FontSize="11"
+                       Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
+            <TextBlock Text="Model name" Foreground="#374151" FontSize="11" Margin="0,6,0,2"/>
+            <TextBox x:Name="FastLlmModelBox" Text="qwen3-4b"
+                     ToolTip="Identifier reported by llama-server for the loaded model"/>
 
             <!-- Local Processing -->
             <Label Content="LOCAL PROCESSING (OLLAMA)" Style="{StaticResource SectionHeader}"/>
