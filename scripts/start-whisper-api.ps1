@@ -61,12 +61,49 @@ $BinDir   = "F:\repos\chum\local-llm\whisper.cpp\bin"
 $LlamaDir = "F:\repos\chum\local-llm\llama.cpp"
 $serverExe = Join-Path $BinDir "whisper-server.exe"
 
-# 1. Sanity checks
+# 1. Ensure whisper-server.exe is present — download from whisper.cpp releases if missing.
 if (-not (Test-Path $serverExe)) {
-    throw "whisper-server.exe not found at $serverExe. Re-run the whisper.cpp setup (download whisper-bin-x64.zip and extract whisper-server.exe + whisper.dll into $BinDir)."
+    Write-Host "whisper-server.exe not found, downloading latest whisper.cpp build..." -ForegroundColor Yellow
+    New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
+
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/ggerganov/whisper.cpp/releases/latest"
+    # Pick the first Windows x64 zip (avx2 preferred for best CPU perf; any x64 build works)
+    $asset = $release.assets |
+        Where-Object { $_.name -match "win.*x64.*\.zip" -or $_.name -match "x64.*win.*\.zip" } |
+        Sort-Object { if ($_.name -like "*avx2*") { 0 } else { 1 } } |
+        Select-Object -First 1
+    if (-not $asset) { throw "Could not find a Windows x64 zip in the latest whisper.cpp release. Check https://github.com/ggerganov/whisper.cpp/releases" }
+
+    $zipPath = Join-Path $BinDir $asset.name
+    Write-Host "Downloading $($asset.name) ($([math]::Round($asset.size / 1MB, 1)) MB)..."
+    curl.exe -L -o $zipPath $asset.browser_download_url
+    Expand-Archive -Path $zipPath -DestinationPath $BinDir -Force
+    Remove-Item $zipPath
+
+    if (-not (Test-Path $serverExe)) { throw "Extraction did not produce whisper-server.exe at $serverExe. Check $BinDir." }
+    Write-Host "whisper.cpp installed at $BinDir" -ForegroundColor Green
 }
+
+# 1a. Resolve which model to use: prefer the fine-tuned model; fall back to the
+#     stock ggml-large-v3-turbo downloaded from Hugging Face.
+$StockModelFile = "ggml-large-v3-turbo.bin"
+$StockModelPath = Join-Path (Split-Path $Model -Parent) $StockModelFile
+$StockModelUrl  = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$StockModelFile"
+
+$activeModel = $Model
 if (-not (Test-Path $Model)) {
-    throw "ggml model not found at $Model. Convert the fine-tuned HF model with convert-h5-to-ggml.py first."
+    Write-Host "Fine-tuned model not found at $(Split-Path $Model -Leaf)" -ForegroundColor Yellow
+    if (-not (Test-Path $StockModelPath)) {
+        Write-Host "Downloading stock $StockModelFile (~1.5 GB) from Hugging Face..." -ForegroundColor Yellow
+        New-Item -ItemType Directory -Force -Path (Split-Path $StockModelPath -Parent) | Out-Null
+        curl.exe -L -C - -o $StockModelPath $StockModelUrl
+        if (-not (Test-Path $StockModelPath)) { throw "Download failed — $StockModelPath not found after curl." }
+        Write-Host "Stock model downloaded to $StockModelPath" -ForegroundColor Green
+    } else {
+        Write-Host "Stock model already present: $StockModelFile" -ForegroundColor Green
+    }
+    $activeModel = $StockModelPath
+    Write-Host "NOTE: Using stock model — technical vocabulary accuracy lower than the fine-tuned version." -ForegroundColor Yellow
 }
 
 # 1b. If a previous whisper-server still holds the port, stop it so we can bind.
@@ -101,7 +138,7 @@ Write-Host ""
 Write-Host "=== Chum Whisper API (whisper.cpp / Vulkan GPU) ===" -ForegroundColor Cyan
 Write-Host "Base URL : http://127.0.0.1:$Port/v1"
 Write-Host "Endpoint : POST /v1/audio/transcriptions"
-Write-Host "Model    : $(Split-Path $Model -Leaf)"
+Write-Host "Model    : $(Split-Path $activeModel -Leaf)"
 Write-Host "Device   : GPU (Vulkan - AMD RX 6800 XT)"
 Write-Host "API Key  : (none - localhost only)"
 Write-Host "===================================================" -ForegroundColor Cyan
@@ -133,7 +170,7 @@ $ErrorActionPreference = "Continue"
 
 # Quote the model path in case it ever contains spaces.
 $argLine = @(
-    "-m", "`"$Model`"",
+    "-m", "`"$activeModel`"",
     "--host", "127.0.0.1",
     "--port", $Port,
     "-l", $Language,
