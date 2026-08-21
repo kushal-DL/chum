@@ -76,6 +76,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+trap {
+    Write-Host ""
+    Write-Host "ERROR: $_" -ForegroundColor Red
+    Write-Host ""
+    powershell -Command "Read-Host 'Press Enter to close'"
+    exit 1
+}
+
 # 1. Ensure llama-server.exe is present
 $serverExe = Join-Path $ToolsDir "llama-server.exe"
 if (-not (Test-Path $serverExe)) {
@@ -119,11 +127,17 @@ $thinkingLabel = if ($EnableThinking) { "ON" } else { "OFF (fast mode)" }
 $keyLabel      = if ($NoAuth) { "(none - auth disabled)" } else { if ($ApiKey) { $ApiKey } else { "chum-llm-key-2026 (default)" } }
 
 # Open firewall so other machines on the LAN can reach this server.
-$fwRule = "Chum LLM API port $Port"
-if (-not (Get-NetFirewallRule -DisplayName $fwRule -ErrorAction SilentlyContinue)) {
-    Write-Host "Adding Windows Firewall inbound rule for port $Port ..." -ForegroundColor Yellow
-    New-NetFirewallRule -DisplayName $fwRule -Direction Inbound -Protocol TCP -LocalPort $Port -Action Allow | Out-Null
-    Write-Host "Firewall rule added." -ForegroundColor Green
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$fwRule  = "Chum LLM API port $Port"
+if ($isAdmin) {
+    if (-not (Get-NetFirewallRule -DisplayName $fwRule -ErrorAction SilentlyContinue)) {
+        Write-Host "Adding Windows Firewall inbound rule for port $Port ..." -ForegroundColor Yellow
+        New-NetFirewallRule -DisplayName $fwRule -Direction Inbound -Protocol TCP -LocalPort $Port -Action Allow | Out-Null
+        Write-Host "Firewall rule added." -ForegroundColor Green
+    }
+} else {
+    Write-Host "NOTE: Not running as Administrator - firewall rule skipped." -ForegroundColor Yellow
+    Write-Host "      If other machines cannot connect, right-click the script and choose 'Run as Administrator' once." -ForegroundColor Yellow
 }
 
 $lanIp = (Get-NetIPAddress -AddressFamily IPv4 |
