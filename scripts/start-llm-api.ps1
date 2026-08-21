@@ -118,9 +118,23 @@ if (-not (Test-Path $mmprojPath)) {
 $thinkingLabel = if ($EnableThinking) { "ON" } else { "OFF (fast mode)" }
 $keyLabel      = if ($NoAuth) { "(none - auth disabled)" } else { if ($ApiKey) { $ApiKey } else { "chum-llm-key-2026 (default)" } }
 
+# Open firewall so other machines on the LAN can reach this server.
+$fwRule = "Chum LLM API port $Port"
+if (-not (Get-NetFirewallRule -DisplayName $fwRule -ErrorAction SilentlyContinue)) {
+    Write-Host "Adding Windows Firewall inbound rule for port $Port ..." -ForegroundColor Yellow
+    New-NetFirewallRule -DisplayName $fwRule -Direction Inbound -Protocol TCP -LocalPort $Port -Action Allow | Out-Null
+    Write-Host "Firewall rule added." -ForegroundColor Green
+}
+
+$lanIp = (Get-NetIPAddress -AddressFamily IPv4 |
+    Where-Object { $_.IPAddress -notlike "127.*" -and $_.PrefixOrigin -in "Dhcp","Manual" } |
+    Select-Object -First 1).IPAddress
+if (-not $lanIp) { $lanIp = "<your-lan-ip>" }
+
 Write-Host ""
 Write-Host "=== Chum LLM + Vision API ===" -ForegroundColor Cyan
-Write-Host "Base URL : http://127.0.0.1:$Port/v1"
+Write-Host "Base URL : http://${lanIp}:$Port/v1  (LAN)"
+Write-Host "           http://127.0.0.1:$Port/v1  (local)"
 Write-Host "API Key  : $keyLabel"
 Write-Host "Model    : $ModelFile"
 Write-Host "Vision   : ON (mmproj included)"
@@ -132,9 +146,9 @@ Write-Host ""
 
 # 5. Launch via start-llm.py - Python subprocess handles Windows argument quoting
 #    correctly for the --chat-template-kwargs JSON string that PS 5.1 mangles.
-$launchScript = "F:\repos\chum\local-llm\start-llm.py"
+$launchScript = Join-Path $PSScriptRoot "start-llm.py"
 
-$pyArgs = @("--port", $Port)
+$pyArgs = @("--port", $Port, "--host", "0.0.0.0")
 if ($NoAuth)         { $pyArgs += "--no-auth" }
 elseif ($ApiKey)     { $pyArgs += @("--api-key", $ApiKey) }
 if ($EnableThinking) { $pyArgs += "--thinking" }

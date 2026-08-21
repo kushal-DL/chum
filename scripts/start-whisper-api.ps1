@@ -148,10 +148,24 @@ foreach ($dll in $ggmlDlls) {
 Get-ChildItem (Join-Path $LlamaDir "ggml-cpu-*.dll") -ErrorAction SilentlyContinue |
     ForEach-Object { Copy-Item $_.FullName (Join-Path $BinDir $_.Name) -Force }
 
+# 2c. Open firewall so other machines on the LAN can reach this server.
+$fwRule = "Chum Whisper API port $Port"
+if (-not (Get-NetFirewallRule -DisplayName $fwRule -ErrorAction SilentlyContinue)) {
+    Write-Host "Adding Windows Firewall inbound rule for port $Port ..." -ForegroundColor Yellow
+    New-NetFirewallRule -DisplayName $fwRule -Direction Inbound -Protocol TCP -LocalPort $Port -Action Allow | Out-Null
+    Write-Host "Firewall rule added." -ForegroundColor Green
+}
+
+$lanIp = (Get-NetIPAddress -AddressFamily IPv4 |
+    Where-Object { $_.IPAddress -notlike "127.*" -and $_.PrefixOrigin -in "Dhcp","Manual" } |
+    Select-Object -First 1).IPAddress
+if (-not $lanIp) { $lanIp = "<your-lan-ip>" }
+
 # 3. Banner
 Write-Host ""
 Write-Host "=== Chum Whisper API (whisper.cpp / Vulkan GPU) ===" -ForegroundColor Cyan
-Write-Host "Base URL : http://127.0.0.1:$Port/v1"
+Write-Host "Base URL : http://${lanIp}:$Port/v1  (LAN)"
+Write-Host "           http://127.0.0.1:$Port/v1  (local)"
 Write-Host "Endpoint : POST /v1/audio/transcriptions"
 Write-Host "Model    : $(Split-Path $activeModel -Leaf)"
 Write-Host "Device   : GPU (Vulkan - AMD RX 6800 XT)"
@@ -167,7 +181,7 @@ Write-Host ""
 #    and entropy/logprob thresholds (on by default) catch repetition loops.
 $serverArgs = @(
     "-m", $Model,
-    "--host", "127.0.0.1",
+    "--host", "0.0.0.0",
     "--port", $Port,
     "-l", $Language,
     "-t", $Threads,
@@ -186,7 +200,7 @@ $ErrorActionPreference = "Continue"
 # Quote the model path in case it ever contains spaces.
 $argLine = @(
     "-m", "`"$activeModel`"",
-    "--host", "127.0.0.1",
+    "--host", "0.0.0.0",
     "--port", $Port,
     "-l", $Language,
     "-t", $Threads,
