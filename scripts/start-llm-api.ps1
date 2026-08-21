@@ -168,3 +168,9 @@ elseif ($ApiKey)     { $pyArgs += @("--api-key", $ApiKey) }
 if ($EnableThinking) { $pyArgs += "--thinking" }
 
 python $launchScript @pyArgs
+$code = $LASTEXITCODE
+if ($code -ne 0) {
+    Write-Host ""
+    Write-Host "Server exited with code $code" -ForegroundColor Red
+}
+powershell -Command "Read-Host 'Server has stopped. Press Enter to close'"

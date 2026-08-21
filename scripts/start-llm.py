@@ -14,7 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT   = Path(__file__).parent
+ROOT   = Path(__file__).parent.parent / "local-llm"
 EXE    = ROOT / "llama.cpp" / "llama-server.exe"
 MODEL  = ROOT / "models"    / "Qwen_Qwen3.5-9B-Q4_K_M.gguf"
 MMPROJ = ROOT / "models"    / "mmproj-Qwen_Qwen3.5-9B-f16.gguf"
