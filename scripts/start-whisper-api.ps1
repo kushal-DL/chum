@@ -53,6 +53,11 @@ param(
     [switch]$NoAuth
 )
 
+# Log everything to a file — readable even if the window closes immediately.
+$LogFile = "F:\repos\chum\scripts\whisper-start-log.txt"
+Start-Transcript -Path $LogFile -Force | Out-Null
+Write-Host "Transcript: $LogFile"
+
 # Strict only for setup — the server launch below runs with this relaxed so that
 # whisper-server's normal stderr diagnostics aren't treated as terminating errors.
 $ErrorActionPreference = "Stop"
@@ -62,7 +67,8 @@ trap {
     Write-Host ""
     Write-Host "ERROR: $_" -ForegroundColor Red
     Write-Host ""
-    Read-Host "Press Enter to close"
+    Stop-Transcript | Out-Null
+    powershell -Command "Read-Host 'Press Enter to close'"
     exit 1
 }
 
@@ -202,4 +208,5 @@ finally {
     Pop-Location
 }
 
-Read-Host "Server has stopped. Press Enter to close this window"
+Stop-Transcript | Out-Null
+powershell -Command "Read-Host 'Server has stopped. Press Enter to close'"
