@@ -89,6 +89,11 @@ public sealed class AppSettings
     // Leave empty to use the public OpenAI endpoint instead.
     public string CloudSttBaseUrl { get; set; } = "http://127.0.0.1:8000/v1";
 
+    // --- Fast LLM (small model for modes 1 & 2 — lower TTFT) ---
+    public string FastLlmApiBaseUrl { get; set; } = "http://127.0.0.1:8003/v1";
+    public string FastLlmApiKey { get; set; } = "chum-llm-key-2026";
+    public string FastLlmModel { get; set; } = "qwen3-4b";
+
     // --- Local-only mode (Ollama) ---
     public bool LocalOnlyMode { get; set; } = false;
     public string OllamaModel { get; set; } = "llama3.1:8b";

@@ -202,6 +202,9 @@ public partial class OverlayWindow : Window
     private void ModeToggle_Click(object sender, RoutedEventArgs e)
         => ((App)Application.Current).CycleResponseMode();
 
+    private void ModelToggle_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).ToggleModel();
+
     private void DismissDisclosure_Click(object sender, RoutedEventArgs e)
     {
         ((OverlayViewModel)DataContext).DismissDisclosureReminder();

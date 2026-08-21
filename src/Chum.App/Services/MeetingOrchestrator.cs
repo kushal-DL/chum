@@ -28,7 +28,8 @@ public sealed class MeetingOrchestrator : IDisposable
     private ISttEngine _stt;
     private readonly TranscriptBuffer _transcript;
     private readonly ContextExtractor _context;
-    private readonly ILlmProvider _llm;
+    private readonly ILlmProvider _llm;      // quality model (9B) — used for vision + modes 3-5
+    private readonly ILlmProvider _fastLlm;  // fast model (3-4B) — used for modes 1-2 when toggled
     private readonly HotkeyService _hotkeys;
     private readonly OverlayViewModel _overlay;
     private readonly SettingsService _settings;
@@ -75,6 +76,7 @@ public sealed class MeetingOrchestrator : IDisposable
         TranscriptBuffer transcript,
         ContextExtractor context,
         ILlmProvider llm,
+        ILlmProvider fastLlm,
         HotkeyService hotkeys,
         OverlayViewModel overlay,
         SettingsService settings,
@@ -88,6 +90,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _transcript = transcript;
         _context = context;
         _llm = llm;
+        _fastLlm = fastLlm;
         _hotkeys = hotkeys;
         _overlay = overlay;
         _settings = settings;
@@ -152,13 +155,15 @@ public sealed class MeetingOrchestrator : IDisposable
         _latencyTracker.SlowTranscriptionDetected += (_, _) =>
             _overlay.ShowError("⚠ Transcription is slow (>15s) — consider using the 'base' Whisper model.");
 
-        _llm.UsageRecorded += (_, usage) =>
+        void OnUsage(object? _, LlmUsage usage)
         {
             _costTracker.Record(usage, _settings.Current.SpendThresholdDollars);
             _overlay.SetLastQueryCost(usage.InputTokens, usage.OutputTokens, usage.EstimatedCostUsd);
             Serilog.Log.Debug("LLM usage: ↑{In} ↓{Out} tokens, ~${Cost:F4}",
                 usage.InputTokens, usage.OutputTokens, usage.EstimatedCostUsd);
-        };
+        }
+        _llm.UsageRecorded += OnUsage;
+        _fastLlm.UsageRecorded += OnUsage;
         _costTracker.ThresholdExceeded += (_, _) =>
         {
             var stats = _costTracker.GetStats();
@@ -499,7 +504,7 @@ public sealed class MeetingOrchestrator : IDisposable
 
     // Streams with exponential-backoff retry on LlmException (max 3 attempts: 1s, 2s, 4s gaps).
     // onFirstToken fires with elapsed time at the moment the first token is received.
-    private async Task StreamWithRetryAsync(LlmRequest request, Action<TimeSpan>? onFirstToken = null)
+    private async Task StreamWithRetryAsync(ILlmProvider llm, LlmRequest request, Action<TimeSpan>? onFirstToken = null)
     {
         // Each response gets its own cancellation scope (linked to the pipeline token) so
         // "Stop response" cancels only the reply, leaving transcription running.
@@ -513,7 +518,7 @@ public sealed class MeetingOrchestrator : IDisposable
             {
                 var sw = Stopwatch.StartNew();
                 bool firstToken = true;
-                await foreach (var token in _llm.StreamResponseAsync(request, ct))
+                await foreach (var token in llm.StreamResponseAsync(request, ct))
                 {
                     if (firstToken)
                     {
@@ -569,6 +574,10 @@ public sealed class MeetingOrchestrator : IDisposable
 
     public string GetSttAccelerationMode() => _stt.AccelerationMode;
 
+    // Vision queries always use the quality model (needs mmproj); text queries use whichever the user toggled.
+    private ILlmProvider GetLlm(bool requiresVision = false)
+        => requiresVision || !_overlay.IsUsingFastModel ? _llm : _fastLlm;
+
     private string GetModeInstruction() => _overlay.ResponseMode switch
     {
         2 => "Respond concisely. Limit your answer to 1-3 sentences.",
@@ -615,8 +624,9 @@ public sealed class MeetingOrchestrator : IDisposable
     private async Task HandleAudioQueryAsync(float[]? recordedSamples, DateTimeOffset holdEnd)
     {
         var ct = _cts?.Token ?? CancellationToken.None;
+        var activeLlm = GetLlm();
         _overlay.SetListeningState(false);
-        _overlay.SetStatus(OverlayStatus.Thinking, $"Asking {_llm.ProviderName}…");
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Asking {activeLlm.ModelId}…");
         _overlay.StartNewResponse();
 
         try
@@ -668,7 +678,7 @@ public sealed class MeetingOrchestrator : IDisposable
 
             // Only attach the rolling meeting transcript if the user explicitly opted in.
             var contextText = _settings.Current.IncludeTranscriptContext
-                ? _context.BuildContext(holdEnd, _settings.Current.MaxResponseTokens)
+                ? _context.BuildContext(holdEnd, _overlay.TranscriptContextBudget)
                 : string.Empty;
 
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
@@ -711,10 +721,10 @@ public sealed class MeetingOrchestrator : IDisposable
                 Temperature: _settings.Current.Temperature);
 
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} mode={Mode}",
-                _llm.ProviderName, _llm.ModelId,
+                activeLlm.ProviderName, activeLlm.ModelId,
                 audioBase64 is not null ? "AudioToLlm" : "LocalTranscribeToLlm");
 
-            await StreamWithRetryAsync(request, t => _latencyTracker.RecordLlmLatency(t));
+            await StreamWithRetryAsync(activeLlm, request, t => _latencyTracker.RecordLlmLatency(t));
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -734,7 +744,8 @@ public sealed class MeetingOrchestrator : IDisposable
 
     private async Task HandleActionItemsQueryAsync()
     {
-        _overlay.SetStatus(OverlayStatus.Thinking, $"Extracting action items via {_llm.ProviderName}…");
+        var activeLlm = GetLlm();
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Extracting action items via {activeLlm.ModelId}…");
         _overlay.StartNewResponse();
 
         try
@@ -765,9 +776,9 @@ public sealed class MeetingOrchestrator : IDisposable
             var request = new LlmRequest(system, user, MaxTokens: 1024);
 
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ActionItems",
-                _llm.ProviderName, _llm.ModelId);
+                activeLlm.ProviderName, activeLlm.ModelId);
 
-            await StreamWithRetryAsync(request, t => _latencyTracker.RecordLlmLatency(t));
+            await StreamWithRetryAsync(activeLlm, request, t => _latencyTracker.RecordLlmLatency(t));
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -808,7 +819,8 @@ public sealed class MeetingOrchestrator : IDisposable
             return;
         }
 
-        _overlay.SetStatus(OverlayStatus.Thinking, $"Analysing image via {_llm.ProviderName}…");
+        var visionLlm = GetLlm(requiresVision: true);
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Analysing image via {visionLlm.ModelId}…");
 
         try
         {
@@ -830,9 +842,9 @@ public sealed class MeetingOrchestrator : IDisposable
                 MaxTokens: _settings.Current.MaxResponseTokens);
 
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ImageDrop",
-                _llm.ProviderName, _llm.ModelId);
+                visionLlm.ProviderName, visionLlm.ModelId);
 
-            await StreamWithRetryAsync(request, t => _latencyTracker.RecordLlmLatency(t));
+            await StreamWithRetryAsync(visionLlm, request, t => _latencyTracker.RecordLlmLatency(t));
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -896,7 +908,8 @@ public sealed class MeetingOrchestrator : IDisposable
             }
         }
 
-        _overlay.SetStatus(OverlayStatus.Thinking, $"Analysing screen via {_llm.ProviderName}…");
+        var visionLlm2 = GetLlm(requiresVision: true);
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Analysing screen via {visionLlm2.ModelId}…");
 
         try
         {
@@ -918,9 +931,9 @@ public sealed class MeetingOrchestrator : IDisposable
                 MaxTokens: _settings.Current.MaxResponseTokens);
 
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ScreenCapture",
-                _llm.ProviderName, _llm.ModelId);
+                visionLlm2.ProviderName, visionLlm2.ModelId);
 
-            await StreamWithRetryAsync(request, t => _latencyTracker.RecordLlmLatency(t));
+            await StreamWithRetryAsync(visionLlm2, request, t => _latencyTracker.RecordLlmLatency(t));
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -975,7 +988,8 @@ public sealed class MeetingOrchestrator : IDisposable
             return;
         }
 
-        _overlay.SetStatus(OverlayStatus.Thinking, $"Analysing region via {_llm.ProviderName}…");
+        var visionLlm3 = GetLlm(requiresVision: true);
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Analysing region via {visionLlm3.ModelId}…");
 
         try
         {
@@ -991,9 +1005,9 @@ public sealed class MeetingOrchestrator : IDisposable
                 MaxTokens: _settings.Current.MaxResponseTokens);
 
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=SnipCapture region={Region}",
-                _llm.ProviderName, _llm.ModelId, region);
+                visionLlm3.ProviderName, visionLlm3.ModelId, region);
 
-            await StreamWithRetryAsync(request, t => _latencyTracker.RecordLlmLatency(t));
+            await StreamWithRetryAsync(visionLlm3, request, t => _latencyTracker.RecordLlmLatency(t));
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
         catch (LlmException ex)

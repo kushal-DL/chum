@@ -51,6 +51,18 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Model toggle: ⚡ amber = fast (2-3B), 🧠 blue = quality (9B) -->
+        <Style x:Key="ModelToggleButtonStyle" TargetType="Button" BasedOn="{StaticResource ChumButton}">
+            <Setter Property="Content" Value="⚡"/>
+            <Setter Property="Foreground" Value="#FBBF24"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsUsingFastModel}" Value="False">
+                    <Setter Property="Content" Value="🧠"/>
+                    <Setter Property="Foreground" Value="#60A5FA"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Screenshot (region snapshot) mode: turns purple while armed -->
         <Style x:Key="ScreenshotButtonStyle" TargetType="Button" BasedOn="{StaticResource ChumButton}">
             <Setter Property="Content" Value="▣"/>
@@ -135,6 +147,8 @@
                             Click="StopResponse_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="{Binding ResponseModeLabel}"
                             Margin="2,4" Click="ModeToggle_Click"/>
+                    <Button Style="{StaticResource ModelToggleButtonStyle}" Margin="2,4"
+                            Click="ModelToggle_Click"/>
                     <Border Width="1" Background="#33FFFFFF" Margin="3,6"/>
                     <Button Style="{StaticResource ChumButton}" Content="↓" Margin="2,4"
                             Click="ExportTranscript_Click"/>

@@ -16,27 +16,32 @@ from pathlib import Path
 
 ROOT   = Path(__file__).parent.parent / "local-llm"
 EXE    = ROOT / "llama.cpp" / "llama-server.exe"
-MODEL  = ROOT / "models"    / "Qwen_Qwen3.5-9B-Q4_K_M.gguf"
-MMPROJ = ROOT / "models"    / "mmproj-Qwen_Qwen3.5-9B-f16.gguf"
+_DEFAULT_MODEL  = ROOT / "models" / "Qwen_Qwen3.5-9B-Q4_K_M.gguf"
+_DEFAULT_MMPROJ = ROOT / "models" / "mmproj-Qwen_Qwen3.5-9B-f16.gguf"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--host",     default="0.0.0.0")
-parser.add_argument("--port",     type=int, default=8001)
-parser.add_argument("--api-key",  default="chum-llm-key-2026")
-parser.add_argument("--no-auth",  action="store_true")
-parser.add_argument("--thinking", action="store_true")
+parser.add_argument("--host",         default="0.0.0.0")
+parser.add_argument("--port",         type=int, default=8001)
+parser.add_argument("--api-key",      default="chum-llm-key-2026")
+parser.add_argument("--no-auth",      action="store_true")
+parser.add_argument("--thinking",     action="store_true")
+parser.add_argument("--model-path",   default=str(_DEFAULT_MODEL))
+parser.add_argument("--no-mmproj",    action="store_true")
+parser.add_argument("--mmproj-path",  default=str(_DEFAULT_MMPROJ))
+parser.add_argument("--context-size", type=int, default=8192)
 args = parser.parse_args()
 
 cmd = [
     str(EXE),
-    "-m",       str(MODEL),
-    "--mmproj", str(MMPROJ),
-    "--host",   args.host,
-    "--port",   str(args.port),
-    "-ngl",     "999",
-    "-c",       "8192",
+    "-m",    args.model_path,
+    "--host", args.host,
+    "--port", str(args.port),
+    "-ngl",  "999",
+    "-c",    str(args.context_size),
     "--jinja",
 ]
+if not args.no_mmproj:
+    cmd += ["--mmproj", args.mmproj_path]
 if not args.thinking:
     cmd += ["--chat-template-kwargs", '{"enable_thinking":false}']
 if not args.no_auth:

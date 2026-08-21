@@ -106,6 +106,7 @@ public partial class App : System.Windows.Application
         var templatesTask = Task.Run(templates.Load);
 
         ILlmProvider llm = BuildLlmProvider();
+        ILlmProvider fastLlm = BuildFastLlmProvider();
 
         // HotkeyService.Install must run on the STA UI thread with a live message loop — do it here
         // (before any awaits that would suspend) so the constraint is always satisfied.
@@ -134,7 +135,7 @@ public partial class App : System.Windows.Application
 
         _orchestrator = new MeetingOrchestrator(
             audioPipeline, stt, transcriptBuffer, contextExtractor,
-            llm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, templates, DocContext);
+            llm, fastLlm, _hotkeys, _overlayVm!, Settings, _screenCapture, _clipboardMonitor, templates, DocContext);
 
         _overlayWindow!.ImageFileDropped += (_, path) =>
             _ = _orchestrator.HandleDroppedImageQueryAsync(path);
@@ -301,6 +302,15 @@ public partial class App : System.Windows.Application
         }
     }
 
+    private ILlmProvider BuildFastLlmProvider()
+    {
+        var s = Settings.Current;
+        var baseUrl = string.IsNullOrWhiteSpace(s.FastLlmApiBaseUrl) ? null : s.FastLlmApiBaseUrl;
+        var key = string.IsNullOrWhiteSpace(s.FastLlmApiKey) ? "chum-llm-key-2026" : s.FastLlmApiKey;
+        Log.Information("Fast LLM provider: {Model} at {Url}", s.FastLlmModel, baseUrl ?? "default");
+        return new OpenAiLlmProvider(key, s.FastLlmModel, baseUrl);
+    }
+
     private async Task StartCaptureAsync()
     {
         if (_started || _orchestrator is null) return;
@@ -375,6 +385,9 @@ public partial class App : System.Windows.Application
 
     /// <summary>Toolbar button: cycle response mode 1→2→3→4→5→1.</summary>
     public void CycleResponseMode() => _overlayVm?.CycleResponseMode();
+
+    /// <summary>Toolbar button: toggle between fast (⚡) and quality (🧠) model.</summary>
+    public void ToggleModel() => _overlayVm?.ToggleModel();
 
     /// <summary>
     /// Toolbar button: toggle screenshot mode. Entering arms the double-click region picker;

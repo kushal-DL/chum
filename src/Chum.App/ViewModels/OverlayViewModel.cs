@@ -214,6 +214,23 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
 
     public void SetRecording(bool active) => Invoke(() => IsRecording = active);
 
+    // ── Model toggle (⚡ fast 2-3B / 🧠 quality 9B) ──────────────────────────
+
+    private bool _isUsingFastModel = true;
+    public bool IsUsingFastModel
+    {
+        get => _isUsingFastModel;
+        private set { _isUsingFastModel = value; OnPropertyChanged(); OnPropertyChanged(nameof(ModelToggleLabel)); }
+    }
+
+    public string ModelToggleLabel => _isUsingFastModel ? "⚡" : "🧠";
+
+    // Approximate token budget for rolling transcript context per model tier.
+    public int TranscriptContextBudget => _isUsingFastModel ? 800 : 2000;
+
+    public void ToggleModel()
+        => Invoke(() => IsUsingFastModel = !_isUsingFastModel);
+
     // ── Response mode (1=Default 2=Quick 3=Detailed 4=Devil's Advocate 5=Code) ──
 
     private int _responseMode = 1;
