@@ -162,6 +162,15 @@ public partial class OverlayWindow : Window
         ((UIElement)sender).ReleaseMouseCapture();
     }
 
+    private void RecordToggle_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).ToggleRecording();
+
+    private void ScreenshotMode_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).ToggleScreenshotMode();
+
+    private void StopResponse_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).StopResponse();
+
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         var win = new SettingsWindow();
@@ -189,6 +198,9 @@ public partial class OverlayWindow : Window
         if (!string.IsNullOrEmpty(vm.ResponseText))
             System.Windows.Clipboard.SetText(vm.ResponseText);
     }
+
+    private void ModeToggle_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).CycleResponseMode();
 
     private void DismissDisclosure_Click(object sender, RoutedEventArgs e)
     {

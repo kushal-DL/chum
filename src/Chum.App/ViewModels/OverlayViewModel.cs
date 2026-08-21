@@ -203,6 +203,50 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
         if (!active) Invoke(() => IsStreaming = false);
     }
 
+    // ── Record toggle button state ────────────────────────────────────────
+
+    private bool _isRecording;
+    public bool IsRecording
+    {
+        get => _isRecording;
+        private set { if (_isRecording == value) return; _isRecording = value; OnPropertyChanged(); }
+    }
+
+    public void SetRecording(bool active) => Invoke(() => IsRecording = active);
+
+    // ── Response mode (1=Default 2=Quick 3=Detailed 4=Devil's Advocate 5=Code) ──
+
+    private int _responseMode = 1;
+    public int ResponseMode
+    {
+        get => _responseMode;
+        private set { _responseMode = value; OnPropertyChanged(); OnPropertyChanged(nameof(ResponseModeLabel)); }
+    }
+
+    public string ResponseModeLabel => _responseMode.ToString();
+
+    public void CycleResponseMode()
+        => Invoke(() => ResponseMode = _responseMode >= 5 ? 1 : _responseMode + 1);
+
+    // ── Screenshot (region snapshot) mode state ───────────────────────────
+
+    private bool _isScreenshotMode;
+    public bool IsScreenshotMode
+    {
+        get => _isScreenshotMode;
+        private set { if (_isScreenshotMode == value) return; _isScreenshotMode = value; OnPropertyChanged(); }
+    }
+
+    private string _screenshotHint = string.Empty;
+    public string ScreenshotHint
+    {
+        get => _screenshotHint;
+        private set { _screenshotHint = value; OnPropertyChanged(); }
+    }
+
+    public void SetScreenshotMode(bool active, string hint)
+        => Invoke(() => { IsScreenshotMode = active; ScreenshotHint = hint; });
+
     // ── Visibility ────────────────────────────────────────────────────────
 
     private Visibility _overlayVisibility = Visibility.Visible;

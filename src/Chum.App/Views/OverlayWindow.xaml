@@ -21,7 +21,7 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="8,4"/>
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Cursor" Value="Arrow"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -37,6 +37,29 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- Record toggle: grey ● normally, red ⏹ while recording -->
+        <Style x:Key="RecordButtonStyle" TargetType="Button" BasedOn="{StaticResource ChumButton}">
+            <Setter Property="Content" Value="●"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                    <Setter Property="Content" Value="⏹"/>
+                    <Setter Property="Foreground" Value="#EF4444"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Screenshot (region snapshot) mode: turns purple while armed -->
+        <Style x:Key="ScreenshotButtonStyle" TargetType="Button" BasedOn="{StaticResource ChumButton}">
+            <Setter Property="Content" Value="▣"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsScreenshotMode}" Value="True">
+                    <Setter Property="Foreground" Value="#8B5CF6"/>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
     </Window.Resources>
 
@@ -104,14 +127,23 @@
 
                 <!-- Close / settings buttons -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,4,0">
+                    <Button Style="{StaticResource RecordButtonStyle}" Margin="2,4"
+                            Click="RecordToggle_Click"/>
+                    <Button Style="{StaticResource ScreenshotButtonStyle}" Margin="2,4"
+                            Click="ScreenshotMode_Click"/>
+                    <Button Style="{StaticResource ChumButton}" Content="■" Margin="2,4"
+                            Click="StopResponse_Click"/>
+                    <Button Style="{StaticResource ChumButton}" Content="{Binding ResponseModeLabel}"
+                            Margin="2,4" Click="ModeToggle_Click"/>
+                    <Border Width="1" Background="#33FFFFFF" Margin="3,6"/>
                     <Button Style="{StaticResource ChumButton}" Content="↓" Margin="2,4"
-                            ToolTip="Export transcript to file" Click="ExportTranscript_Click"/>
+                            Click="ExportTranscript_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="⧉" Margin="2,4"
-                            ToolTip="Copy response to clipboard" Click="CopyResponse_Click"/>
+                            Click="CopyResponse_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="⚙" Margin="2,4"
-                            ToolTip="Settings" Click="Settings_Click"/>
+                            Click="Settings_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="✕" Margin="2,4"
-                            ToolTip="Hide overlay (Ctrl+Alt+H)" Click="Close_Click"/>
+                            Click="Close_Click"/>
                 </StackPanel>
             </Grid>
 
@@ -160,13 +192,13 @@
                     </Grid.ColumnDefinitions>
                     <Button Grid.Column="0" Style="{StaticResource ChumButton}" Content="◀"
                             IsEnabled="{Binding CanGoBack}"
-                            Click="HistoryPrev_Click" ToolTip="Previous response"/>
+                            Click="HistoryPrev_Click"/>
                     <TextBlock Grid.Column="1" Text="{Binding HistoryLabel}"
                                Foreground="#666" FontSize="10"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <Button Grid.Column="2" Style="{StaticResource ChumButton}" Content="▶"
                             IsEnabled="{Binding CanGoForward}"
-                            Click="HistoryNext_Click" ToolTip="Next response / back to live"/>
+                            Click="HistoryNext_Click"/>
                 </Grid>
             </Border>
 
@@ -207,6 +239,14 @@
                         Visibility="{Binding HasPendingScreenCapture, Converter={StaticResource BoolToVisibilityConverter}}">
                     <TextBlock Text="⚠  Screenshot pending — press Ctrl+Alt+S again to send (5s to cancel)"
                                Foreground="#8B5CF6" FontSize="11" FontWeight="SemiBold"/>
+                </Border>
+                <!-- Screenshot (region snapshot) mode hint -->
+                <Border Background="#1F8B5CF6" BorderBrush="#8B5CF6"
+                        BorderThickness="0,1,0,0" Padding="10,5"
+                        Visibility="{Binding IsScreenshotMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="{Binding ScreenshotHint}"
+                               Foreground="#A78BFA" FontSize="11" FontWeight="SemiBold"
+                               TextWrapping="Wrap"/>
                 </Border>
                 <!-- Audio device mismatch — shown when Teams/Zoom uses a different device than Chum's loopback -->
                 <Border Background="#1F06B6D4" BorderBrush="#06B6D4"
