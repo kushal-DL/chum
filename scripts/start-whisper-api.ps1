@@ -57,6 +57,15 @@ param(
 # whisper-server's normal stderr diagnostics aren't treated as terminating errors.
 $ErrorActionPreference = "Stop"
 
+# Keep the window open so the user can read any error before it disappears.
+trap {
+    Write-Host ""
+    Write-Host "ERROR: $_" -ForegroundColor Red
+    Write-Host ""
+    Read-Host "Press Enter to close"
+    exit 1
+}
+
 $BinDir   = "F:\repos\chum\local-llm\whisper.cpp\bin"
 $LlamaDir = "F:\repos\chum\local-llm\llama.cpp"
 $serverExe = Join-Path $BinDir "whisper-server.exe"
@@ -181,8 +190,16 @@ $argLine = @(
 
 Push-Location $BinDir
 try {
-    Start-Process -FilePath $serverExe -ArgumentList $argLine -NoNewWindow -Wait
+    $proc = Start-Process -FilePath $serverExe -ArgumentList $argLine -NoNewWindow -Wait -PassThru
+    $code = $proc.ExitCode
+    if ($code -ne 0) {
+        Write-Host ""
+        Write-Host "whisper-server exited with code $code" -ForegroundColor Red
+        Write-Host "Common causes: missing DLL next to exe, incompatible ggml version, bad model path." -ForegroundColor Yellow
+    }
 }
 finally {
     Pop-Location
 }
+
+Read-Host "Server has stopped. Press Enter to close this window"
