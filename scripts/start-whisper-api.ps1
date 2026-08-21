@@ -112,13 +112,13 @@ if (-not (Test-Path $Model)) {
         Write-Host "Downloading stock $StockModelFile (~1.5 GB) from Hugging Face..." -ForegroundColor Yellow
         New-Item -ItemType Directory -Force -Path (Split-Path $StockModelPath -Parent) | Out-Null
         curl.exe -L -C - -o $StockModelPath $StockModelUrl
-        if (-not (Test-Path $StockModelPath)) { throw "Download failed — $StockModelPath not found after curl." }
+        if (-not (Test-Path $StockModelPath)) { throw "Download failed - $StockModelPath not found after curl." }
         Write-Host "Stock model downloaded to $StockModelPath" -ForegroundColor Green
     } else {
         Write-Host "Stock model already present: $StockModelFile" -ForegroundColor Green
     }
     $activeModel = $StockModelPath
-    Write-Host "NOTE: Using stock model — technical vocabulary accuracy lower than the fine-tuned version." -ForegroundColor Yellow
+    Write-Host "NOTE: Using stock model - technical vocabulary accuracy lower than the fine-tuned version." -ForegroundColor Yellow
 }
 
 # 1b. If a previous whisper-server still holds the port, stop it so we can bind.
