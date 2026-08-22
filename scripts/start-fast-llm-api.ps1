@@ -75,10 +75,14 @@ $modelPath = Join-Path $ModelsDir $ModelFile
 
 function Test-GgufMagic($path) {
     if (-not (Test-Path $path)) { return $false }
-    $item = Get-Item $path
-    if ($item.Length -lt 4) { return $false }
-    $b = [System.IO.File]::ReadAllBytes($path)
-    return [System.Text.Encoding]::ASCII.GetString($b[0..3]) -eq "GGUF"
+    if ((Get-Item $path).Length -lt 4) { return $false }
+    try {
+        $fs  = [System.IO.File]::OpenRead($path)
+        $buf = New-Object byte[] 4
+        $n   = $fs.Read($buf, 0, 4)
+        $fs.Close()
+        return $n -eq 4 -and [System.Text.Encoding]::ASCII.GetString($buf) -eq "GGUF"
+    } catch { return $false }
 }
 
 if (-not (Test-GgufMagic $modelPath)) {
@@ -94,8 +98,13 @@ if (-not (Test-GgufMagic $modelPath)) {
     if (-not (Test-GgufMagic $modelPath)) {
         $preview = "(empty)"
         if (Test-Path $modelPath) {
-            $b = [System.IO.File]::ReadAllBytes($modelPath)
-            $preview = [System.Text.Encoding]::ASCII.GetString($b[0..[Math]::Min(31,$b.Count-1)])
+            try {
+                $fs  = [System.IO.File]::OpenRead($modelPath)
+                $buf = New-Object byte[] 32
+                $n   = $fs.Read($buf, 0, 32)
+                $fs.Close()
+                $preview = [System.Text.Encoding]::ASCII.GetString($buf, 0, $n)
+            } catch {}
             Remove-Item $modelPath -Force -ErrorAction SilentlyContinue
         }
         throw "Download failed - not a valid GGUF (got: '$preview'). Check ModelRepo='$ModelRepo' and ModelFile='$ModelFile'."
