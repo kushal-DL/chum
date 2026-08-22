@@ -72,16 +72,33 @@ if (-not (Test-Path $serverExe)) {
 
 # 2. Ensure the model GGUF is present
 $modelPath = Join-Path $ModelsDir $ModelFile
-if (-not (Test-Path $modelPath)) {
-    Write-Host "Fast model not found, downloading $ModelFile from $ModelRepo..." -ForegroundColor Yellow
+
+function Test-GgufMagic($path) {
+    if (-not (Test-Path $path)) { return $false }
+    $item = Get-Item $path
+    if ($item.Length -lt 4) { return $false }
+    $b = [System.IO.File]::ReadAllBytes($path)
+    return [System.Text.Encoding]::ASCII.GetString($b[0..3]) -eq "GGUF"
+}
+
+if (-not (Test-GgufMagic $modelPath)) {
+    if (Test-Path $modelPath) {
+        Write-Host "Existing model file is corrupt or incomplete - re-downloading..." -ForegroundColor Yellow
+        Remove-Item $modelPath -Force
+    } else {
+        Write-Host "Fast model not found, downloading $ModelFile from $ModelRepo..." -ForegroundColor Yellow
+    }
     New-Item -ItemType Directory -Force -Path $ModelsDir | Out-Null
     curl.exe -L -C - -o $modelPath "https://huggingface.co/$ModelRepo/resolve/main/$ModelFile"
 
-    # Validate: first 4 bytes must be "GGUF" (0x47 0x47 0x55 0x46)
-    $bytes = [System.IO.File]::ReadAllBytes($modelPath)
-    if ($bytes.Count -lt 4 -or [System.Text.Encoding]::ASCII.GetString($bytes[0..3]) -ne "GGUF") {
-        Remove-Item $modelPath -Force -ErrorAction SilentlyContinue
-        throw "Download failed - file is not a valid GGUF. Got: $([System.Text.Encoding]::ASCII.GetString($bytes[0..[Math]::Min(15,$bytes.Count-1)])). Check ModelRepo='$ModelRepo' and ModelFile='$ModelFile'."
+    if (-not (Test-GgufMagic $modelPath)) {
+        $preview = "(empty)"
+        if (Test-Path $modelPath) {
+            $b = [System.IO.File]::ReadAllBytes($modelPath)
+            $preview = [System.Text.Encoding]::ASCII.GetString($b[0..[Math]::Min(31,$b.Count-1)])
+            Remove-Item $modelPath -Force -ErrorAction SilentlyContinue
+        }
+        throw "Download failed - not a valid GGUF (got: '$preview'). Check ModelRepo='$ModelRepo' and ModelFile='$ModelFile'."
     }
     Write-Host "Fast model downloaded to $modelPath" -ForegroundColor Green
 }
@@ -100,8 +117,14 @@ if (-not (Get-NetFirewallRule -DisplayName $fwRule -ErrorAction SilentlyContinue
 }
 
 $lanIp = (Get-NetIPAddress -AddressFamily IPv4 |
-    Where-Object { $_.IPAddress -notlike "127.*" -and $_.PrefixOrigin -in "Dhcp","Manual" } |
+    Where-Object { $_.IPAddress -like "192.168.*" -and $_.PrefixOrigin -in "Dhcp","Manual" } |
     Select-Object -First 1).IPAddress
+if (-not $lanIp) {
+    $lanIp = (Get-NetIPAddress -AddressFamily IPv4 |
+        Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" -and
+                       $_.IPAddress -notlike "172.*" -and $_.PrefixOrigin -in "Dhcp","Manual" } |
+        Select-Object -First 1).IPAddress
+}
 if (-not $lanIp) { $lanIp = "<your-lan-ip>" }
 
 $keyLabel = if ($NoAuth) { "(none - auth disabled)" } else { if ($ApiKey) { $ApiKey } else { "chum-llm-key-2026 (default)" } }
