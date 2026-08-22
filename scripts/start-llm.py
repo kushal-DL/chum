@@ -42,8 +42,10 @@ cmd = [
 ]
 if not args.no_mmproj:
     cmd += ["--mmproj", args.mmproj_path]
-if not args.thinking:
-    cmd += ["--chat-template-kwargs", '{"enable_thinking":false}']
+if args.thinking:
+    cmd += ["--reasoning", "on"]
+else:
+    cmd += ["--reasoning", "off"]
 if not args.no_auth:
     cmd += ["--api-key", args.api_key]
 
