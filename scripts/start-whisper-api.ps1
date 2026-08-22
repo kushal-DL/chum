@@ -163,8 +163,14 @@ if (-not (Get-NetFirewallRule -DisplayName $fwRule -ErrorAction SilentlyContinue
 }
 
 $lanIp = (Get-NetIPAddress -AddressFamily IPv4 |
-    Where-Object { $_.IPAddress -notlike "127.*" -and $_.PrefixOrigin -in "Dhcp","Manual" } |
+    Where-Object { $_.IPAddress -like "192.168.*" -and $_.PrefixOrigin -in "Dhcp","Manual" } |
     Select-Object -First 1).IPAddress
+if (-not $lanIp) {
+    $lanIp = (Get-NetIPAddress -AddressFamily IPv4 |
+        Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" -and
+                       $_.IPAddress -notlike "172.*" -and $_.PrefixOrigin -in "Dhcp","Manual" } |
+        Select-Object -First 1).IPAddress
+}
 if (-not $lanIp) { $lanIp = "<your-lan-ip>" }
 
 # 3. Banner
