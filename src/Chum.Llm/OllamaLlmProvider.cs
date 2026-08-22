@@ -27,7 +27,8 @@ public sealed class OllamaLlmProvider : ILlmProvider
     {
         ModelId = model;
         _baseUrl = baseUrl.TrimEnd('/');
-        _http = new HttpClient(new WinHttpHandler()) { Timeout = TimeSpan.FromSeconds(120) };
+        _http = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) })
+            { Timeout = TimeSpan.FromSeconds(120) };
     }
 
     public async IAsyncEnumerable<string> StreamResponseAsync(
@@ -66,9 +67,10 @@ public sealed class OllamaLlmProvider : ILlmProvider
         using var reader = new StreamReader(stream);
 
         // Ollama streams NDJSON: one JSON object per line, done:true on the last line
-        while (!reader.EndOfStream && !ct.IsCancellationRequested)
+        while (!ct.IsCancellationRequested)
         {
             var line = await reader.ReadLineAsync(ct);
+            if (line is null) break; // null = clean EOF
             if (string.IsNullOrWhiteSpace(line)) continue;
 
             string? token = null;

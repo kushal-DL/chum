@@ -31,7 +31,8 @@ public sealed class OpenAiLlmProvider : ILlmProvider
     {
         _apiKey = apiKey;
         ModelId = modelId;
-        _http = new HttpClient(new WinHttpHandler()) { Timeout = TimeSpan.FromSeconds(120) };
+        _http = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) })
+            { Timeout = TimeSpan.FromSeconds(120) };
         _apiBase = string.IsNullOrWhiteSpace(baseUrl)
             ? "https://api.openai.com/v1/chat/completions"
             : baseUrl.TrimEnd('/') + "/chat/completions";
@@ -72,10 +73,10 @@ public sealed class OpenAiLlmProvider : ILlmProvider
         int inputTokens = 0;
         int outputTokens = 0;
 
-        while (!reader.EndOfStream && !ct.IsCancellationRequested)
+        while (!ct.IsCancellationRequested)
         {
             var line = await reader.ReadLineAsync(ct);
-            if (line is null) break;
+            if (line is null) break; // null = clean EOF
             if (!line.StartsWith("data: ", StringComparison.Ordinal)) continue;
 
             var json = line["data: ".Length..];
