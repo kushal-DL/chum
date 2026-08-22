@@ -30,7 +30,8 @@ public sealed class AnthropicLlmProvider : ILlmProvider
     {
         _apiKey = apiKey;
         ModelId = modelId;
-        _http = new HttpClient(new WinHttpHandler()) { Timeout = TimeSpan.FromSeconds(120) };
+        _http = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) })
+            { Timeout = TimeSpan.FromSeconds(120) };
     }
 
     public async IAsyncEnumerable<string> StreamResponseAsync(
@@ -67,10 +68,10 @@ public sealed class AnthropicLlmProvider : ILlmProvider
         int outputTokens = 0;
 
         // Parse SSE: lines starting with "data: " contain JSON event objects
-        while (!reader.EndOfStream && !ct.IsCancellationRequested)
+        while (!ct.IsCancellationRequested)
         {
             var line = await reader.ReadLineAsync(ct);
-            if (line is null) break;
+            if (line is null) break; // null = clean EOF
             if (!line.StartsWith("data: ", StringComparison.Ordinal)) continue;
 
             var json = line["data: ".Length..];
