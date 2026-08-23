@@ -1041,9 +1041,11 @@ public sealed class MeetingOrchestrator : IDisposable
             return;
         }
 
+        _overlay.Hide();
         string? imageBase64 = null;
         try
         {
+            await Task.Delay(150);
             imageBase64 = await Task.Run(() =>
                 _screenCapture.CaptureRegionAsJpegBase64(region, maxWidthPx: 1280, jpegQuality: 85));
         }
@@ -1053,6 +1055,10 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Error(ex, "Snip region capture exception");
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
             return;
+        }
+        finally
+        {
+            _overlay.Show();
         }
 
         if (string.IsNullOrEmpty(imageBase64))
