@@ -1,20 +1,28 @@
 <#
 .SYNOPSIS
     Starts the Google AI Mode image search bridge for Chum.
+    Serves POST /image on http://127.0.0.1:8002.
 
-    Opens a Chrome window and serves POST /image on http://127.0.0.1:8002.
-    Chum sends a screenshot region here; this script returns Google AI Mode's response.
+TWO MODES:
 
-    FIRST RUN (or after Google shows a CAPTCHA):
-        Solve the "I am not a robot" check in the Chrome window that opens.
-        After that, the session is saved in google-session/ for future runs.
+  Mode 1 -- Default (no extra steps, recommended for most users):
+    Playwright opens a separate Chrome window.
+    If Google shows a "I am not a robot" check, solve it once in that window.
+    The session is saved in google-session/ so it only happens once.
 
-    Do NOT close the Chrome window -- Playwright controls it.
+  Mode 2 -- Attach to YOUR Chrome (no CAPTCHA, uses your Google account):
+    1. Close your current Chrome.
+    2. Open Chrome with: Start -> Run -> paste this and press Enter:
+          chrome.exe --remote-debugging-port=9222
+    3. Run this script with the -Cdp flag:
+          .\start-internet-search.ps1 -Cdp
+    Playwright will attach to YOUR Chrome window -- no new browser opens.
+
 #>
-param()
+param(
+    [switch]$Cdp  # Attach to already-running Chrome on port 9222
+)
 
-# Never Stop -- a non-zero exit from a native command (python, pip) would
-# silently kill the window before the user can read the error.
 $ErrorActionPreference = "Continue"
 
 if ($PSScriptRoot) { Set-Location $PSScriptRoot }
@@ -32,7 +40,6 @@ function Bail($msg) {
 Write-Host "[internet-search] Checking Python..." -ForegroundColor Cyan
 $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { Bail "Python 3.10+ not found in PATH. Install from https://python.org and re-run." }
-
 $pyVer = python --version 2>&1
 Write-Host "[internet-search] Found: $pyVer" -ForegroundColor Cyan
 
@@ -42,16 +49,22 @@ pip install fastapi "uvicorn[standard]" playwright pydantic --quiet
 if ($LASTEXITCODE -ne 0) { Bail "pip install failed -- check the output above." }
 
 # -- Playwright browser binary --
-Write-Host "[internet-search] Installing Playwright Chromium (skipped if already present)..." -ForegroundColor Yellow
+Write-Host "[internet-search] Checking Playwright Chromium..." -ForegroundColor Yellow
 python -m playwright install chromium
 if ($LASTEXITCODE -ne 0) { Bail "playwright install chromium failed -- check the output above." }
 
 # -- Launch --
 Write-Host ""
-Write-Host "[internet-search] Starting Google AI Search bridge on http://127.0.0.1:8002" -ForegroundColor Green
-Write-Host "[internet-search] A Chrome window will open." -ForegroundColor Yellow
-Write-Host "[internet-search] If Google shows a CAPTCHA, solve it in the browser -- it will not appear again." -ForegroundColor Yellow
-Write-Host "[internet-search] Do NOT close the Chrome window -- Playwright controls it." -ForegroundColor Yellow
+if ($Cdp) {
+    Write-Host "[internet-search] CDP mode: attaching to Chrome on port 9222" -ForegroundColor Green
+    Write-Host "[internet-search] Make sure Chrome is running with --remote-debugging-port=9222" -ForegroundColor Yellow
+    $env:CDP_URL = "http://localhost:9222"
+} else {
+    Write-Host "[internet-search] Starting Google AI Search bridge on http://127.0.0.1:8002" -ForegroundColor Green
+    Write-Host "[internet-search] A separate Chrome window will open." -ForegroundColor Yellow
+    Write-Host "[internet-search] If Google shows a CAPTCHA, solve it once -- it will not appear again." -ForegroundColor Yellow
+    $env:CDP_URL = ""
+}
 Write-Host ""
 
 python internet-search-api.py

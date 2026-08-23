@@ -9,8 +9,16 @@ Flow:
     -> Waits for Google to analyse the image
     -> Returns { response: "<AI answer text>" }
 
-Session is saved in google-session/ so Google learns to trust this browser
-profile across restarts. On first run, solve any CAPTCHA that appears.
+Two launch modes (set CDP_URL environment variable to switch):
+
+  DEFAULT (no CDP_URL): Playwright opens a persistent Chrome profile in
+    google-session/. On first run, solve any CAPTCHA that appears and the
+    session is saved for future runs.
+
+  CDP mode (CDP_URL=http://localhost:9222): Playwright attaches to your
+    already-running Chrome browser. Start Chrome with:
+        chrome.exe --remote-debugging-port=9222
+    In this mode your existing Google sign-in is used -- no CAPTCHA.
 
 Start with: start-internet-search.ps1
 """
@@ -24,7 +32,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
-from playwright.async_api import async_playwright, BrowserContext, Page
+from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 
 # Persistent profile folder (saves cookies / Google trust across restarts)
 SESSION_DIR = Path(__file__).parent / "google-session"
@@ -37,6 +45,10 @@ QUERY_URL = (
     "&udm=50"
 )
 
+# Set CDP_URL=http://localhost:9222 to attach to your already-running Chrome.
+CDP_URL = os.environ.get("CDP_URL", "")
+
+_browser: Browser | None = None
 _context: BrowserContext | None = None
 _page: Page | None = None
 _lock = asyncio.Lock()
@@ -66,29 +78,39 @@ RESPONSE_END_MARKER = "AI can make mistakes"
 
 
 async def _launch_browser():
-    global _context, _page
-    SESSION_DIR.mkdir(exist_ok=True)
+    global _browser, _context, _page
     pw = await async_playwright().start()
 
-    _context = await pw.chromium.launch_persistent_context(
-        str(SESSION_DIR),
-        headless=False,
-        channel="chrome",
-        args=[
-            "--disable-blink-features=AutomationControlled",
-            "--no-first-run",
-            "--no-default-browser-check",
-        ],
-        viewport={"width": 1280, "height": 900},
-        locale="en-US",
-    )
+    if CDP_URL:
+        # Attach to user's already-running Chrome (no CAPTCHA, uses existing Google session)
+        print(f"[internet-search] Attaching to Chrome at {CDP_URL} ...", flush=True)
+        _browser = await pw.chromium.connect_over_cdp(CDP_URL)
+        # Use the first context (the user's existing browsing context)
+        _context = _browser.contexts[0] if _browser.contexts else await _browser.new_context()
+        _page = await _context.new_page()
+    else:
+        # Launch a persistent Chrome profile (session saved across restarts)
+        SESSION_DIR.mkdir(exist_ok=True)
+        _context = await pw.chromium.launch_persistent_context(
+            str(SESSION_DIR),
+            headless=False,
+            channel="chrome",
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--no-first-run",
+                "--no-default-browser-check",
+            ],
+            viewport={"width": 1280, "height": 900},
+            locale="en-US",
+        )
+        _page = _context.pages[0] if _context.pages else await _context.new_page()
 
-    _page = _context.pages[0] if _context.pages else await _context.new_page()
     await _page.goto(QUERY_URL, wait_until="domcontentloaded")
     await asyncio.sleep(2)
 
-    # Detect CAPTCHA or sign-in and wait for the user to handle it
-    await _wait_for_ready()
+    # Detect CAPTCHA and wait for the user to handle it (persistent mode only)
+    if not CDP_URL:
+        await _wait_for_ready()
 
     print("[internet-search] Browser ready -- Google AI Mode loaded.", flush=True)
     print("[internet-search] Listening on http://127.0.0.1:8002", flush=True)
@@ -189,8 +211,10 @@ async def _extract_image_response() -> str:
 async def lifespan(app: FastAPI):
     await _launch_browser()
     yield
-    if _context:
+    if _context and not CDP_URL:
         await _context.close()
+    if _browser and CDP_URL:
+        await _browser.close()
 
 
 app = FastAPI(lifespan=lifespan)
