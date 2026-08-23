@@ -611,6 +611,15 @@ public sealed class MeetingOrchestrator : IDisposable
             return;
         }
 
+        // Warn if the JPEG is suspiciously small (all-black Teams DRM output is ~2–4 KB
+        // regardless of region size; real content is typically 50 KB+).
+        if (imageBase64.Length < 3000)
+        {
+            _overlay.ShowError("Region looks blank (Teams DRM?). Try capturing a non-Teams window.");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+
         _overlay.SetStatus(OverlayStatus.Thinking, "Sending to Google AI Search…");
 
         try

@@ -89,12 +89,13 @@ async def _launch_browser():
         _context = _browser.contexts[0] if _browser.contexts else await _browser.new_context()
         _page = await _context.new_page()
     else:
-        # Launch a persistent Chrome profile (session saved across restarts)
+        # Launch a persistent Chromium profile (session saved across restarts).
+        # Using bundled Chromium (no channel=) avoids the --no-sandbox Chrome warning
+        # while the persistent profile still builds Google trust across runs.
         SESSION_DIR.mkdir(exist_ok=True)
         _context = await pw.chromium.launch_persistent_context(
             str(SESSION_DIR),
             headless=False,
-            channel="chrome",
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-first-run",
@@ -163,46 +164,64 @@ async def _wait_for_attach_button(timeout_s: int = 10) -> bool:
 
 async def _extract_image_response() -> str:
     """
-    Poll shadow DOM until Google's image response is complete.
+    Poll shadow DOM until Google responds to the uploaded image.
 
-    After the image is sent the conversation gains a turn starting with
-    "You sent:" -> "Share Download" (thumbnail UI) -> [AI response text] ->
-    "AI can make mistakes, so double-check responses".
+    Google appends "AI can make mistakes, so double-check responses" after EVERY
+    response turn. The seed-query response is turn 1 (first occurrence); the image
+    analysis is turn 2 (second occurrence). We extract the text between them.
+
+    Fallback: if "You sent:" + "Share Download" are visible we clip past that prefix.
     """
-    for attempt in range(30):  # up to 60 s
+    for attempt in range(30):  # up to ~60 s
         await asyncio.sleep(2)
         deep = await _page.evaluate(DEEP_TEXT_JS)
 
-        # CAPTCHA interruption
+        # CAPTCHA check
         if "not a robot" in deep.lower():
             print("[internet-search] CAPTCHA appeared mid-request!", flush=True)
             await _wait_for_ready()
             continue
 
-        # Find the most recent image turn
-        idx_sent = deep.rfind(IMAGE_TURN_MARKER)
-        if idx_sent < 0:
+        # Count end markers — need at least 2 (one per response turn)
+        positions: list[int] = []
+        search_from = 0
+        while True:
+            idx = deep.find(RESPONSE_END_MARKER, search_from)
+            if idx < 0:
+                break
+            positions.append(idx)
+            search_from = idx + len(RESPONSE_END_MARKER)
+
+        if len(positions) < 2:
             if attempt % 5 == 4:
-                print(f"[internet-search] Waiting for image turn... {(attempt+1)*2}s", flush=True)
+                print(
+                    f"[internet-search] Waiting for image response... {(attempt+1)*2}s "
+                    f"(end-markers found: {len(positions)}, page: {len(deep)} chars)",
+                    flush=True,
+                )
+                # Diagnostic: show what's on the page
+                print(f"[internet-search] Page snippet: {repr(deep[:400])}", flush=True)
             continue
 
-        # Find response-end marker that follows this image turn
-        idx_end = deep.find(RESPONSE_END_MARKER, idx_sent)
-        if idx_end < 0:
-            if attempt % 5 == 4:
-                print(f"[internet-search] Waiting for response... {(attempt+1)*2}s", flush=True)
-            continue
+        # Text between the two end markers = image analysis response
+        region = deep[positions[0] + len(RESPONSE_END_MARKER):positions[1]].strip()
 
-        region = deep[idx_sent:idx_end]
+        # Strip any "You sent: N image Share Download" prefix if present
+        for marker in (IMAGE_TURN_MARKER, IMAGE_BUTTONS_SKIP):
+            idx_m = region.find(marker)
+            if idx_m >= 0:
+                region = region[idx_m + len(marker):].strip()
 
-        # Skip the image thumbnail controls ("You sent: N image Share Download")
-        skip = region.find(IMAGE_BUTTONS_SKIP)
-        if skip >= 0:
-            region = region[skip + len(IMAGE_BUTTONS_SKIP):]
+        # Strip any remaining UI labels
+        for label in ("Copy ", "Share ", "More ", "Download ", "Copied "):
+            region = region.replace(label, " ").strip()
+        region = region.strip()
 
-        response = region.strip()
-        if response and len(response) > 3:
-            return response
+        if region and len(region) > 5:
+            return region
+
+        if attempt % 5 == 4:
+            print(f"[internet-search] Waiting... response region empty at {(attempt+1)*2}s", flush=True)
 
     return "No response received within 60 s -- check the browser window."
 
