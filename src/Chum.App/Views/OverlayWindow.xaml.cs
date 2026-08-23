@@ -57,12 +57,6 @@ public partial class OverlayWindow : Window
         InitializeComponent();
         DataContext = viewModel;
 
-        viewModel.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(OverlayViewModel.ResponseText))
-                Dispatcher.InvokeAsync(() => ResponseScroller.ScrollToBottom());
-        };
-
         // Persist position across sessions so overlay stays on the user's chosen monitor
         LocationChanged += (_, _) => PersistWindowBounds();
         SizeChanged += (_, _) => PersistWindowBounds();
