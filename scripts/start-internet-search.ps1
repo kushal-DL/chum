@@ -2,14 +2,14 @@
 .SYNOPSIS
     Starts the Google AI Mode image search bridge for Chum.
 
-    Opens a Chrome window (using a saved session in google-session/) and serves
-    POST /image on http://127.0.0.1:8002.
+    Opens a Chrome window and serves POST /image on http://127.0.0.1:8002.
+    Chum sends a screenshot region here; this script returns Google AI Mode's response.
 
-    FIRST RUN: Chrome will ask you to sign in to Google -- do so, then the API
-               becomes ready automatically. Your session is saved for future runs.
+    FIRST RUN (or after Google shows a CAPTCHA):
+        Solve the "I am not a robot" check in the Chrome window that opens.
+        After that, the session is saved in google-session/ for future runs.
 
-    Chum sends a screenshot here; the script returns Google AI Mode's response text.
-    Do NOT close the Chrome window that opens -- Playwright controls it.
+    Do NOT close the Chrome window -- Playwright controls it.
 #>
 param()
 
@@ -49,7 +49,8 @@ if ($LASTEXITCODE -ne 0) { Bail "playwright install chromium failed -- check the
 # -- Launch --
 Write-Host ""
 Write-Host "[internet-search] Starting Google AI Search bridge on http://127.0.0.1:8002" -ForegroundColor Green
-Write-Host "[internet-search] A Chrome window will open. FIRST RUN: sign in to Google when prompted." -ForegroundColor Yellow
+Write-Host "[internet-search] A Chrome window will open." -ForegroundColor Yellow
+Write-Host "[internet-search] If Google shows a CAPTCHA, solve it in the browser -- it will not appear again." -ForegroundColor Yellow
 Write-Host "[internet-search] Do NOT close the Chrome window -- Playwright controls it." -ForegroundColor Yellow
 Write-Host ""
 

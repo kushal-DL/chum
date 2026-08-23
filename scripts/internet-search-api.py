@@ -2,13 +2,15 @@
 Google AI Mode image search bridge for Chum.
 
 Flow:
-  Chum app  POST /image { image_base64: "<base64 JPEG>" }
-    -> Playwright types prompt + attaches image in Google AI Mode
+  Chum app  POST /image { image_base64: "<base64 JPEG/PNG>" }
+    -> Playwright navigates to Google AI Mode (seed query already in URL)
+    -> Google AI responds to the text query (asking user to share an image)
+    -> Script attaches the actual screenshot image and clicks Send
+    -> Waits for Google to analyse the image
     -> Returns { response: "<AI answer text>" }
 
-FIRST RUN: a Chrome window opens and asks you to sign in to Google.
-           Sign in, then wait -- the API becomes ready automatically.
-           Subsequent runs use the saved session (google-session/ folder).
+Session is saved in google-session/ so Google learns to trust this browser
+profile across restarts. On first run, solve any CAPTCHA that appears.
 
 Start with: start-internet-search.ps1
 """
@@ -24,21 +26,27 @@ from pydantic import BaseModel
 import uvicorn
 from playwright.async_api import async_playwright, BrowserContext, Page
 
-# ── Session storage -- saves Google login so sign-in is only needed once ──────
+# Persistent profile folder (saves cookies / Google trust across restarts)
 SESSION_DIR = Path(__file__).parent / "google-session"
 
-GOOGLE_AI_URL = "https://www.google.com/search?udm=50"
-PROMPT = "Respond to this image in as few words as possible"
+# Google AI Mode with the seed query already in the URL so Google responds
+# immediately without needing to type anything in the chat box.
+QUERY_URL = (
+    "https://www.google.com/search"
+    "?q=respond+to+the+image+in+the+fewest+words+possible"
+    "&udm=50"
+)
 
 _context: BrowserContext | None = None
 _page: Page | None = None
 _lock = asyncio.Lock()
 
-# Shadow-DOM-aware full page text extraction
+# Shadow-DOM-aware text extractor (excludes <style>/<script> noise)
 DEEP_TEXT_JS = """() => {
     function getText(root) {
         if (!root) return '';
         if (root.nodeType === Node.TEXT_NODE) return root.textContent + ' ';
+        if (root.nodeName === 'STYLE' || root.nodeName === 'SCRIPT' || root.nodeName === 'NOSCRIPT') return '';
         let out = '';
         if (root.shadowRoot) out += getText(root.shadowRoot);
         for (const child of (root.childNodes || [])) out += getText(child);
@@ -47,13 +55,21 @@ DEEP_TEXT_JS = """() => {
     return getText(document.body).replace(/\\s+/g, ' ').trim();
 }"""
 
+# Text markers derived from live DOM inspection of Google AI Mode:
+#   - After every AI response: "AI can make mistakes, so double-check responses"
+#   - When image turn starts: "You sent:" followed by "Share Download" (thumbnail controls)
+#   - Initial response to text query contains one of these phrases:
+INITIAL_RESPONSE_MARKERS = ("AI can make mistakes", "Would you like", "Please upload")
+IMAGE_TURN_MARKER = "You sent:"
+IMAGE_BUTTONS_SKIP = "Share Download"
+RESPONSE_END_MARKER = "AI can make mistakes"
+
 
 async def _launch_browser():
     global _context, _page
     SESSION_DIR.mkdir(exist_ok=True)
     pw = await async_playwright().start()
 
-    # launch_persistent_context keeps cookies/session across restarts
     _context = await pw.chromium.launch_persistent_context(
         str(SESSION_DIR),
         headless=False,
@@ -65,68 +81,108 @@ async def _launch_browser():
         ],
         viewport={"width": 1280, "height": 900},
         locale="en-US",
-        user_agent=(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/137.0.0.0 Safari/537.36"
-        ),
     )
 
     _page = _context.pages[0] if _context.pages else await _context.new_page()
-    await _page.goto(GOOGLE_AI_URL, wait_until="domcontentloaded")
+    await _page.goto(QUERY_URL, wait_until="domcontentloaded")
     await asyncio.sleep(2)
 
-    # Prompt user to sign in if not already signed in
-    sign_in_btn = await _page.query_selector("button[aria-label='Sign in']")
-    if sign_in_btn:
-        print("[internet-search] *** Please sign in to your Google account in the browser window ***", flush=True)
-        print("[internet-search] After signing in, this API becomes ready automatically. (Waiting up to 5 min)", flush=True)
-        for _ in range(60):
-            await asyncio.sleep(5)
-            sign_in_btn = await _page.query_selector("button[aria-label='Sign in']")
-            if not sign_in_btn:
-                print("[internet-search] Sign-in detected -- reloading AI Mode...", flush=True)
-                await _page.goto(GOOGLE_AI_URL, wait_until="domcontentloaded")
-                await asyncio.sleep(2)
-                break
-        else:
-            print("[internet-search] WARNING: Not signed in -- AI responses will not work.", flush=True)
+    # Detect CAPTCHA or sign-in and wait for the user to handle it
+    await _wait_for_ready()
 
     print("[internet-search] Browser ready -- Google AI Mode loaded.", flush=True)
+    print("[internet-search] Listening on http://127.0.0.1:8002", flush=True)
 
 
-async def _extract_response(query_text: str) -> str:
+async def _wait_for_ready():
+    """Wait for the browser to be in a usable state (past any CAPTCHA or sign-in)."""
+    for _ in range(120):  # wait up to 10 minutes
+        deep = await _page.evaluate(DEEP_TEXT_JS)
+        page_text = deep.lower()
+
+        if "not a robot" in page_text or "captcha" in page_text or "unusual traffic" in page_text:
+            print("[internet-search] *** CAPTCHA detected -- please solve it in the browser window ***", flush=True)
+            await asyncio.sleep(5)
+            continue
+
+        if "ask anything" in page_text or any(m.lower() in page_text for m in INITIAL_RESPONSE_MARKERS):
+            return  # page is ready
+
+        await asyncio.sleep(3)
+
+    print("[internet-search] WARNING: Browser may not be ready. Proceeding anyway.", flush=True)
+
+
+async def _navigate_fresh():
+    """Navigate to a fresh Google AI Mode conversation and wait for the seed response."""
+    await _page.goto(QUERY_URL, wait_until="domcontentloaded")
+    # Wait for Google AI to respond to the seed text query
+    for _ in range(20):
+        await asyncio.sleep(1.5)
+        deep = await _page.evaluate(DEEP_TEXT_JS)
+        if any(m in deep for m in INITIAL_RESPONSE_MARKERS):
+            return
+        if "not a robot" in deep.lower():
+            print("[internet-search] CAPTCHA appeared -- waiting for user to solve...", flush=True)
+            await _wait_for_ready()
+            return
+    # Proceed even if we time out -- the input area may still be usable
+
+
+async def _wait_for_attach_button(timeout_s: int = 10) -> bool:
+    """Wait until the 'Add files and tools' button is present in the DOM."""
+    for _ in range(timeout_s * 2):
+        btn = await _page.query_selector("button[aria-label='Add files and tools']")
+        if btn:
+            return True
+        await asyncio.sleep(0.5)
+    return False
+
+
+async def _extract_image_response() -> str:
     """
-    Poll the shadow DOM until the AI response is stable and no longer 'Transcribing...'.
-    The page layout after sending is:
-      [query text] Copied Copy Edit [query text again] [RESPONSE] Add files and tools ...
-    """
-    end_marker = "Add files and tools"
+    Poll shadow DOM until Google's image response is complete.
 
-    for attempt in range(30):  # up to ~60s
+    After the image is sent the conversation gains a turn starting with
+    "You sent:" -> "Share Download" (thumbnail UI) -> [AI response text] ->
+    "AI can make mistakes, so double-check responses".
+    """
+    for attempt in range(30):  # up to 60 s
         await asyncio.sleep(2)
         deep = await _page.evaluate(DEEP_TEXT_JS)
 
-        # Locate response region: between end of second query echo and the input toolbar
-        idx1 = deep.find(query_text)
-        if idx1 < 0:
+        # CAPTCHA interruption
+        if "not a robot" in deep.lower():
+            print("[internet-search] CAPTCHA appeared mid-request!", flush=True)
+            await _wait_for_ready()
             continue
-        idx2 = deep.find(query_text, idx1 + len(query_text))
-        response_start = (idx2 + len(query_text)) if idx2 > 0 else (idx1 + len(query_text))
 
-        idx_end = deep.find(end_marker, response_start)
-        response = (deep[response_start:idx_end] if idx_end > response_start else deep[response_start:response_start + 2000]).strip()
+        # Find the most recent image turn
+        idx_sent = deep.rfind(IMAGE_TURN_MARKER)
+        if idx_sent < 0:
+            if attempt % 5 == 4:
+                print(f"[internet-search] Waiting for image turn... {(attempt+1)*2}s", flush=True)
+            continue
 
-        # Remove in-progress indicator
-        clean = response.replace("Transcribing...", "").strip()
+        # Find response-end marker that follows this image turn
+        idx_end = deep.find(RESPONSE_END_MARKER, idx_sent)
+        if idx_end < 0:
+            if attempt % 5 == 4:
+                print(f"[internet-search] Waiting for response... {(attempt+1)*2}s", flush=True)
+            continue
 
-        if clean and len(clean) > 3 and "Transcribing" not in response:
-            return clean
+        region = deep[idx_sent:idx_end]
 
-        if attempt % 5 == 4:
-            print(f"[internet-search] Waiting for response... {(attempt+1)*2}s", flush=True)
+        # Skip the image thumbnail controls ("You sent: N image Share Download")
+        skip = region.find(IMAGE_BUTTONS_SKIP)
+        if skip >= 0:
+            region = region[skip + len(IMAGE_BUTTONS_SKIP):]
 
-    return "Response not received -- check the browser window. Google AI Mode may need you to sign in."
+        response = region.strip()
+        if response and len(response) > 3:
+            return response
+
+    return "No response received within 60 s -- check the browser window."
 
 
 @asynccontextmanager
@@ -157,29 +213,21 @@ async def search_image(req: ImageRequest):
             tmp = f.name
 
         try:
-            # Navigate to fresh AI Mode page
-            await _page.goto(GOOGLE_AI_URL, wait_until="domcontentloaded")
-            await asyncio.sleep(1.5)
+            await _navigate_fresh()
 
-            # Type prompt into the chat textarea
-            ta = await _page.query_selector("textarea[placeholder='Ask anything']")
-            if not ta:
-                return {"response": "Chat input not found -- Google AI Mode UI may have changed."}
-            await ta.click()
-            await ta.fill(PROMPT)
-            await asyncio.sleep(0.3)
+            # Wait for the input area to be ready
+            if not await _wait_for_attach_button():
+                return {"response": "Input area not ready after navigation. Check the browser window."}
 
-            # Open attachment menu
+            # Open the attachment menu
             add_btn = await _page.query_selector("button[aria-label='Add files and tools']")
-            if not add_btn:
-                return {"response": "Attachment button not found -- Google AI Mode UI may have changed."}
             await add_btn.click()
             await asyncio.sleep(0.7)
 
-            # Click "Add images" to open file chooser
+            # Click 'Add images' to open the OS file picker
             add_img = await _page.query_selector("button[aria-label='Add images']")
             if not add_img:
-                return {"response": "'Add images' option not found -- Google AI Mode UI may have changed."}
+                return {"response": "'Add images' option not found -- Google AI Mode UI may have changed. Restart the bridge."}
 
             async with _page.expect_file_chooser(timeout=5000) as fc_info:
                 await add_img.click()
@@ -187,17 +235,17 @@ async def search_image(req: ImageRequest):
             await fc.set_files(tmp)
             await asyncio.sleep(0.8)
 
-            # Click Send
+            # Send
             send_btn = await _page.query_selector("button[aria-label='Send']")
             if send_btn:
                 await send_btn.click()
             else:
                 await _page.keyboard.press("Enter")
 
-            print(f"[internet-search] Image sent -- waiting for AI response...", flush=True)
+            print("[internet-search] Image sent -- waiting for AI response...", flush=True)
 
-            response = await _extract_response(PROMPT)
-            print(f"[internet-search] Response: {response[:80]}...", flush=True)
+            response = await _extract_image_response()
+            print(f"[internet-search] Response ({len(response)} chars): {response[:80]}...", flush=True)
             return {"response": response}
 
         finally:
@@ -209,8 +257,7 @@ async def search_image(req: ImageRequest):
 
 @app.get("/health")
 async def health():
-    signed_in = _page is not None and await _page.query_selector("button[aria-label='Sign in']") is None
-    return {"status": "ok", "browser_ready": _page is not None, "signed_in": signed_in}
+    return {"status": "ok", "browser_ready": _page is not None}
 
 
 if __name__ == "__main__":
