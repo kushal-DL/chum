@@ -185,6 +185,28 @@ public sealed class DxgiScreenCapture : IDisposable
         return ImagePreprocessor.ToJpegBase64(cropped, maxWidth, quality);
     }
 
+    /// <summary>
+    /// GDI fallback capture for windows that appear black under DXGI Output Duplication
+    /// (GPU-composited browsers, hardware-overlay windows, etc.).
+    /// Slower than DXGI but sees whatever is visible on screen.
+    /// </summary>
+    public static string? CaptureRegionViaGdi(Rectangle region, int maxWidthPx = 1920, int jpegQuality = 90)
+    {
+        if (region.Width <= 0 || region.Height <= 0) return null;
+        try
+        {
+            using var bmp = new Bitmap(region.Width, region.Height, PixelFormat.Format32bppArgb);
+            using var g = Graphics.FromImage(bmp);
+            g.CopyFromScreen(region.X, region.Y, 0, 0, region.Size, CopyPixelOperation.SourceCopy);
+            return ImagePreprocessor.ToJpegBase64(bmp, maxWidthPx, jpegQuality);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "GDI CopyFromScreen failed");
+            return null;
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed) return;

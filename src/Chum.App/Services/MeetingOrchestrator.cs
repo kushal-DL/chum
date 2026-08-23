@@ -590,11 +590,14 @@ public sealed class MeetingOrchestrator : IDisposable
             return;
         }
 
+        // Use GDI CopyFromScreen instead of DXGI for this path: GPU-composited
+        // browser windows (including the Playwright Chrome window) appear black
+        // under DXGI Output Duplication but are captured correctly by GDI.
         string? imageBase64 = null;
         try
         {
             imageBase64 = await Task.Run(() =>
-                _screenCapture.CaptureRegionAsJpegBase64(region, maxWidthPx: 1920, jpegQuality: 90));
+                DxgiScreenCapture.CaptureRegionViaGdi(region, maxWidthPx: 1920, jpegQuality: 90));
         }
         catch (Exception ex)
         {
@@ -607,15 +610,6 @@ public sealed class MeetingOrchestrator : IDisposable
         if (string.IsNullOrEmpty(imageBase64))
         {
             _overlay.ShowError("Could not capture selected region.");
-            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
-            return;
-        }
-
-        // Warn if the JPEG is suspiciously small (all-black Teams DRM output is ~2–4 KB
-        // regardless of region size; real content is typically 50 KB+).
-        if (imageBase64.Length < 3000)
-        {
-            _overlay.ShowError("Region looks blank (Teams DRM?). Try capturing a non-Teams window.");
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
             return;
         }

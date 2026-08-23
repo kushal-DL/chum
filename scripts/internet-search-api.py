@@ -67,14 +67,15 @@ DEEP_TEXT_JS = """() => {
     return getText(document.body).replace(/\\s+/g, ' ').trim();
 }"""
 
-# Text markers derived from live DOM inspection of Google AI Mode:
-#   - After every AI response: "AI can make mistakes, so double-check responses"
-#   - When image turn starts: "You sent:" followed by "Share Download" (thumbnail controls)
-#   - Initial response to text query contains one of these phrases:
-INITIAL_RESPONSE_MARKERS = ("AI can make mistakes", "Would you like", "Please upload")
+# Text markers derived from live DOM inspection of Google AI Mode.
+# "Good response" / "Bad response" feedback buttons appear after EVERY AI turn —
+# more reliable than "AI can make mistakes" which is absent in some layouts.
+INITIAL_RESPONSE_MARKERS = ("Good response", "Bad response", "AI can make mistakes",
+                             "Would you like", "Please upload")
 IMAGE_TURN_MARKER = "You sent:"
 IMAGE_BUTTONS_SKIP = "Share Download"
-RESPONSE_END_MARKER = "AI can make mistakes"
+# Ordered list of candidate end-of-turn markers; first one found wins.
+RESPONSE_END_MARKERS = ("Good response", "Bad response", "AI can make mistakes")
 
 
 async def _launch_browser():
@@ -162,15 +163,35 @@ async def _wait_for_attach_button(timeout_s: int = 10) -> bool:
     return False
 
 
+def _find_marker_positions(deep: str) -> list[int]:
+    """
+    Find positions of end-of-turn markers in the deep text.
+
+    Google shows "Good response" / "Bad response" feedback buttons after each AI turn.
+    "AI can make mistakes" is a fallback for layouts that omit the feedback buttons.
+    We pick whichever candidate marker appears at least twice and use those positions.
+    """
+    for marker in RESPONSE_END_MARKERS:
+        positions: list[int] = []
+        search_from = 0
+        while True:
+            idx = deep.find(marker, search_from)
+            if idx < 0:
+                break
+            positions.append(idx)
+            search_from = idx + len(marker)
+        if len(positions) >= 2:
+            return positions  # use the first marker that has 2+ occurrences
+    return []
+
+
 async def _extract_image_response() -> str:
     """
     Poll shadow DOM until Google responds to the uploaded image.
 
-    Google appends "AI can make mistakes, so double-check responses" after EVERY
-    response turn. The seed-query response is turn 1 (first occurrence); the image
-    analysis is turn 2 (second occurrence). We extract the text between them.
-
-    Fallback: if "You sent:" + "Share Download" are visible we clip past that prefix.
+    Each AI turn ends with feedback buttons ("Good response", "Bad response") or
+    "AI can make mistakes". The seed-query response is turn 1; image analysis is
+    turn 2. We extract text between those two end-of-turn markers.
     """
     for attempt in range(30):  # up to ~60 s
         await asyncio.sleep(2)
@@ -182,37 +203,33 @@ async def _extract_image_response() -> str:
             await _wait_for_ready()
             continue
 
-        # Count end markers — need at least 2 (one per response turn)
-        positions: list[int] = []
-        search_from = 0
-        while True:
-            idx = deep.find(RESPONSE_END_MARKER, search_from)
-            if idx < 0:
-                break
-            positions.append(idx)
-            search_from = idx + len(RESPONSE_END_MARKER)
-
+        positions = _find_marker_positions(deep)
         if len(positions) < 2:
             if attempt % 5 == 4:
                 print(
                     f"[internet-search] Waiting for image response... {(attempt+1)*2}s "
-                    f"(end-markers found: {len(positions)}, page: {len(deep)} chars)",
+                    f"(page: {len(deep)} chars)",
                     flush=True,
                 )
-                # Diagnostic: show what's on the page
                 print(f"[internet-search] Page snippet: {repr(deep[:400])}", flush=True)
             continue
 
-        # Text between the two end markers = image analysis response
-        region = deep[positions[0] + len(RESPONSE_END_MARKER):positions[1]].strip()
+        # Determine end marker length from whichever marker was chosen
+        marker_len = next(
+            len(m) for m in RESPONSE_END_MARKERS
+            if deep.find(m, positions[0]) == positions[0]
+        )
 
-        # Strip any "You sent: N image Share Download" prefix if present
-        for marker in (IMAGE_TURN_MARKER, IMAGE_BUTTONS_SKIP):
-            idx_m = region.find(marker)
-            if idx_m >= 0:
-                region = region[idx_m + len(marker):].strip()
+        # Text between turn 1 end and turn 2 end = image analysis
+        region = deep[positions[0] + marker_len:positions[1]].strip()
 
-        # Strip any remaining UI labels
+        # Strip "You sent: N image Share Download" prefix if present
+        for prefix in (IMAGE_TURN_MARKER, IMAGE_BUTTONS_SKIP):
+            idx_p = region.find(prefix)
+            if idx_p >= 0:
+                region = region[idx_p + len(prefix):].strip()
+
+        # Strip stray UI labels
         for label in ("Copy ", "Share ", "More ", "Download ", "Copied "):
             region = region.replace(label, " ").strip()
         region = region.strip()
@@ -221,7 +238,7 @@ async def _extract_image_response() -> str:
             return region
 
         if attempt % 5 == 4:
-            print(f"[internet-search] Waiting... response region empty at {(attempt+1)*2}s", flush=True)
+            print(f"[internet-search] Response region empty at {(attempt+1)*2}s", flush=True)
 
     return "No response received within 60 s -- check the browser window."
 
