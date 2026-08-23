@@ -162,6 +162,9 @@ public partial class OverlayWindow : Window
     private void ScreenshotMode_Click(object sender, RoutedEventArgs e)
         => ((App)Application.Current).ToggleScreenshotMode();
 
+    private void GoogleSearch_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).ToggleGoogleSearchMode();
+
     private void StopResponse_Click(object sender, RoutedEventArgs e)
         => ((App)Application.Current).StopResponse();
 

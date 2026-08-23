@@ -237,6 +237,18 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
         private set { if (_isScreenshotMode == value) return; _isScreenshotMode = value; OnPropertyChanged(); }
     }
 
+    // ── Google AI Search mode state ───────────────────────────────────────
+
+    private bool _isGoogleSearchMode;
+    public bool IsGoogleSearchMode
+    {
+        get => _isGoogleSearchMode;
+        private set { if (_isGoogleSearchMode == value) return; _isGoogleSearchMode = value; OnPropertyChanged(); }
+    }
+
+    public void SetGoogleSearchMode(bool active)
+        => Invoke(() => IsGoogleSearchMode = active);
+
     private string _screenshotHint = string.Empty;
     public string ScreenshotHint
     {

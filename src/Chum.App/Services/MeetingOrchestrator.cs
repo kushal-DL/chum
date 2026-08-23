@@ -570,6 +570,76 @@ public sealed class MeetingOrchestrator : IDisposable
 
     public string GetSttAccelerationMode() => _stt.AccelerationMode;
 
+    private static readonly System.Net.Http.HttpClient _googleSearchHttp =
+        new(new System.Net.Http.SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) })
+        { Timeout = TimeSpan.FromSeconds(60) };
+
+    /// <summary>
+    /// Captures the given screen region and sends it to the local Google AI Search bridge
+    /// (start-internet-search.ps1 must be running on port 8002).
+    /// </summary>
+    public async Task HandleGoogleSearchAsync(System.Drawing.Rectangle region)
+    {
+        _overlay.SetStatus(OverlayStatus.Thinking, "Capturing region for Google AI Search…");
+        _overlay.StartNewResponse();
+
+        if (_screenCapture is null)
+        {
+            _overlay.ShowError("Screen capture is not available on this system.");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+
+        string? imageBase64 = null;
+        try
+        {
+            imageBase64 = await Task.Run(() =>
+                _screenCapture.CaptureRegionAsJpegBase64(region, maxWidthPx: 1920, jpegQuality: 90));
+        }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Region capture failed — check logs");
+            Serilog.Log.Error(ex, "Google Search region capture exception");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(imageBase64))
+        {
+            _overlay.ShowError("Could not capture selected region.");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+
+        _overlay.SetStatus(OverlayStatus.Thinking, "Sending to Google AI Search…");
+
+        try
+        {
+            var payload = System.Text.Json.JsonSerializer.Serialize(new { image_base64 = imageBase64 });
+            var content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+            var response = await _googleSearchHttp.PostAsync("http://127.0.0.1:8002/image", content);
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var text = doc.RootElement.GetProperty("response").GetString() ?? "No response";
+
+            // Simulate streaming for UX consistency — chunk into 8-char pieces
+            for (int i = 0; i < text.Length; i += 8)
+            {
+                _overlay.AppendResponseToken(text.Substring(i, Math.Min(8, text.Length - i)));
+                await Task.Delay(12);
+            }
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Google AI Search not reachable — is start-internet-search.ps1 running?");
+            Serilog.Log.Error(ex, "Google Search API error");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+    }
+
     private ILlmProvider GetLlm(bool requiresVision = false) => _llm;
 
     private string GetModeInstruction() => _overlay.ResponseMode switch
