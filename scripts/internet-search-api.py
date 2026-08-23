@@ -230,9 +230,9 @@ async def _extract_image_response() -> str:
             if idx_p >= 0:
                 region = region[idx_p + len(prefix):].strip()
 
-        # Truncate at the share-dialog suffix that follows every response:
-        #   "[response] Copy Share public link This public link is valid…"
-        for tail in (" public link", " Copy Share", " Facebook ", " Like ", " Dislike "):
+        # Truncate at the UI chrome that follows every response.
+        # Order matters: "Copy Share" appears before "public link" in the text.
+        for tail in (" Copy Share", " public link", " Facebook ", " Like ", " Dislike "):
             idx_t = region.find(tail)
             if idx_t > 0:
                 region = region[:idx_t]

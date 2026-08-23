@@ -590,12 +590,15 @@ public sealed class MeetingOrchestrator : IDisposable
             return;
         }
 
-        // Use GDI CopyFromScreen instead of DXGI for this path: GPU-composited
-        // browser windows (including the Playwright Chrome window) appear black
-        // under DXGI Output Duplication but are captured correctly by GDI.
+        // Hide the overlay before capturing: a transparent always-on-top WPF window
+        // sitting above the target window causes GDI/DXGI to composite it as black
+        // pixels over the content beneath. Hiding for ~150 ms lets DWM redraw the
+        // desktop without the overlay before we take the snapshot.
+        _overlay.Hide();
         string? imageBase64 = null;
         try
         {
+            await Task.Delay(150); // allow DWM to redraw without the overlay
             imageBase64 = await Task.Run(() =>
                 DxgiScreenCapture.CaptureRegionViaGdi(region, maxWidthPx: 1920, jpegQuality: 90));
         }
@@ -605,6 +608,10 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Error(ex, "Google Search region capture exception");
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
             return;
+        }
+        finally
+        {
+            _overlay.Show();
         }
 
         if (string.IsNullOrEmpty(imageBase64))
