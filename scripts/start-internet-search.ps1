@@ -2,10 +2,13 @@
 .SYNOPSIS
     Starts the Google AI Mode image search bridge for Chum.
 
-    Launches an incognito Chrome window via Playwright, navigates to Google AI Mode,
-    and serves POST /image on http://127.0.0.1:8002.
+    Opens a Chrome window (using a saved session in google-session/) and serves
+    POST /image on http://127.0.0.1:8002.
 
-    Chum sends a screenshot here; the script returns Google's AI response text.
+    FIRST RUN: Chrome will ask you to sign in to Google -- do so, then the API
+               becomes ready automatically. Your session is saved for future runs.
+
+    Chum sends a screenshot here; the script returns Google AI Mode's response text.
     Do NOT close the Chrome window that opens -- Playwright controls it.
 #>
 param()
@@ -46,7 +49,8 @@ if ($LASTEXITCODE -ne 0) { Bail "playwright install chromium failed -- check the
 # -- Launch --
 Write-Host ""
 Write-Host "[internet-search] Starting Google AI Search bridge on http://127.0.0.1:8002" -ForegroundColor Green
-Write-Host "[internet-search] A Chrome window will open automatically -- do NOT close it." -ForegroundColor Yellow
+Write-Host "[internet-search] A Chrome window will open. FIRST RUN: sign in to Google when prompted." -ForegroundColor Yellow
+Write-Host "[internet-search] Do NOT close the Chrome window -- Playwright controls it." -ForegroundColor Yellow
 Write-Host ""
 
 python internet-search-api.py
