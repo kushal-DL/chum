@@ -9,38 +9,50 @@
     Do NOT close the Chrome window that opens — Playwright controls it.
 #>
 param()
-$ErrorActionPreference = "Stop"
-Set-Location $PSScriptRoot
 
-Write-Host "[internet-search] Checking Python..." -ForegroundColor Cyan
-$python = Get-Command python -ErrorAction SilentlyContinue
-if (-not $python) {
-    Write-Error "Python 3.10+ not found in PATH. Install from https://python.org and re-run."
+# Never use Stop — a non-zero exit from a native command (python, pip) would
+# silently kill the window before the user can read the error.
+$ErrorActionPreference = "Continue"
+
+if ($PSScriptRoot) { Set-Location $PSScriptRoot }
+
+function Bail($msg) {
+    Write-Host ""
+    Write-Host "ERROR: $msg" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Press Enter to close..." -ForegroundColor Gray
+    $null = Read-Host
     exit 1
 }
 
-# Install Python dependencies
-$deps = @(
-    @{ pkg = "fastapi";    mod = "fastapi"   },
-    @{ pkg = "uvicorn";    mod = "uvicorn"   },
-    @{ pkg = "playwright"; mod = "playwright" },
-    @{ pkg = "pydantic";   mod = "pydantic"  }
-)
-foreach ($d in $deps) {
-    python -c "import $($d.mod)" 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "[internet-search] Installing $($d.pkg)..." -ForegroundColor Yellow
-        pip install $d.pkg --quiet
-    }
-}
+# ── Python ────────────────────────────────────────────────────────────────────
+Write-Host "[internet-search] Checking Python..." -ForegroundColor Cyan
+$python = Get-Command python -ErrorAction SilentlyContinue
+if (-not $python) { Bail "Python 3.10+ not found in PATH. Install from https://python.org and re-run." }
 
-# Ensure Playwright's Chromium browser binary is installed
-Write-Host "[internet-search] Checking Playwright Chromium..." -ForegroundColor Yellow
-python -m playwright install chromium 2>&1 | Where-Object { $_ -match "chromium|browser|download" }
+$pyVer = python --version 2>&1
+Write-Host "[internet-search] Found: $pyVer" -ForegroundColor Cyan
 
+# ── pip dependencies ──────────────────────────────────────────────────────────
+Write-Host "[internet-search] Installing/verifying Python packages..." -ForegroundColor Yellow
+pip install fastapi "uvicorn[standard]" playwright pydantic --quiet
+if ($LASTEXITCODE -ne 0) { Bail "pip install failed — check the output above." }
+
+# ── Playwright browser binary ─────────────────────────────────────────────────
+Write-Host "[internet-search] Installing Playwright Chromium (skipped if already present)..." -ForegroundColor Yellow
+python -m playwright install chromium
+if ($LASTEXITCODE -ne 0) { Bail "playwright install chromium failed — check the output above." }
+
+# ── Launch ────────────────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "[internet-search] Starting Google AI Search bridge on http://127.0.0.1:8002" -ForegroundColor Green
-Write-Host "[internet-search] A Chrome window will open automatically. Do NOT close it." -ForegroundColor Yellow
+Write-Host "[internet-search] A Chrome window will open automatically — do NOT close it." -ForegroundColor Yellow
 Write-Host ""
 
 python internet-search-api.py
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "internet-search-api.py exited with code $LASTEXITCODE" -ForegroundColor Red
+    Write-Host "Press Enter to close..." -ForegroundColor Gray
+    $null = Read-Host
+}
