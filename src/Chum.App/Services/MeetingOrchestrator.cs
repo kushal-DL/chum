@@ -28,8 +28,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private ISttEngine _stt;
     private readonly TranscriptBuffer _transcript;
     private readonly ContextExtractor _context;
-    private readonly ILlmProvider _llm;      // quality model (9B) — used for vision + modes 3-5
-    private readonly ILlmProvider _fastLlm;  // fast model (3-4B) — used for modes 1-2 when toggled
+    private readonly ILlmProvider _llm;
     private readonly HotkeyService _hotkeys;
     private readonly OverlayViewModel _overlay;
     private readonly SettingsService _settings;
@@ -76,7 +75,6 @@ public sealed class MeetingOrchestrator : IDisposable
         TranscriptBuffer transcript,
         ContextExtractor context,
         ILlmProvider llm,
-        ILlmProvider fastLlm,
         HotkeyService hotkeys,
         OverlayViewModel overlay,
         SettingsService settings,
@@ -90,7 +88,6 @@ public sealed class MeetingOrchestrator : IDisposable
         _transcript = transcript;
         _context = context;
         _llm = llm;
-        _fastLlm = fastLlm;
         _hotkeys = hotkeys;
         _overlay = overlay;
         _settings = settings;
@@ -163,7 +160,6 @@ public sealed class MeetingOrchestrator : IDisposable
                 usage.InputTokens, usage.OutputTokens, usage.EstimatedCostUsd);
         }
         _llm.UsageRecorded += OnUsage;
-        _fastLlm.UsageRecorded += OnUsage;
         _costTracker.ThresholdExceeded += (_, _) =>
         {
             var stats = _costTracker.GetStats();
@@ -574,9 +570,7 @@ public sealed class MeetingOrchestrator : IDisposable
 
     public string GetSttAccelerationMode() => _stt.AccelerationMode;
 
-    // Vision queries always use the quality model (needs mmproj); text queries use whichever the user toggled.
-    private ILlmProvider GetLlm(bool requiresVision = false)
-        => requiresVision || !_overlay.IsUsingFastModel ? _llm : _fastLlm;
+    private ILlmProvider GetLlm(bool requiresVision = false) => _llm;
 
     private string GetModeInstruction() => _overlay.ResponseMode switch
     {
@@ -678,7 +672,7 @@ public sealed class MeetingOrchestrator : IDisposable
 
             // Only attach the rolling meeting transcript if the user explicitly opted in.
             var contextText = _settings.Current.IncludeTranscriptContext
-                ? _context.BuildContext(holdEnd, _overlay.TranscriptContextBudget)
+                ? _context.BuildContext(holdEnd, _settings.Current.MaxResponseTokens * 2)
                 : string.Empty;
 
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
