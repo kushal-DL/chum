@@ -101,6 +101,7 @@ async def _launch_browser():
                 "--disable-blink-features=AutomationControlled",
                 "--no-first-run",
                 "--no-default-browser-check",
+                "--disable-gpu",  # software rendering so GDI/DXGI can capture this window
             ],
             viewport={"width": 1280, "height": 900},
             locale="en-US",
@@ -229,9 +230,13 @@ async def _extract_image_response() -> str:
             if idx_p >= 0:
                 region = region[idx_p + len(prefix):].strip()
 
-        # Strip stray UI labels
-        for label in ("Copy ", "Share ", "More ", "Download ", "Copied "):
-            region = region.replace(label, " ").strip()
+        # Truncate at the share-dialog suffix that follows every response:
+        #   "[response] Copy Share public link This public link is valid…"
+        for tail in (" public link", " Copy Share", " Facebook ", " Like ", " Dislike "):
+            idx_t = region.find(tail)
+            if idx_t > 0:
+                region = region[:idx_t]
+                break
         region = region.strip()
 
         if region and len(region) > 5:
