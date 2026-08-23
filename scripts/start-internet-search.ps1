@@ -53,6 +53,14 @@ Write-Host "[internet-search] Checking Playwright Chromium..." -ForegroundColor 
 python -m playwright install chromium
 if ($LASTEXITCODE -ne 0) { Bail "playwright install chromium failed -- check the output above." }
 
+# -- Kill any previous instance holding port 8002 --
+$old = Get-NetTCPConnection -LocalPort 8002 -ErrorAction SilentlyContinue
+if ($old) {
+    Write-Host "[internet-search] Stopping previous instance on port 8002..." -ForegroundColor Yellow
+    $old | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+    Start-Sleep -Milliseconds 800
+}
+
 # -- Launch --
 Write-Host ""
 if ($Cdp) {
