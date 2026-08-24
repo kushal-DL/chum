@@ -57,6 +57,14 @@ public partial class OverlayWindow : Window
         InitializeComponent();
         DataContext = viewModel;
 
+        // Give the orchestrator a way to hide/show the HWND during captures.
+        // WDA_EXCLUDEFROMCAPTURE causes our overlay to appear black in DXGI/GDI;
+        // hiding the HWND removes it from DWM composition and clears the artifact.
+        viewModel.RegisterCaptureCallbacks(
+            hideHwnd: () => this.Visibility = Visibility.Hidden,
+            showHwnd: () => this.Visibility = Visibility.Visible
+        );
+
         // Persist position across sessions so overlay stays on the user's chosen monitor
         LocationChanged += (_, _) => PersistWindowBounds();
         SizeChanged += (_, _) => PersistWindowBounds();
@@ -161,6 +169,9 @@ public partial class OverlayWindow : Window
 
     private void ScreenshotMode_Click(object sender, RoutedEventArgs e)
         => ((App)Application.Current).ToggleScreenshotMode();
+
+    private void GoogleSearch_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).ToggleGoogleSearchMode();
 
     private void StopResponse_Click(object sender, RoutedEventArgs e)
         => ((App)Application.Current).StopResponse();

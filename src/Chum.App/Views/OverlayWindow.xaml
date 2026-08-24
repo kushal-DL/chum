@@ -62,6 +62,17 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <!-- Google AI Search button: turns cyan while armed -->
+        <Style x:Key="GoogleSearchButtonStyle" TargetType="Button" BasedOn="{StaticResource ChumButton}">
+            <Setter Property="Content" Value="G"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsGoogleSearchMode}" Value="True">
+                    <Setter Property="Foreground" Value="#06B6D4"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -132,6 +143,9 @@
                             Click="RecordToggle_Click"/>
                     <Button Style="{StaticResource ScreenshotButtonStyle}" Margin="2,4"
                             Click="ScreenshotMode_Click"/>
+                    <Button Style="{StaticResource GoogleSearchButtonStyle}" Margin="2,4"
+                            ToolTip="Google AI Search — requires start-internet-search.ps1"
+                            Click="GoogleSearch_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="■" Margin="2,4"
                             Click="StopResponse_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="{Binding ResponseModeLabel}"
