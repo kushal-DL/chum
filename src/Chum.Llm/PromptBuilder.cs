@@ -64,8 +64,26 @@ public static class PromptBuilder
         _ => code.ToUpperInvariant()
     };
 
-    public static string BuildUserMessage(string transcriptContext, bool hasImage = false)
+    /// <summary>
+    /// Builds the user turn message.
+    /// <paramref name="forSnipCapture"/> = true: the image itself contains the question —
+    /// ask the LLM to answer what's shown rather than summarise the meeting transcript.
+    /// </summary>
+    public static string BuildUserMessage(
+        string transcriptContext,
+        bool hasImage = false,
+        bool forSnipCapture = false)
     {
+        if (forSnipCapture)
+        {
+            // Snip / region capture: treat the image as the primary input.
+            // The transcript is provided as optional context, not the focus.
+            var ctx = string.IsNullOrWhiteSpace(transcriptContext)
+                ? string.Empty
+                : $"\n\nMeeting context (use only if relevant to the image):\n{transcriptContext}";
+            return $"Answer the question or problem shown in this screenshot.{ctx}";
+        }
+
         var imageNote = hasImage
             ? "I have attached a screenshot from my meeting (whiteboard/slide). "
             : string.Empty;

@@ -277,6 +277,23 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
     public void Hide() => Invoke(() => OverlayVisibility = Visibility.Collapsed);
     public void Show() => Invoke(() => OverlayVisibility = Visibility.Visible);
 
+    // ── Capture hide/show (HWND-level) ────────────────────────────────────
+    // WDA_EXCLUDEFROMCAPTURE makes the overlay appear as solid black in DXGI/GDI
+    // captures even when the inner Border is visually transparent. Hiding the HWND
+    // removes the window from DWM composition entirely, clearing the black artifact.
+
+    private Action? _captureHideHwnd;
+    private Action? _captureShowHwnd;
+
+    public void RegisterCaptureCallbacks(Action hideHwnd, Action showHwnd)
+    {
+        _captureHideHwnd = hideHwnd;
+        _captureShowHwnd = showHwnd;
+    }
+
+    public void HideForCapture() => Invoke(() => _captureHideHwnd?.Invoke());
+    public void RestoreAfterCapture() => Invoke(() => _captureShowHwnd?.Invoke());
+
     // ── Clipboard notification ────────────────────────────────────────────
 
     private bool _hasPendingClipboardImage;

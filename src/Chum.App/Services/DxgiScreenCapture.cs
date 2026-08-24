@@ -33,38 +33,85 @@ public sealed class DxgiScreenCapture : IDisposable
     /// <summary>
     /// Attempts to initialise the D3D11 device and verify DXGI duplication is available.
     /// Returns false in VMs, Remote Desktop sessions, or headless environments.
+    ///
+    /// On hybrid GPU systems (Optimus / iGPU+dGPU), D3D11CreateDevice with DriverType.Hardware
+    /// picks the discrete GPU, which may have no outputs attached to the primary display.
+    /// Output Duplication on the wrong adapter returns solid-black frames. We enumerate all
+    /// DXGI adapters and create the device on the one whose output contains point (0,0).
     /// </summary>
     public static bool TryCreate([NotNullWhen(true)] out DxgiScreenCapture? capture)
     {
         capture = null;
         try
         {
-            var hr = D3D11.D3D11CreateDevice(
-                null,
-                DriverType.Hardware,
-                DeviceCreationFlags.None,
-                [FeatureLevel.Level_11_0, FeatureLevel.Level_10_1, FeatureLevel.Level_10_0],
-                out var device,
-                out _,
-                out var context);
-
-            if (hr.Failure || device is null || context is null)
+            // Enumerate adapters to find the one driving the primary display
+            DXGI.CreateDXGIFactory1(out IDXGIFactory1? factory).CheckError();
+            using (factory)
             {
-                Log.Warning("D3D11 device creation failed (hr={Hr}) — screen capture unavailable", hr.Code);
-                return false;
+                for (int adapterIdx = 0; ; adapterIdx++)
+                {
+                    var enumHr = factory!.EnumAdapters1(adapterIdx, out IDXGIAdapter1? adapter);
+                    if (enumHr.Failure || adapter is null) break;
+                    using (adapter)
+                    {
+                        if (!AdapterHasPrimaryOutput(adapter)) continue;
+
+                        var dhr = D3D11.D3D11CreateDevice(
+                            adapter,
+                            DriverType.Unknown, // must be Unknown when adapter is explicit
+                            DeviceCreationFlags.None,
+                            [FeatureLevel.Level_11_0, FeatureLevel.Level_10_1, FeatureLevel.Level_10_0],
+                            out var device,
+                            out _,
+                            out var context);
+
+                        if (dhr.Failure || device is null || context is null)
+                        {
+                            Log.Debug("D3D11 device creation failed on adapter {Idx}", adapterIdx);
+                            continue;
+                        }
+
+                        try
+                        {
+                            using var testDup = OpenPrimaryDuplication(device);
+                            testDup.Dispose();
+                            capture = new DxgiScreenCapture(device, context);
+                            Log.Information("DXGI screen capture ready (adapter {Idx})", adapterIdx);
+                            return true;
+                        }
+                        catch
+                        {
+                            device.Dispose();
+                            context?.Dispose();
+                        }
+                    }
+                }
             }
 
-            // Verify duplication is possible on the primary output
-            using var testDup = OpenPrimaryDuplication(device);
-            testDup.Dispose();
-
-            capture = new DxgiScreenCapture(device, context);
-            return true;
+            Log.Warning("No DXGI adapter with primary display output found — screen capture unavailable");
+            return false;
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "DXGI screen capture unavailable (VM, RDP, or unsupported GPU config)");
             return false;
+        }
+    }
+
+    // Returns true if any output on this adapter has DesktopCoordinates containing (0,0).
+    private static bool AdapterHasPrimaryOutput(IDXGIAdapter1 adapter)
+    {
+        for (int outIdx = 0; ; outIdx++)
+        {
+            var hr = adapter.EnumOutputs(outIdx, out IDXGIOutput? output);
+            if (hr.Failure || output is null) return false;
+            using (output)
+            {
+                var desc = output.Description;
+                var r = desc.DesktopCoordinates;
+                if (r.Left <= 0 && r.Top <= 0 && r.Right > 0 && r.Bottom > 0)
+                    return true;
+            }
         }
     }
 
