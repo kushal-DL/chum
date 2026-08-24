@@ -570,6 +570,82 @@ public sealed class MeetingOrchestrator : IDisposable
 
     public string GetSttAccelerationMode() => _stt.AccelerationMode;
 
+    private static readonly System.Net.Http.HttpClient _googleSearchHttp =
+        new(new System.Net.Http.SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) })
+        { Timeout = TimeSpan.FromSeconds(60) };
+
+    /// <summary>
+    /// Captures the given screen region and sends it to the local Google AI Search bridge
+    /// (start-internet-search.ps1 must be running on port 8002).
+    /// </summary>
+    public async Task HandleGoogleSearchAsync(System.Drawing.Rectangle region)
+    {
+        _overlay.SetStatus(OverlayStatus.Thinking, "Capturing region for Google AI Search…");
+        _overlay.StartNewResponse();
+
+        // Hide the overlay HWND before capturing. WDA_EXCLUDEFROMCAPTURE (applied when
+        // ExcludeFromScreenCapture is on) makes our window appear solid black in DXGI/GDI
+        // captures even when the content is transparent. Hiding the HWND removes the window
+        // from DWM composition entirely. GDI CaptureRegionViaGdi is static — no DXGI needed.
+        _overlay.HideForCapture();
+        string? imageBase64 = null;
+        try
+        {
+            await Task.Delay(200); // allow DWM to recomposite without the overlay
+            imageBase64 = await Task.Run(() =>
+                DxgiScreenCapture.CaptureRegionViaGdi(region, maxWidthPx: 1920, jpegQuality: 90));
+            Serilog.Log.Information(
+                "Google Search GDI capture: region={Region} imageNull={Null} imageLen={Len}",
+                region, imageBase64 is null, imageBase64?.Length ?? 0);
+        }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Region capture failed — check logs");
+            Serilog.Log.Error(ex, "Google Search region capture exception");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+        finally
+        {
+            _overlay.RestoreAfterCapture();
+        }
+
+        if (string.IsNullOrEmpty(imageBase64))
+        {
+            _overlay.ShowError("Could not capture selected region.");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+            return;
+        }
+
+        _overlay.SetStatus(OverlayStatus.Thinking, "Sending to Google AI Search…");
+
+        try
+        {
+            var payload = System.Text.Json.JsonSerializer.Serialize(new { image_base64 = imageBase64 });
+            var content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+            var response = await _googleSearchHttp.PostAsync("http://127.0.0.1:8002/image", content);
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var text = doc.RootElement.GetProperty("response").GetString() ?? "No response";
+
+            // Simulate streaming for UX consistency — chunk into 8-char pieces
+            for (int i = 0; i < text.Length; i += 8)
+            {
+                _overlay.AppendResponseToken(text.Substring(i, Math.Min(8, text.Length - i)));
+                await Task.Delay(12);
+            }
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Google AI Search not reachable — is start-internet-search.ps1 running?");
+            Serilog.Log.Error(ex, "Google Search API error");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+    }
+
     private ILlmProvider GetLlm(bool requiresVision = false) => _llm;
 
     private string GetModeInstruction() => _overlay.ResponseMode switch
@@ -954,18 +1030,23 @@ public sealed class MeetingOrchestrator : IDisposable
         _overlay.SetStatus(OverlayStatus.Thinking, "Capturing selected region…");
         _overlay.StartNewResponse();
 
-        if (_screenCapture is null)
-        {
-            _overlay.ShowError("Screen capture is not available on this system.");
-            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
-            return;
-        }
-
+        // Hide the overlay HWND before capturing. WDA_EXCLUDEFROMCAPTURE (applied when
+        // ExcludeFromScreenCapture is on) makes our window appear solid black in DXGI/GDI
+        // captures even when the content is transparent. Hiding the HWND removes the window
+        // from DWM composition entirely so the content below is captured cleanly.
+        _overlay.HideForCapture();
         string? imageBase64 = null;
         try
         {
+            await Task.Delay(200); // allow DWM to recomposite without the overlay
+            // GDI capture: confirmed reliable on this system. DXGI was returning solid-black
+            // frames on the hybrid GPU (discrete GPU has no primary display output). GDI reads
+            // from DWM's composited buffer and captures all windows correctly.
             imageBase64 = await Task.Run(() =>
-                _screenCapture.CaptureRegionAsJpegBase64(region, maxWidthPx: 1280, jpegQuality: 85));
+                DxgiScreenCapture.CaptureRegionViaGdi(region, maxWidthPx: 1280, jpegQuality: 85));
+            Serilog.Log.Information(
+                "Snip GDI capture: region={Region} imageNull={Null} imageLen={Len}",
+                region, imageBase64 is null, imageBase64?.Length ?? 0);
         }
         catch (Exception ex)
         {
@@ -973,6 +1054,10 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Error(ex, "Snip region capture exception");
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
             return;
+        }
+        finally
+        {
+            _overlay.RestoreAfterCapture();
         }
 
         if (string.IsNullOrEmpty(imageBase64))
@@ -992,14 +1077,18 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
-            var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
+            // Apply response-mode style (Quick / Detailed / Code / etc.) to the snip answer
+            var snipModeHint = GetModeInstruction();
+            if (!string.IsNullOrEmpty(snipModeHint))
+                system = system + "\n\n" + snipModeHint;
+            var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true, forSnipCapture: true);
             var request = new LlmRequest(system, user,
                 ImageBase64: imageBase64,
                 ImageMediaType: "image/jpeg",
                 MaxTokens: _settings.Current.MaxResponseTokens);
 
-            Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=SnipCapture region={Region}",
-                visionLlm3.ProviderName, visionLlm3.ModelId, region);
+            Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=SnipCapture region={Region} mode={Mode}",
+                visionLlm3.ProviderName, visionLlm3.ModelId, region, _overlay.ResponseMode);
 
             await StreamWithRetryAsync(visionLlm3, request, t => _latencyTracker.RecordLlmLatency(t));
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");

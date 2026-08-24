@@ -33,6 +33,7 @@ public partial class App : System.Windows.Application
     private ClipboardMonitor? _clipboardMonitor;
     private RegionSelectionService? _regionSelection;
     private bool _started;
+    private bool _googleSearchMode;
     private string? _pendingMeetingDeviceId;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -179,13 +180,25 @@ public partial class App : System.Windows.Application
         _regionSelection.RegionSelected += (_, region) =>
         {
             _overlayVm?.SetScreenshotMode(false, string.Empty);
+            _overlayVm?.SetGoogleSearchMode(false);
             if (region.Width < 5 || region.Height < 5)
             {
                 _overlayVm?.ShowError("Selected region is too small — try two corners further apart.");
+                _googleSearchMode = false;
                 return;
             }
             if (_orchestrator is not null)
-                _ = _orchestrator.HandleSnipCaptureAsync(region);
+            {
+                if (_googleSearchMode)
+                {
+                    _googleSearchMode = false;
+                    _ = _orchestrator.HandleGoogleSearchAsync(region);
+                }
+                else
+                {
+                    _ = _orchestrator.HandleSnipCaptureAsync(region);
+                }
+            }
         };
 
         _overlayWindow.Opacity = Settings.Current.OverlayOpacity;
@@ -394,6 +407,33 @@ public partial class App : System.Windows.Application
             _regionSelection.Arm();
             _overlayVm?.SetScreenshotMode(true,
                 "Screenshot mode: double-click the first corner on screen (click ▣ again to cancel)");
+        }
+    }
+
+    /// <summary>
+    /// Toolbar button: arms the region selector for Google AI Search.
+    /// Selecting a region sends the screenshot to the internet-search-api on port 8002
+    /// instead of the configured LLM.
+    /// </summary>
+    public void ToggleGoogleSearchMode()
+    {
+        if (_regionSelection is null) return;
+        if (_regionSelection.IsArmed && _googleSearchMode)
+        {
+            _regionSelection.Disarm();
+            _googleSearchMode = false;
+            _overlayVm?.SetGoogleSearchMode(false);
+            _overlayVm?.SetScreenshotMode(false, string.Empty);
+        }
+        else
+        {
+            // Disarm any prior screenshot mode first
+            if (_regionSelection.IsArmed) _regionSelection.Disarm();
+            _googleSearchMode = true;
+            _regionSelection.Arm();
+            _overlayVm?.SetGoogleSearchMode(true);
+            _overlayVm?.SetScreenshotMode(true,
+                "Google Search: double-click the first corner, then the opposite corner (click G again to cancel)");
         }
     }
 

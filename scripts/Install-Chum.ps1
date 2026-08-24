@@ -111,7 +111,27 @@ if ($existingSvc) {
     Write-Ok "Existing service removed"
 }
 
-# -- 5. Copy files to %ProgramFiles%\Chum\ ------------------------------------
+# -- 5. Kill any running Chum processes (tray app, service exe) ---------------
+Write-Step "Stopping any running Chum processes..."
+$chumProcs = Get-Process -Name 'Chum.App', 'ChumHostSvc' -ErrorAction SilentlyContinue
+if ($chumProcs) {
+    $chumProcs | Stop-Process -Force
+    Start-Sleep -Seconds 2
+    Write-Ok "Chum processes stopped ($($chumProcs.Count) process(es))"
+} else {
+    Write-Host "  [--] No running Chum processes found" -ForegroundColor DarkGray
+}
+
+# Also end the scheduled task if it is currently running
+$runningTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+if ($runningTask -and $runningTask.State -eq 'Running') {
+    Write-Step "Stopping scheduled task '$TaskName'..."
+    Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+    Write-Ok "Scheduled task stopped"
+}
+
+# -- 6. Copy files to %ProgramFiles%\Chum\ ------------------------------------
 Write-Step "Copying service files -> $ServiceInstallDir"
 New-Item -ItemType Directory -Force -Path $ServiceInstallDir | Out-Null
 Copy-Item -Path "$SvcPublishDir\*" -Destination $ServiceInstallDir -Recurse -Force
@@ -122,7 +142,7 @@ New-Item -ItemType Directory -Force -Path $AppInstallDir | Out-Null
 Copy-Item -Path "$AppPublishDir\*" -Destination $AppInstallDir -Recurse -Force
 Write-Ok "Tray app files copied"
 
-# -- 6. Create %PROGRAMDATA%\Chum\ with ACLs ----------------------------------
+# -- 7. Create %PROGRAMDATA%\Chum\ with ACLs ----------------------------------
 Write-Step "Creating $DataDir with ACLs..."
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 
@@ -159,7 +179,7 @@ $acl.AddAccessRule($userRule)
 Set-Acl -Path $DataDir -AclObject $acl
 Write-Ok "Data directory created with ACLs"
 
-# -- 7. Register Windows Event Log source -------------------------------------
+# -- 8. Register Windows Event Log source -------------------------------------
 Write-Step "Registering Event Log source '$EventSource'..."
 $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$EventSource"
 if (-not (Test-Path $regPath)) {
@@ -169,7 +189,7 @@ Set-ItemProperty -Path $regPath -Name 'EventMessageFile' -Value "$env:SystemRoot
 Set-ItemProperty -Path $regPath -Name 'TypesSupported'   -Value 7 -Type DWord
 Write-Ok "Event Log source registered"
 
-# -- 8. Register ChumHostSvc Windows service ----------------------------------
+# -- 9. Register ChumHostSvc Windows service ----------------------------------
 Write-Step "Registering ChumHostSvc service..."
 & sc.exe create $ServiceName `
     binPath= "`"$ServiceExe`"" `
@@ -183,7 +203,7 @@ if ($LASTEXITCODE -ne 0) { Write-Error "sc.exe create failed (exit $LASTEXITCODE
 & sc.exe failure $ServiceName reset= 86400 actions= restart/10000/restart/10000/none/0 | Out-Null
 Write-Ok "ChumHostSvc service registered (auto-start, LocalSystem)"
 
-# -- 9. Create config.json and grant Users write access -----------------------
+# -- 10. Create config.json and grant Users write access -----------------------
 Write-Step "Creating config.json in $AppInstallDir..."
 $configPath = Join-Path $AppInstallDir 'config.json'
 if (-not (Test-Path $configPath)) {
@@ -201,7 +221,7 @@ $configAcl.AddAccessRule($usersWrite)
 Set-Acl -Path $configPath -AclObject $configAcl
 Write-Ok "config.json created with write access for Users"
 
-# -- 10. Create scheduled task for tray app -----------------------------------
+# -- 11. Create scheduled task for tray app -----------------------------------
 Write-Step "Creating scheduled task '$TaskName'..."
 $taskAction  = New-ScheduledTaskAction -Execute "$AppInstallDir\Chum.App.exe"
 $taskTrigger = New-ScheduledTaskTrigger -AtLogOn
@@ -218,7 +238,7 @@ Register-ScheduledTask `
     -Description "Starts the Chum tray application on user logon." | Out-Null
 Write-Ok "Scheduled task created"
 
-# -- 11. Write EventId 1000 (installation event) ------------------------------
+# -- 12. Write EventId 1000 (installation event) ------------------------------
 Write-Step "Writing installation event to Application log..."
 try {
     Write-EventLog -LogName Application -Source $EventSource `
@@ -229,7 +249,7 @@ try {
     Write-Warning "Could not write to Event Log (non-fatal): $_"
 }
 
-# -- 12. Start service (optional) ---------------------------------------------
+# -- 13. Start service (optional) ---------------------------------------------
 if ($StartService) {
     Write-Step "Starting $ServiceName..."
     Start-Service -Name $ServiceName
