@@ -6,6 +6,3 @@ dotnet publish C:\Users\kushal.f.sharma\repos\chum\src\Chum.App\Chum.App.csproj 
 
 schtasks /Run /TN "Chum Tray Application"
 
-
-
-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
