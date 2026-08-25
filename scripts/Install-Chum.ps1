@@ -1,17 +1,22 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-    Installs Chum Collaboration Host without an MSI (developer / CI use).
+    Installs Chum Collaboration Host.
 
 .DESCRIPTION
-    Publishes Chum.Service and Chum.App, copies them to %ProgramFiles%\Chum\,
-    creates the %PROGRAMDATA%\Chum\ data directory with the correct ACLs,
-    registers ChumHostSvc as a Windows service (auto-start, LocalSystem),
-    creates a scheduled task so the tray app starts on every user logon,
-    and writes EventId 1000 to the Windows Application Event Log.
+    Two modes:
+    1. Pre-built deployment (no source / SDK required):
+       Place App\ and Service\ folders next to install.cmd (sibling of scripts\),
+       then run install.cmd. The script detects them and skips dotnet publish.
+       Use this mode to install on machines that do not have the source code or SDK.
 
-    Use the WiX MSI (Chum.Installer) for production distribution -- this script
-    is intended for development, testing, and CI pipeline validation.
+    2. Developer / CI build-and-install:
+       Run from the repo root (where src\ exists). The script runs dotnet publish
+       for Chum.Service and Chum.App, then installs the output.
+
+    Either way, any existing Chum installation is fully replaced: running processes
+    are killed, the Windows service is removed, and files in %ProgramFiles%\Chum\
+    are overwritten.
 
 .PARAMETER InstallDir
     Root installation directory. Default: %ProgramFiles%\Chum
@@ -22,23 +27,19 @@
 .PARAMETER StartService
     Start ChumHostSvc immediately after registration.
 
-.PARAMETER DotnetRuntime
-    .NET runtime version required for the hosted executables. Default: 10.0.
+.EXAMPLE
+    # Pre-built: run install.cmd from a folder containing App\ and Service\
+    .\Install-Chum.ps1 -StartService
 
 .EXAMPLE
-    # Install with defaults (stops and replaces any existing installation)
-    .\Install-Chum.ps1
-
-.EXAMPLE
-    # Install and start the service immediately
+    # Developer: run from the repo root (src\ must exist)
     .\Install-Chum.ps1 -StartService
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string]$InstallDir  = "$env:ProgramFiles\Chum",
     [string]$DataDir     = "$env:ProgramData\Chum",
-    [switch]$StartService,
-    [string]$DotnetRuntime = '10.0'
+    [switch]$StartService
 )
 
 $ErrorActionPreference = 'Stop'
@@ -47,13 +48,7 @@ Set-StrictMode -Version Latest
 $ScriptDir = $PSScriptRoot
 if (-not $ScriptDir) { $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
 if (-not $ScriptDir) { throw "Cannot determine script directory. Run as: powershell -File scripts\Install-Chum.ps1" }
-$RepoRoot  = Split-Path $ScriptDir -Parent
-$SrcRoot   = Join-Path $RepoRoot 'src'
-
-$ServiceProject = Join-Path $SrcRoot 'Chum.Service\Chum.Service.csproj'
-$AppProject     = Join-Path $SrcRoot 'Chum.App\Chum.App.csproj'
-$SvcPublishDir  = Join-Path $SrcRoot 'Chum.Service\publish'
-$AppPublishDir  = Join-Path $SrcRoot 'Chum.App\publish'
+$PackageRoot = Split-Path $ScriptDir -Parent   # folder that contains scripts\ (repo root OR deploy package root)
 
 $ServiceInstallDir = Join-Path $InstallDir 'Service'
 $AppInstallDir     = Join-Path $InstallDir 'App'
@@ -73,29 +68,52 @@ function Write-Ok([string]$Message) {
     Write-Host "  [OK] $Message" -ForegroundColor Green
 }
 
-# -- 1. Verify dotnet SDK is available ----------------------------------------
 Write-Host "`nChum Installer" -ForegroundColor White
 Write-Host "-----------------------------------------" -ForegroundColor DarkGray
 
-Write-Step "Checking .NET SDK..."
-try {
-    $sdkVer = (& dotnet --version 2>&1)
-    Write-Ok ".NET SDK $sdkVer found"
-} catch {
-    Write-Error ".NET SDK not found. Install from https://dotnet.microsoft.com/download"
+# -- Detect mode: pre-built package or developer source build -----------------
+$PrebuiltSvcDir = Join-Path $PackageRoot 'Service'
+$PrebuiltAppDir = Join-Path $PackageRoot 'App'
+$PreBuilt = (Test-Path (Join-Path $PrebuiltAppDir 'Chum.App.exe')) -and `
+            (Test-Path (Join-Path $PrebuiltSvcDir 'ChumHostSvc.exe'))
+
+if ($PreBuilt) {
+    Write-Host "  [Mode] Pre-built package detected — skipping dotnet publish" -ForegroundColor DarkYellow
+    $SvcPublishDir = $PrebuiltSvcDir
+    $AppPublishDir = $PrebuiltAppDir
+} else {
+    Write-Host "  [Mode] Source build — running dotnet publish" -ForegroundColor DarkYellow
+
+    # -- 1. Verify dotnet SDK --------------------------------------------------
+    Write-Step "Checking .NET SDK..."
+    try {
+        $sdkVer = (& dotnet --version 2>&1)
+        Write-Ok ".NET SDK $sdkVer found"
+    } catch {
+        throw ".NET SDK not found. Install from https://dotnet.microsoft.com/download"
+    }
+
+    $SrcRoot        = Join-Path $PackageRoot 'src'
+    $ServiceProject = Join-Path $SrcRoot 'Chum.Service\Chum.Service.csproj'
+    $AppProject     = Join-Path $SrcRoot 'Chum.App\Chum.App.csproj'
+    $SvcPublishDir  = Join-Path $SrcRoot 'Chum.Service\publish'
+    $AppPublishDir  = Join-Path $SrcRoot 'Chum.App\publish'
+
+    if (-not (Test-Path $ServiceProject)) { throw "Chum.Service project not found at $ServiceProject" }
+    if (-not (Test-Path $AppProject))     { throw "Chum.App project not found at $AppProject" }
+
+    # -- 2. Publish Chum.Service -----------------------------------------------
+    Write-Step "Publishing Chum.Service -> $SvcPublishDir"
+    & dotnet publish $ServiceProject -r win-x64 -c Release -o $SvcPublishDir --nologo -v minimal
+    if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for Chum.Service (exit $LASTEXITCODE)" }
+    Write-Ok "Chum.Service published"
+
+    # -- 3. Publish Chum.App ---------------------------------------------------
+    Write-Step "Publishing Chum.App -> $AppPublishDir"
+    & dotnet publish $AppProject -r win-x64 -c Release -o $AppPublishDir --nologo -v minimal
+    if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for Chum.App (exit $LASTEXITCODE)" }
+    Write-Ok "Chum.App published"
 }
-
-# -- 2. Publish Chum.Service --------------------------------------------------
-Write-Step "Publishing Chum.Service -> $SvcPublishDir"
-& dotnet publish $ServiceProject -r win-x64 -c Release -o $SvcPublishDir --nologo -v minimal
-if ($LASTEXITCODE -ne 0) { Write-Error "dotnet publish failed for Chum.Service" }
-Write-Ok "Chum.Service published"
-
-# -- 3. Publish Chum.App ------------------------------------------------------
-Write-Step "Publishing Chum.App -> $AppPublishDir"
-& dotnet publish $AppProject -r win-x64 -c Release -o $AppPublishDir --nologo -v minimal
-if ($LASTEXITCODE -ne 0) { Write-Error "dotnet publish failed for Chum.App" }
-Write-Ok "Chum.App published"
 
 # -- 4. Stop and remove existing service (if present) -------------------------
 $existingSvc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue

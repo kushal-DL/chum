@@ -112,3 +112,12 @@ publish/
 *.temp
 ~$*
 _workspace/
+
+# Deploy package output (built by Build-DeployPackage.ps1)
+chum-deploy/
+
+# Playwright / Chrome browser profile (runtime data, not source)
+scripts/google-session/
+
+# Whisper transcription logs (runtime output)
+scripts/whisper-start-log.txt
