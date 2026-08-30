@@ -265,59 +265,99 @@ class ImageRequest(BaseModel):
     image_base64: str  # JPEG or PNG, base64-encoded
 
 
+class ImagesRequest(BaseModel):
+    images_base64: list[str]  # one or more JPEG/PNG images, base64-encoded
+
+
+async def _run_image_search(tmp_paths: list[str]) -> str:
+    """
+    Uploads one or more image files to Google AI Mode in a single turn and
+    returns the AI response text. Google's 'Add images' picker accepts multiple
+    files, so all screenshots are analysed together as one batch.
+    """
+    await _navigate_fresh()
+
+    # Wait for the input area to be ready
+    if not await _wait_for_attach_button():
+        return "Input area not ready after navigation. Check the browser window."
+
+    # Open the attachment menu
+    add_btn = await _page.query_selector("button[aria-label='Add files and tools']")
+    await add_btn.click()
+    await asyncio.sleep(0.7)
+
+    # Click 'Add images' to open the OS file picker
+    add_img = await _page.query_selector("button[aria-label='Add images']")
+    if not add_img:
+        return "'Add images' option not found -- Google AI Mode UI may have changed. Restart the bridge."
+
+    async with _page.expect_file_chooser(timeout=5000) as fc_info:
+        await add_img.click()
+    fc = await fc_info.value
+    # set_files accepts a list — uploads all screenshots in one go
+    await fc.set_files(tmp_paths)
+    # Allow extra settling time proportional to the number of images
+    await asyncio.sleep(0.8 + 0.4 * len(tmp_paths))
+
+    # Send
+    send_btn = await _page.query_selector("button[aria-label='Send']")
+    if send_btn:
+        await send_btn.click()
+    else:
+        await _page.keyboard.press("Enter")
+
+    print(f"[internet-search] {len(tmp_paths)} image(s) sent -- waiting for AI response...", flush=True)
+
+    response = await _extract_image_response()
+    print(f"[internet-search] Response ({len(response)} chars): {response[:80]}...", flush=True)
+    return response
+
+
+def _write_temp_images(b64_list: list[str]) -> list[str]:
+    """Decode base64 images to temp .jpg files; returns the file paths."""
+    paths: list[str] = []
+    for b64 in b64_list:
+        img_bytes = base64.b64decode(b64)
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
+            f.write(img_bytes)
+            paths.append(f.name)
+    return paths
+
+
+def _cleanup_temp(paths: list[str]) -> None:
+    for p in paths:
+        try:
+            os.unlink(p)
+        except Exception:
+            pass
+
+
 @app.post("/image")
 async def search_image(req: ImageRequest):
     if _page is None:
         raise HTTPException(503, "Browser not ready")
 
     async with _lock:
-        img_bytes = base64.b64decode(req.image_base64)
-
-        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
-            f.write(img_bytes)
-            tmp = f.name
-
+        paths = _write_temp_images([req.image_base64])
         try:
-            await _navigate_fresh()
-
-            # Wait for the input area to be ready
-            if not await _wait_for_attach_button():
-                return {"response": "Input area not ready after navigation. Check the browser window."}
-
-            # Open the attachment menu
-            add_btn = await _page.query_selector("button[aria-label='Add files and tools']")
-            await add_btn.click()
-            await asyncio.sleep(0.7)
-
-            # Click 'Add images' to open the OS file picker
-            add_img = await _page.query_selector("button[aria-label='Add images']")
-            if not add_img:
-                return {"response": "'Add images' option not found -- Google AI Mode UI may have changed. Restart the bridge."}
-
-            async with _page.expect_file_chooser(timeout=5000) as fc_info:
-                await add_img.click()
-            fc = await fc_info.value
-            await fc.set_files(tmp)
-            await asyncio.sleep(0.8)
-
-            # Send
-            send_btn = await _page.query_selector("button[aria-label='Send']")
-            if send_btn:
-                await send_btn.click()
-            else:
-                await _page.keyboard.press("Enter")
-
-            print("[internet-search] Image sent -- waiting for AI response...", flush=True)
-
-            response = await _extract_image_response()
-            print(f"[internet-search] Response ({len(response)} chars): {response[:80]}...", flush=True)
-            return {"response": response}
-
+            return {"response": await _run_image_search(paths)}
         finally:
-            try:
-                os.unlink(tmp)
-            except Exception:
-                pass
+            _cleanup_temp(paths)
+
+
+@app.post("/images")
+async def search_images(req: ImagesRequest):
+    if _page is None:
+        raise HTTPException(503, "Browser not ready")
+    if not req.images_base64:
+        raise HTTPException(400, "No images provided")
+
+    async with _lock:
+        paths = _write_temp_images(req.images_base64)
+        try:
+            return {"response": await _run_image_search(paths)}
+        finally:
+            _cleanup_temp(paths)
 
 
 @app.get("/health")

@@ -113,8 +113,11 @@ publish/
 ~$*
 _workspace/
 
-# Deploy package output (built by Build-DeployPackage.ps1)
+# Deploy package output (created by install.cmd when run from source)
 chum-deploy/
+
+# Release zips / staging (created by scripts\Publish-Release.ps1)
+dist/
 
 # Playwright / Chrome browser profile (runtime data, not source)
 scripts/google-session/

@@ -34,7 +34,16 @@ public partial class App : System.Windows.Application
     private RegionSelectionService? _regionSelection;
     private bool _started;
     private bool _googleSearchMode;
+    private bool _captureSessionMode;
     private string? _pendingMeetingDeviceId;
+    private Views.RegionBorderWindow? _regionBorderWindow;
+    private System.Drawing.Rectangle _sessionRegion;
+
+    // Auto-updater
+    private readonly HttpClient   _updateHttp    = new();
+    private UpdateChecker?        _updateChecker;
+    private UpdateInfo?           _pendingUpdate;
+    private ToolStripMenuItem?    _updateMenuItem;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -84,6 +93,9 @@ public partial class App : System.Windows.Application
         await BuildAndWireComponentsAsync();
         ApplyCaptureExclusionToOverlay();
         CreateTrayIcon();
+
+        _updateChecker = new UpdateChecker(_updateHttp);
+        _ = RunUpdateCheckAsync(CancellationToken.None);
 
         startupSw.Stop();
         var startupMs = startupSw.Elapsed.TotalMilliseconds;
@@ -176,7 +188,12 @@ public partial class App : System.Windows.Application
         // region to send to the vision model. Reuses the orchestrator's region-capture path.
         _regionSelection = new RegionSelectionService(Dispatcher);
         _regionSelection.FirstPointCaptured += (_, _) =>
-            _overlayVm?.SetScreenshotMode(true, "First corner set — double-click the opposite corner to capture");
+        {
+            var hint = _captureSessionMode
+                ? "Session: first corner set — double-click the opposite corner"
+                : "First corner set — double-click the opposite corner to capture";
+            _overlayVm?.SetScreenshotMode(true, hint);
+        };
         _regionSelection.RegionSelected += (_, region) =>
         {
             _overlayVm?.SetScreenshotMode(false, string.Empty);
@@ -185,11 +202,22 @@ public partial class App : System.Windows.Application
             {
                 _overlayVm?.ShowError("Selected region is too small — try two corners further apart.");
                 _googleSearchMode = false;
+                _captureSessionMode = false;
                 return;
             }
             if (_orchestrator is not null)
             {
-                if (_googleSearchMode)
+                if (_captureSessionMode)
+                {
+                    _captureSessionMode = false;
+                    _sessionRegion = region;
+                    _overlayVm?.BeginCaptureSession();
+                    _regionBorderWindow?.Close();
+                    _regionBorderWindow = new Views.RegionBorderWindow();
+                    _regionBorderWindow.ShowOverRegion(_sessionRegion);
+                    _ = AddCaptureSessionShotAsync();
+                }
+                else if (_googleSearchMode)
                 {
                     _googleSearchMode = false;
                     _ = _orchestrator.HandleGoogleSearchAsync(region);
@@ -345,10 +373,17 @@ public partial class App : System.Windows.Application
             _started = false;
         });
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("About…", null, (_, _) => new Views.AboutWindow().ShowDialog());
+        menu.Items.Add("Check for Updates", null, async (_, _) => await CheckForUpdatesManuallyAsync());
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Quit Chum", null, (_, _) => Shutdown());
 
         _trayIcon.ContextMenuStrip = menu;
-        _trayIcon.DoubleClick += (_, _) => ShowOverlay();
+        _trayIcon.DoubleClick     += (_, _) => ShowOverlay();
+        _trayIcon.BalloonTipClicked += async (_, _) =>
+        {
+            if (_pendingUpdate is not null) await ApplyUpdateAsync();
+        };
     }
 
     private void ShowOverlay()
@@ -396,6 +431,9 @@ public partial class App : System.Windows.Application
     /// </summary>
     public void ToggleScreenshotMode()
     {
+        // If a capture session is active, ▣ sends the batch via the configured LLM
+        if (TrySendCaptureSessionViaLlm()) return;
+
         if (_regionSelection is null) return;
         if (_regionSelection.IsArmed)
         {
@@ -417,6 +455,9 @@ public partial class App : System.Windows.Application
     /// </summary>
     public void ToggleGoogleSearchMode()
     {
+        // If a capture session is active, G sends the batch instead of starting region selection
+        if (TrySendCaptureSessionViaGoogle()) return;
+
         if (_regionSelection is null) return;
         if (_regionSelection.IsArmed && _googleSearchMode)
         {
@@ -435,6 +476,101 @@ public partial class App : System.Windows.Application
             _overlayVm?.SetScreenshotMode(true,
                 "Google Search: double-click the first corner, then the opposite corner (click G again to cancel)");
         }
+    }
+
+    /// <summary>
+    /// S button:
+    ///   - If no session active → show snip UI to pin a region, start session
+    ///   - If session active and not full → capture a shot of the pinned region + flash
+    ///   - If session full → do nothing (user must send or cancel via G/LLM buttons, or cancel by long-press — same button cancels)
+    ///   - Second press while drawing region → cancel
+    /// The session ends automatically when the user presses the Local LLM or G button.
+    /// </summary>
+    /// <summary>
+    /// S button state machine — uses the same two-double-click region picker as ▣ and G,
+    /// no overlay, no cursor change, nothing visible during screen share.
+    ///
+    ///   No session active, not armed  → arm the picker; user double-clicks two corners
+    ///   No session active, armed      → cancel the pending pick (second S press)
+    ///   Session active, not full      → add a shot of the pinned region
+    ///   Session active, full          → cancel the session (S acts as abort)
+    /// </summary>
+    public void HandleCaptureSessionButtonClick()
+    {
+        if (_overlayVm is null || _regionSelection is null) return;
+
+        if (_overlayVm.IsCaptureSessionActive)
+        {
+            if (_overlayVm.IsCaptureSessionFull)
+                CancelCaptureSession();
+            else
+                _ = AddCaptureSessionShotAsync();
+            return;
+        }
+
+        if (_regionSelection.IsArmed && _captureSessionMode)
+        {
+            // Second S press while waiting for corner picks → cancel
+            _regionSelection.Disarm();
+            _captureSessionMode = false;
+            _overlayVm.SetScreenshotMode(false, string.Empty);
+        }
+        else
+        {
+            if (_regionSelection.IsArmed) _regionSelection.Disarm();
+            _captureSessionMode = true;
+            _googleSearchMode = false;
+            _regionSelection.Arm();
+            _overlayVm.SetScreenshotMode(true,
+                "Session: double-click first corner, then double-click opposite corner");
+        }
+    }
+
+    private async Task AddCaptureSessionShotAsync()
+    {
+        if (_orchestrator is null || _overlayVm is null) return;
+        if (!_overlayVm.IsCaptureSessionActive || _overlayVm.IsCaptureSessionFull) return;
+
+        var (imageBase64, thumbnail) = await _orchestrator.CaptureSessionShotAsync(_sessionRegion);
+        if (imageBase64 is null) return;
+
+        _overlayVm.AddCaptureSessionShot(imageBase64, thumbnail!);
+    }
+
+    private void CancelCaptureSession()
+    {
+        _captureSessionMode = false;
+        _overlayVm?.EndCaptureSession();
+        _regionBorderWindow?.Close();
+        _regionBorderWindow = null;
+    }
+
+    /// <summary>
+    /// Sends the current capture session batch to the configured LLM, then ends the session.
+    /// Called when the user clicks the Local LLM button while a session is active.
+    /// Falls through to normal LLM screenshot mode if no session is active.
+    /// </summary>
+    public bool TrySendCaptureSessionViaLlm()
+    {
+        if (_overlayVm is null || !_overlayVm.IsCaptureSessionActive) return false;
+        var images = _overlayVm.GetCaptureSessionImages();
+        CancelCaptureSession();
+        _ = _orchestrator?.HandleCaptureSessionLlmAsync(images);
+        return true;
+    }
+
+    /// <summary>
+    /// Sends the current capture session batch to Google AI Search, then ends the session.
+    /// Called when the user clicks the G button while a session is active.
+    /// Falls through to normal Google Search mode if no session is active.
+    /// </summary>
+    public bool TrySendCaptureSessionViaGoogle()
+    {
+        if (_overlayVm is null || !_overlayVm.IsCaptureSessionActive) return false;
+        var images = _overlayVm.GetCaptureSessionImages();
+        CancelCaptureSession();
+        _ = _orchestrator?.HandleCaptureSessionGoogleAsync(images);
+        return true;
     }
 
     public void ExportTranscript()
@@ -465,8 +601,10 @@ public partial class App : System.Windows.Application
     protected override async void OnExit(ExitEventArgs e)
     {
         Log.Information("Chum shutting down");
+        _regionBorderWindow?.Close();
         _trayIcon?.Dispose();
         _hotkeys?.Dispose();
+        _updateHttp.Dispose();
         if (_orchestrator is not null)
             await _orchestrator.StopAsync();
         _orchestrator?.Dispose();
@@ -523,6 +661,109 @@ public partial class App : System.Windows.Application
         {
             Log.Error(ex, "Failed to export emergency transcript");
             return null;
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Auto-updater
+    // -----------------------------------------------------------------------
+
+    private async Task RunUpdateCheckAsync(CancellationToken ct)
+    {
+        try
+        {
+            if (_updateChecker is null || !Settings.Current.CheckForUpdates) return;
+
+            // At most once per 23 hours
+            var age = DateTimeOffset.UtcNow - Settings.Current.LastUpdateCheckUtc;
+            if (age.TotalHours < 23) return;
+
+            Log.Information("UpdateChecker: checking for updates in background");
+            var info = await _updateChecker.CheckForUpdateAsync(ct);
+            Settings.Update(s => s.LastUpdateCheckUtc = DateTimeOffset.UtcNow);
+            if (info is null) return;
+
+            await Dispatcher.InvokeAsync(() => ShowUpdateAvailable(info));
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "UpdateChecker: background check failed");
+        }
+    }
+
+    private async Task CheckForUpdatesManuallyAsync()
+    {
+        if (_updateChecker is null) return;
+        if (_pendingUpdate is not null) { await ApplyUpdateAsync(); return; }
+
+        Log.Information("UpdateChecker: manual check triggered");
+        var info = await _updateChecker.CheckForUpdateAsync();
+        Settings.Update(s => s.LastUpdateCheckUtc = DateTimeOffset.UtcNow);
+        if (info is null)
+        {
+            _trayIcon?.ShowBalloonTip(4000, "Chum", "You're up to date.", ToolTipIcon.Info);
+            return;
+        }
+        ShowUpdateAvailable(info);
+    }
+
+    private void ShowUpdateAvailable(UpdateInfo info)
+    {
+        _pendingUpdate = info;
+
+        // Insert a highlighted item at the top of the tray menu
+        if (_trayIcon?.ContextMenuStrip is not null && _updateMenuItem is null)
+        {
+            _updateMenuItem = new ToolStripMenuItem($"Update to v{info.Version}…")
+            {
+                ForeColor = System.Drawing.Color.DarkBlue,
+                Font      = new System.Drawing.Font("Segoe UI", 9f, System.Drawing.FontStyle.Bold)
+            };
+            _updateMenuItem.Click += async (_, _) => await ApplyUpdateAsync();
+            _trayIcon.ContextMenuStrip.Items.Insert(0, new ToolStripSeparator());
+            _trayIcon.ContextMenuStrip.Items.Insert(0, _updateMenuItem);
+        }
+
+        // Tray balloon — click fires BalloonTipClicked which calls ApplyUpdateAsync
+        _trayIcon?.ShowBalloonTip(
+            timeout: 12000,
+            tipTitle: $"Chum v{info.Version} is available",
+            tipText: string.IsNullOrEmpty(info.ReleaseNotes)
+                ? "Click to download and install."
+                : $"{info.ReleaseNotes}\n\nClick to install.",
+            tipIcon: ToolTipIcon.Info);
+
+        Log.Information("UpdateChecker: notified user of v{Ver}", info.Version);
+    }
+
+    private async Task ApplyUpdateAsync()
+    {
+        if (_pendingUpdate is null || _updateChecker is null) return;
+        var info = _pendingUpdate;
+
+        if (_updateMenuItem is not null)
+            _updateMenuItem.Text = "Downloading update…";
+
+        var progress = new Progress<int>(pct =>
+        {
+            if (_updateMenuItem is not null)
+                _updateMenuItem.Text = $"Downloading… {pct}%";
+        });
+
+        var ok = await _updateChecker.DownloadAndLaunchAsync(info, progress);
+        if (ok)
+        {
+            Log.Information("UpdateChecker: installer launched — shutting down");
+            Shutdown();
+        }
+        else
+        {
+            _pendingUpdate = info; // allow retry
+            if (_updateMenuItem is not null)
+                _updateMenuItem.Text = $"Update to v{info.Version}… (try again)";
+            _trayIcon?.ShowBalloonTip(6000, "Chum update",
+                "Download failed. Check your connection and try again via the tray menu.",
+                ToolTipIcon.Warning);
         }
     }
 

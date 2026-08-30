@@ -9,8 +9,7 @@
     <RootNamespace>Chum.Service</RootNamespace>
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <!-- Output to Program Files layout; installer places it there -->
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <SelfContained>false</SelfContained>
+    <!-- RuntimeIdentifier and SelfContained are set by the installer/publish command -->
   </PropertyGroup>
 
   <ItemGroup>

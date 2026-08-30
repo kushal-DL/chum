@@ -45,44 +45,68 @@ dotnet --list-runtimes
 
 ---
 
-## Quick Install (Admin Required)
+## Install — One Step
 
-Double-click **`install.cmd`** at the root of this repository. Windows will
-prompt for administrator credentials. Once approved the script will:
+**Right-click `install.cmd` and choose "Run as administrator."** That is the
+only step. (Double-clicking also works — it requests admin rights for you.)
 
-1. Publish both projects (`ChumHostSvc` and `Chum.App`)
-2. Copy binaries to `%ProgramFiles%\Chum\`
-3. Register `ChumHostSvc` as a Windows auto-start service
-4. Create a scheduled task that launches the tray app on every user logon
-5. Start the service immediately
+The installer figures out everything else on its own:
 
-After installation, look for the Chum icon in your system tray. Right-click it
-to open Settings and enter your API key.
+- It **detects any previous installation** and offers to update, remove, or cancel.
+- It **finds the binaries automatically**, in this order:
+  1. **Pre-built binaries beside it** (`App\` and `Service\`) → installs directly. No .NET SDK needed.
+  2. **Source tree beside it** (`src\`) on a machine with the **.NET SDK** → builds
+     self-contained binaries from your current code, installs them, and also writes
+     a redistributable `chum-deploy\` folder.
+  3. **Neither present** → an on-screen menu lets you **download the latest release
+     from GitHub**, enter a path to a `src\` folder to build from, or point at a
+     folder that already has `App\` and `Service\`.
 
-**To uninstall:**
+It then copies files to `%ProgramFiles%\Chum\`, registers `ChumHostSvc` as an
+auto-start Windows service, creates a logon scheduled task for the tray app, and
+starts the service. After it finishes, look for the Chum icon in your system tray
+and right-click → Settings to enter your API key.
+
+> Binaries always install to `%ProgramFiles%\Chum\`, independent of where you run
+> `install.cmd` from. The source/repo is only used during a build.
+
+**To uninstall:** run `install.cmd` again and choose **[R] Remove**, or:
 
 ```powershell
-# Open an elevated PowerShell, then:
-.\scripts\Uninstall-Chum.ps1
-
-# To also remove logs and data:
-.\scripts\Uninstall-Chum.ps1 -RemoveData
+.\scripts\Uninstall-Chum.ps1              # keep audit logs
+.\scripts\Uninstall-Chum.ps1 -RemoveData  # also remove %ProgramData%\Chum
 ```
 
 ---
 
-## Manual Install (PowerShell, Admin)
+## Distributing to other PCs (no source or SDK on the target)
+
+End users never need the source code or the .NET SDK. Two supported ways:
+
+**A. GitHub Release (recommended — always current):**
+A GitHub Actions workflow ([.github/workflows/release.yml](.github/workflows/release.yml))
+rebuilds the self-contained package from source and publishes it on every version
+tag, so the release `install.cmd` downloads is always built from the latest committed
+code — users can't get stale binaries.
 
 ```powershell
-# Open PowerShell as Administrator, navigate to repo root, then:
-.\scripts\Install-Chum.ps1 -StartService
-
-# Verify the service is running:
-Get-Service ChumHostSvc
-
-# Check the event log for the install record:
-Get-EventLog -Log Application -Source Chum -Newest 5
+# Cut a release (CI builds + publishes automatically):
+git tag v0.1.1 ; git push --tags
 ```
+
+Then a user just downloads `install.cmd` (or the release ZIP) and runs it as admin;
+with no binaries present locally it pulls the latest release automatically.
+
+**B. Hand-built package (offline / no CI):**
+
+```powershell
+# On a machine with source + SDK:
+.\scripts\Publish-Release.ps1            # writes dist\chum-<version>.zip
+# (add -Publish to also upload it to a GitHub Release via the gh CLI)
+```
+
+Copy the ZIP (or the `chum-deploy\` folder produced by a source install) to the
+target PC, extract, and run `install.cmd` as admin.
 
 ---
 

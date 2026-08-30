@@ -173,6 +173,15 @@ public partial class OverlayWindow : Window
     private void GoogleSearch_Click(object sender, RoutedEventArgs e)
         => ((App)Application.Current).ToggleGoogleSearchMode();
 
+    private void CaptureSession_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).HandleCaptureSessionButtonClick();
+
+    private void RemoveShot_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button btn && btn.Tag is int index)
+            ((OverlayViewModel)DataContext).RemoveCaptureSessionShot(index);
+    }
+
     private void StopResponse_Click(object sender, RoutedEventArgs e)
         => ((App)Application.Current).StopResponse();
 

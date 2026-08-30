@@ -160,6 +160,24 @@ public sealed class OpenAiLlmProvider : ILlmProvider
                 };
             }
         }
+        else if (request.ImagesBase64 is { Count: > 0 })
+        {
+            // Multi-image batch (capture session) — all images then the text prompt
+            var arr = new JsonArray();
+            foreach (var img in request.ImagesBase64)
+            {
+                arr.Add(new JsonObject
+                {
+                    ["type"] = "image_url",
+                    ["image_url"] = new JsonObject
+                    {
+                        ["url"] = $"data:image/jpeg;base64,{img}"
+                    }
+                });
+            }
+            arr.Add(new JsonObject { ["type"] = "text", ["text"] = request.UserMessage });
+            userContent = arr;
+        }
         else if (request.ImageBase64 is not null)
         {
             var mediaType = request.ImageMediaType ?? "image/jpeg";
