@@ -112,6 +112,7 @@ public sealed class AnthropicLlmProvider : ILlmProvider
     {
         var contentArray = new JsonArray();
 
+        // Single image (snapshot / snip)
         if (request.ImageBase64 is not null)
         {
             contentArray.Add(new JsonObject
@@ -124,6 +125,24 @@ public sealed class AnthropicLlmProvider : ILlmProvider
                     ["data"] = request.ImageBase64
                 }
             });
+        }
+
+        // Multi-image batch (capture session) — images precede the text prompt
+        if (request.ImagesBase64 is { Count: > 0 })
+        {
+            foreach (var img in request.ImagesBase64)
+            {
+                contentArray.Add(new JsonObject
+                {
+                    ["type"] = "image",
+                    ["source"] = new JsonObject
+                    {
+                        ["type"] = "base64",
+                        ["media_type"] = "image/jpeg",
+                        ["data"] = img
+                    }
+                });
+            }
         }
 
         contentArray.Add(new JsonObject

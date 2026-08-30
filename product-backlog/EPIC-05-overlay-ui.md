@@ -13,6 +13,7 @@
 | US-05-07 | Auto-hide During Screen Share | P1 — High | ✅ Done (Built & Tested) | 8 |
 | US-05-08 | Multi-monitor Support | P2 — Medium | ✅ Done (Built & Tested) | 3 |
 | US-05-09 | Response Copy & Share | P2 — Medium | ✅ Done (Built & Tested) | 2 |
+| US-05-10 | Capture Session UI (S button, thumbnail strip, session panel) | P1 — High | 🔵 Built | 5 |
 
 **Priority Key:** P0 = MVP Blocker · P1 = High · P2 = Medium · P3 = Low  
 **Status Key:** 🔴 Yet to Start · 🟡 Scaffolded · 🔵 Built · ✅ Done (Built & Tested)

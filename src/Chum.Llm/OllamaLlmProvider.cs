@@ -101,7 +101,17 @@ public sealed class OllamaLlmProvider : ILlmProvider
             new { role = "system", content = request.SystemPrompt }
         };
 
-        if (request.ImageBase64 is not null)
+        if (request.ImagesBase64 is { Count: > 0 })
+        {
+            // Multi-image batch (capture session)
+            messages.Add(new
+            {
+                role = "user",
+                content = request.UserMessage,
+                images = request.ImagesBase64.ToArray()
+            });
+        }
+        else if (request.ImageBase64 is not null)
         {
             // Ollama vision format: images array alongside content text
             messages.Add(new

@@ -14,14 +14,15 @@
 
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
-| ✅ Done | 90 | 348 SP | 98% |
+| ✅ Done | 90 | 348 SP | 93% |
+| 🔵 Built | 3 | 18 SP | 5% |
 | ⚠️ Superseded | 1 | 8 SP | 2% |
-| 🔵 Built | 0 | 0 SP | 0% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
 | 🔴 Yet to Start | 0 | 0 SP | 0% |
-| **Total** | **91** | **356 SP** | |
+| **Total** | **94** | **374 SP** | |
 
 > **90 stories ✅ Done. US-10-11 (ONNX DirectML, 8 SP) was superseded in S59 by US-02-09 (sherpa streaming).**
+> **US-06-08, US-06-09, US-05-10 added for multi-shot capture session feature — 🔵 Built.**
 
 > **All 18 P0 (MVP) stories ✅ Done** (added US-02-09 streaming STT, US-04-08 press-to-record query modes).
 > **S59 STT rework: sherpa-onnx streaming replaces batch Whisper; press-to-record query modes; noise suppression.**

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Threading;
+using Chum.App.Models;
 
 namespace Chum.App.ViewModels;
 
@@ -392,6 +393,90 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
 
     public void ShowDisclosureReminder() => Invoke(() => HasDisclosureReminder = true);
     public void DismissDisclosureReminder() => Invoke(() => HasDisclosureReminder = false);
+
+    // ── Capture session ───────────────────────────────────────────────────
+
+    private const int MaxSessionShots = 10;
+
+    private bool _isCaptureSessionActive;
+    public bool IsCaptureSessionActive
+    {
+        get => _isCaptureSessionActive;
+        private set { _isCaptureSessionActive = value; OnPropertyChanged(); OnPropertyChanged(nameof(CaptureSessionButtonLabel)); }
+    }
+
+    private int _captureSessionShotCount;
+    public int CaptureSessionShotCount
+    {
+        get => _captureSessionShotCount;
+        private set
+        {
+            _captureSessionShotCount = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsCaptureSessionFull));
+            OnPropertyChanged(nameof(CaptureSessionButtonLabel));
+        }
+    }
+
+    public bool IsCaptureSessionFull => _captureSessionShotCount >= MaxSessionShots;
+
+    /// <summary>Text shown on the S button: "S" when idle, "N/10" when active.</summary>
+    public string CaptureSessionButtonLabel =>
+        _isCaptureSessionActive ? $"{_captureSessionShotCount}/{MaxSessionShots}" : "S";
+
+    public ObservableCollection<CaptureSessionShot> CaptureSessionShots { get; } = [];
+
+    public void BeginCaptureSession()
+    {
+        Invoke(() =>
+        {
+            CaptureSessionShots.Clear();
+            _captureSessionShotCount = 0;
+            IsCaptureSessionActive = true;
+        });
+    }
+
+    public void AddCaptureSessionShot(string imageBase64, System.Windows.Media.Imaging.BitmapSource thumbnail)
+    {
+        Invoke(() =>
+        {
+            if (_captureSessionShotCount >= MaxSessionShots) return;
+            var shot = new CaptureSessionShot(CaptureSessionShots.Count + 1, imageBase64, thumbnail);
+            CaptureSessionShots.Add(shot);
+            CaptureSessionShotCount = CaptureSessionShots.Count;
+        });
+    }
+
+    public void RemoveCaptureSessionShot(int oneBasedIndex)
+    {
+        Invoke(() =>
+        {
+            int zi = oneBasedIndex - 1;
+            if (zi < 0 || zi >= CaptureSessionShots.Count) return;
+            CaptureSessionShots.RemoveAt(zi);
+            // Re-index remaining shots so number badges stay sequential
+            for (int i = 0; i < CaptureSessionShots.Count; i++)
+            {
+                var old = CaptureSessionShots[i];
+                if (old.Index != i + 1)
+                    CaptureSessionShots[i] = old with { Index = i + 1 };
+            }
+            CaptureSessionShotCount = CaptureSessionShots.Count;
+        });
+    }
+
+    public void EndCaptureSession()
+    {
+        Invoke(() =>
+        {
+            CaptureSessionShots.Clear();
+            _captureSessionShotCount = 0;
+            IsCaptureSessionActive = false;
+        });
+    }
+
+    public IReadOnlyList<string> GetCaptureSessionImages() =>
+        CaptureSessionShots.Select(s => s.ImageBase64).ToList();
 
     // ── Audio device mismatch banner ──────────────────────────────────────
 

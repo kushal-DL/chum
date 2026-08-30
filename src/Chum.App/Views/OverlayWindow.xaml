@@ -73,6 +73,19 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <!-- Capture session (S) button: cyan when active, amber when full -->
+        <Style x:Key="CaptureSessionButtonStyle" TargetType="Button" BasedOn="{StaticResource ChumButton}">
+            <Setter Property="FontSize" Value="11"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCaptureSessionActive}" Value="True">
+                    <Setter Property="Foreground" Value="#22D3EE"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsCaptureSessionFull}" Value="True">
+                    <Setter Property="Foreground" Value="#F59E0B"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -85,6 +98,7 @@
                 <RowDefinition Height="*"/>      <!-- Response area -->
                 <RowDefinition Height="Auto"/>   <!-- History navigation -->
                 <RowDefinition Height="Auto"/>   <!-- Notification banners -->
+                <RowDefinition Height="Auto"/>   <!-- Capture session panel -->
                 <RowDefinition Height="Auto"/>   <!-- Transcript strip (collapsible) -->
                 <RowDefinition Height="Auto"/>   <!-- Status bar -->
             </Grid.RowDefinitions>
@@ -144,8 +158,10 @@
                     <Button Style="{StaticResource ScreenshotButtonStyle}" Margin="2,4"
                             Click="ScreenshotMode_Click"/>
                     <Button Style="{StaticResource GoogleSearchButtonStyle}" Margin="2,4"
-                            ToolTip="Google AI Search — requires start-internet-search.ps1"
                             Click="GoogleSearch_Click"/>
+                    <Button Style="{StaticResource CaptureSessionButtonStyle}" Margin="2,4"
+                            Content="{Binding CaptureSessionButtonLabel}"
+                            Click="CaptureSession_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="■" Margin="2,4"
                             Click="StopResponse_Click"/>
                     <Button Style="{StaticResource ChumButton}" Content="{Binding ResponseModeLabel}"
@@ -309,8 +325,92 @@
                 </Border>
             </StackPanel>
 
+            <!-- ── Capture session panel ── -->
+            <Border Grid.Row="4" Background="#1222D3EE" BorderBrush="#0088AA"
+                    BorderThickness="0,1,0,0" Padding="6,5"
+                    Visibility="{Binding IsCaptureSessionActive, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel>
+                    <!-- Counter + cancel hint -->
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding CaptureSessionButtonLabel, StringFormat='Session: {0} shots — press S to add, Local LLM or G to send'}"
+                                   Foreground="#22D3EE" FontSize="10" VerticalAlignment="Center"
+                                   TextWrapping="Wrap"/>
+                        <TextBlock Grid.Column="1" Text="(S to cancel)"
+                                   Foreground="#555" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                    </Grid>
+                    <!-- Thumbnail strip -->
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding CaptureSessionShots}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Width="68" Height="44" Margin="2,0">
+                                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"
+                                               SnapsToDevicePixels="True"/>
+                                        <!-- Number badge — always visible top-left -->
+                                        <Border Width="16" Height="16" CornerRadius="8"
+                                                Background="#CC000000"
+                                                HorizontalAlignment="Left" VerticalAlignment="Top"
+                                                Margin="2,2,0,0">
+                                            <TextBlock Text="{Binding Index}" Foreground="White"
+                                                       FontSize="8" FontWeight="Bold"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                        <!-- X button — appears on hover, top-right -->
+                                        <Button Width="16" Height="16" Content="✕"
+                                                FontSize="7" Padding="0"
+                                                HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                Margin="0,2,2,0" BorderThickness="0"
+                                                Background="#CC333333" Foreground="White"
+                                                Click="RemoveShot_Click" Tag="{Binding Index}">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Setter Property="Cursor" Value="Arrow"/>
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Background="{TemplateBinding Background}"
+                                                                        CornerRadius="8">
+                                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                                      VerticalAlignment="Center"/>
+                                                                </Border>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Value="True">
+                                                            <DataTrigger.Binding>
+                                                                <Binding Path="IsMouseOver"
+                                                                         RelativeSource="{RelativeSource AncestorType=Grid}"/>
+                                                            </DataTrigger.Binding>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
             <!-- ── Transcript strip (collapsed by default) ── -->
-            <Expander Grid.Row="4" Header="Transcript" Foreground="#777"
+            <Expander Grid.Row="5" Header="Transcript" Foreground="#777"
                       FontSize="10" Margin="6,0" IsExpanded="False">
                 <ItemsControl ItemsSource="{Binding TranscriptLines}" Margin="4,4">
                     <ItemsControl.ItemTemplate>
@@ -323,7 +423,7 @@
             </Expander>
 
             <!-- ── Status bar ── -->
-            <Border Grid.Row="5" Background="#15FFFFFF" CornerRadius="0,0,10,10">
+            <Border Grid.Row="6" Background="#15FFFFFF" CornerRadius="0,0,10,10">
                 <Grid Margin="10,4">
                     <TextBlock Text="Chum v0.1" Foreground="#444" FontSize="10"
                                HorizontalAlignment="Left"/>

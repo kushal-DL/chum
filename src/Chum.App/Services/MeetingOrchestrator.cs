@@ -121,6 +121,11 @@ public sealed class MeetingOrchestrator : IDisposable
         _shareDetector.SharingStateChanged += (_, isSharing) =>
         {
             if (!_settings.Current.AutoHideOnScreenShare) return;
+            // When the overlay is capture-excluded (WDA_EXCLUDEFROMCAPTURE) it is already invisible
+            // to meeting participants and recordings, so auto-hiding it just forces the user to
+            // re-open it from the tray after every share — skip it. Only auto-hide when the user
+            // has turned capture exclusion off (i.e. the overlay would genuinely be visible).
+            if (_settings.Current.ExcludeFromScreenCapture) return;
             if (isSharing)
             {
                 _overlay.Hide();
@@ -642,6 +647,153 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             _overlay.ShowError("Google AI Search not reachable — is start-internet-search.ps1 running?");
             Serilog.Log.Error(ex, "Google Search API error");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+    }
+
+    // ── Capture session batch sends ───────────────────────────────────────
+
+    /// <summary>
+    /// Captures the locked session region, stores the result, and triggers a border flash.
+    /// Returns the JPEG base64 string, or null if capture failed.
+    /// </summary>
+    public async Task<(string? ImageBase64, System.Windows.Media.Imaging.BitmapSource? Thumbnail)>
+        CaptureSessionShotAsync(System.Drawing.Rectangle region)
+    {
+        _overlay.HideForCapture();
+        string? imageBase64 = null;
+        try
+        {
+            await Task.Delay(200); // allow DWM to recomposite
+            imageBase64 = await Task.Run(() =>
+                DxgiScreenCapture.CaptureRegionViaGdi(region, maxWidthPx: 1920, jpegQuality: 85));
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Capture session shot failed");
+            return (null, null);
+        }
+        finally
+        {
+            _overlay.RestoreAfterCapture();
+        }
+
+        if (imageBase64 is null) return (null, null);
+
+        // Build a small thumbnail BitmapSource for the overlay thumbnail strip
+        System.Windows.Media.Imaging.BitmapSource? thumbnail = null;
+        try
+        {
+            var bytes = Convert.FromBase64String(imageBase64);
+            thumbnail = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                using var ms = new System.IO.MemoryStream(bytes);
+                var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                bmp.BeginInit();
+                bmp.StreamSource = ms;
+                bmp.DecodePixelWidth = 68;
+                bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bmp.EndInit();
+                bmp.Freeze();
+                return (System.Windows.Media.Imaging.BitmapSource)bmp;
+            });
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Failed to create session shot thumbnail");
+        }
+
+        return (imageBase64, thumbnail);
+    }
+
+    /// <summary>Sends all queued session shots to the configured LLM.</summary>
+    public async Task HandleCaptureSessionLlmAsync(IReadOnlyList<string> images)
+    {
+        if (images.Count == 0)
+        {
+            _overlay.ShowError("No shots in session — add at least one before sending.");
+            return;
+        }
+
+        var visionLlm = GetLlm(requiresVision: true);
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Sending {images.Count} shot(s) to {visionLlm.ModelId}…");
+        _overlay.StartNewResponse();
+
+        try
+        {
+            var contextText = _context.BuildContext(DateTimeOffset.UtcNow, _settings.Current.MaxResponseTokens);
+            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
+                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
+                _stt.DetectedLanguage,
+                _templateService?.GetByName(_settings.Current.ActiveTemplateName));
+            var modeHint = GetModeInstruction();
+            if (!string.IsNullOrEmpty(modeHint))
+                system = system + "\n\n" + modeHint;
+
+            var user = $"Here are {images.Count} screenshot{(images.Count == 1 ? "" : "s")} of the same screen region, " +
+                       "taken sequentially. Analyze and respond as per the instructions/question shown in the screenshots.";
+            if (!string.IsNullOrWhiteSpace(contextText))
+                user += $"\n\nMeeting context:\n{contextText}";
+
+            var request = new LlmRequest(system, user,
+                ImagesBase64: images,
+                MaxTokens: _settings.Current.MaxResponseTokens,
+                Temperature: _settings.Current.Temperature);
+
+            Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=CaptureSession shots={N}",
+                visionLlm.ProviderName, visionLlm.ModelId, images.Count);
+
+            await StreamWithRetryAsync(visionLlm, request, t => _latencyTracker.RecordLlmLatency(t));
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (LlmException ex)
+        {
+            _overlay.ShowError($"AI error: {ex.Message}");
+            Serilog.Log.Error(ex, "LLM error during capture session send");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Unexpected error — check logs");
+            Serilog.Log.Error(ex, "Error during capture session LLM send");
+        }
+    }
+
+    /// <summary>Sends all queued session shots to the Google AI Search bridge (multi-image).</summary>
+    public async Task HandleCaptureSessionGoogleAsync(IReadOnlyList<string> images)
+    {
+        if (images.Count == 0)
+        {
+            _overlay.ShowError("No shots in session — add at least one before sending.");
+            return;
+        }
+
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Sending {images.Count} shot(s) to Google AI Search…");
+        _overlay.StartNewResponse();
+
+        try
+        {
+            var payload = System.Text.Json.JsonSerializer.Serialize(new { images_base64 = images });
+            var content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+            var response = await _googleSearchHttp.PostAsync("http://127.0.0.1:8002/images", content);
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var text = doc.RootElement.GetProperty("response").GetString() ?? "No response";
+
+            for (int i = 0; i < text.Length; i += 8)
+            {
+                _overlay.AppendResponseToken(text.Substring(i, Math.Min(8, text.Length - i)));
+                await Task.Delay(12);
+            }
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Google AI Search not reachable — is start-internet-search.ps1 running?");
+            Serilog.Log.Error(ex, "Google Search multi-image API error");
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
     }

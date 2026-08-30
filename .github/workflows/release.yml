@@ -1,0 +1,46 @@
+name: Build and Publish Release
+
+# Guarantees end users never download stale binaries: every version tag (and
+# manual run) rebuilds the self-contained package from that exact commit and
+# publishes it as the GitHub Release that install.cmd downloads.
+
+on:
+  push:
+    tags:
+      - 'v*'          # e.g. git tag v0.1.1 && git push --tags
+  workflow_dispatch:  # or run manually from the Actions tab
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.1.1). Blank = AssemblyVersion from Chum.App.csproj.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write     # needed for gh to create/update releases
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build and publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ver = '${{ github.event.inputs.version }}'
+          if ('${{ github.ref_type }}' -eq 'tag') {
+            $ver = '${{ github.ref_name }}' -replace '^v',''   # honor the pushed tag
+          }
+          if ([string]::IsNullOrWhiteSpace($ver)) {
+            ./scripts/Publish-Release.ps1 -Publish
+          } else {
+            ./scripts/Publish-Release.ps1 -Publish -Version $ver
+          }
