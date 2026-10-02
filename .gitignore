@@ -61,7 +61,8 @@ $RECYCLE.BIN/
 *.lnk
 
 # ML model output directories (large binaries — fine-tuned models go here)
-models/
+# Leading slash anchors to repo root only — prevents matching src/*/Models/ C# folders.
+/models/
 __pycache__/
 *.pyc
 
