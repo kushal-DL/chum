@@ -405,7 +405,8 @@ if (-not (Test-Path $configPath)) {
     @'
 {
   "AnthropicApiKey": "",
-  "OpenAiApiKey": ""
+  "OpenAiApiKey": "llm",
+  "CloudSttApiKey": "whisper"
 }
 '@ | Out-File -FilePath $configPath -Encoding utf8 -NoNewline
 }

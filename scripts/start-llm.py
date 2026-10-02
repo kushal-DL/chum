@@ -22,7 +22,7 @@ _DEFAULT_MMPROJ = ROOT / "models" / "mmproj-Qwen_Qwen3.5-9B-f16.gguf"
 parser = argparse.ArgumentParser()
 parser.add_argument("--host",         default="0.0.0.0")
 parser.add_argument("--port",         type=int, default=8001)
-parser.add_argument("--api-key",      default="chum-llm-key-2026")
+parser.add_argument("--api-key",      default="llm")
 parser.add_argument("--no-auth",      action="store_true")
 parser.add_argument("--thinking",     action="store_true")
 parser.add_argument("--model-path",   default=str(_DEFAULT_MODEL))

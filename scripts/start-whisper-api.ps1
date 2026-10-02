@@ -41,15 +41,17 @@
     Spoken language. Default 'en'. Use 'auto' to auto-detect.
 
 .PARAMETER ApiKey / NoAuth
-    Accepted for signature compatibility with the other start-*.ps1 scripts.
-    whisper-server does not enforce auth; it binds to localhost only.
+    API key written into Chum's config.json as CloudSttApiKey so the app has a
+    non-empty value to send in the Authorization header. The local whisper-server
+    does not validate it (localhost-only binding), but Chum's settings require a
+    non-blank key when the cloud-STT path is enabled. Default: "whisper".
 #>
 param(
     [int]$Port      = 8000,
     [string]$Model  = "F:\repos\chum\local-llm\models\ggml-whisper-large-v3-turbo-tech-f16.bin",
     [int]$Threads   = 4,
     [string]$Language = "en",
-    [string]$ApiKey = "",
+    [string]$ApiKey = "whisper",
     [switch]$NoAuth
 )
 
@@ -70,6 +72,31 @@ trap {
     Stop-Transcript | Out-Null
     powershell -Command "Read-Host 'Press Enter to close'"
     exit 1
+}
+
+# Write CloudSttApiKey into the installed app's config.json so Chum's settings
+# have a non-blank value for the local Whisper endpoint (server ignores auth;
+# the app requires the field to be non-empty to enable the cloud-STT path).
+$configPath = "$env:ProgramFiles\Chum\App\config.json"
+if (Test-Path $configPath) {
+    try {
+        $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+        $needsSave = $false
+        if ([string]::IsNullOrWhiteSpace($cfg.CloudSttApiKey)) {
+            $cfg | Add-Member -NotePropertyName CloudSttApiKey -NotePropertyValue $ApiKey -Force
+            $needsSave = $true
+        }
+        if ($needsSave) {
+            $cfg | ConvertTo-Json -Depth 5 | Set-Content $configPath -Encoding utf8
+            Write-Host "Set CloudSttApiKey in config.json -> '$ApiKey'" -ForegroundColor Green
+        } else {
+            Write-Host "CloudSttApiKey already set in config.json" -ForegroundColor DarkGray
+        }
+    } catch {
+        Write-Warning "Could not update config.json (non-fatal): $_"
+    }
+} else {
+    Write-Host "config.json not found at $configPath — Chum not installed yet (key will be set on install)." -ForegroundColor DarkGray
 }
 
 $BinDir   = "F:\repos\chum\local-llm\whisper.cpp\bin"
@@ -181,7 +208,7 @@ Write-Host "           http://127.0.0.1:$Port/v1  (local)"
 Write-Host "Endpoint : POST /v1/audio/transcriptions"
 Write-Host "Model    : $(Split-Path $activeModel -Leaf)"
 Write-Host "Device   : GPU (Vulkan - AMD RX 6800 XT)"
-Write-Host "API Key  : (none - localhost only)"
+Write-Host "API Key  : $ApiKey  (sent by Chum; whisper-server does not validate it)"
 Write-Host "===================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Starting whisper-server..." -ForegroundColor Yellow

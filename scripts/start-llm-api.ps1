@@ -67,7 +67,7 @@ param(
     [string]$MmprojFile= "mmproj-Qwen_Qwen3.5-9B-f16.gguf",
     [int]$GpuLayers    = 999,
     [int]$ContextSize  = 8192,
-    [string]$ApiKey    = "",
+    [string]$ApiKey    = "llm",
     [switch]$NoAuth,
     [switch]$EnableThinking,
     [string]$ToolsDir  = "F:\repos\chum\local-llm\llama.cpp",
@@ -82,6 +82,30 @@ trap {
     Write-Host ""
     powershell -Command "Read-Host 'Press Enter to close'"
     exit 1
+}
+
+# Write OpenAiApiKey into the installed app's config.json so Chum authenticates
+# against this local LLM server with the same key it enforces.
+$configPath = "$env:ProgramFiles\Chum\App\config.json"
+if (Test-Path $configPath) {
+    try {
+        $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+        $needsSave = $false
+        if ([string]::IsNullOrWhiteSpace($cfg.OpenAiApiKey)) {
+            $cfg | Add-Member -NotePropertyName OpenAiApiKey -NotePropertyValue $ApiKey -Force
+            $needsSave = $true
+        }
+        if ($needsSave) {
+            $cfg | ConvertTo-Json -Depth 5 | Set-Content $configPath -Encoding utf8
+            Write-Host "Set OpenAiApiKey in config.json -> '$ApiKey'" -ForegroundColor Green
+        } else {
+            Write-Host "OpenAiApiKey already set in config.json" -ForegroundColor DarkGray
+        }
+    } catch {
+        Write-Warning "Could not update config.json (non-fatal): $_"
+    }
+} else {
+    Write-Host "config.json not found at $configPath — Chum not installed yet." -ForegroundColor DarkGray
 }
 
 # 1. Ensure llama-server.exe is present
@@ -124,7 +148,7 @@ if (-not (Test-Path $mmprojPath)) {
 
 # 4. Banner
 $thinkingLabel = if ($EnableThinking) { "ON" } else { "OFF (fast mode)" }
-$keyLabel      = if ($NoAuth) { "(none - auth disabled)" } else { if ($ApiKey) { $ApiKey } else { "chum-llm-key-2026 (default)" } }
+$keyLabel      = if ($NoAuth) { "(none - auth disabled)" } else { $ApiKey }
 
 # Open firewall so other machines on the LAN can reach this server.
 #     Only needed once — UAC prompt appears the first time, rule persists forever.
