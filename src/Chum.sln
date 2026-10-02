@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chum.App", "Chum.App\Chum.A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chum.Tests", "Chum.Tests\Chum.Tests.csproj", "{A98F2A38-D662-448A-A993-A458E6A0B037}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chum.Service", "Chum.Service\Chum.Service.csproj", "{24C19F88-34A8-47C0-A800-50AD4E25F45E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{A98F2A38-D662-448A-A993-A458E6A0B037}.Release|x64.Build.0 = Release|Any CPU
 		{A98F2A38-D662-448A-A993-A458E6A0B037}.Release|x86.ActiveCfg = Release|Any CPU
 		{A98F2A38-D662-448A-A993-A458E6A0B037}.Release|x86.Build.0 = Release|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Debug|x64.Build.0 = Debug|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Debug|x86.Build.0 = Debug|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Release|x64.ActiveCfg = Release|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Release|x64.Build.0 = Release|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Release|x86.ActiveCfg = Release|Any CPU
+		{24C19F88-34A8-47C0-A800-50AD4E25F45E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

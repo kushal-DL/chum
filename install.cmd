@@ -9,12 +9,24 @@ title Chum Installer
 :: ---------------------------------------------------------------------------
 
 :: --- Self-elevate to Administrator if needed -------------------------------
-net session >nul 2>&1
+:: IsInRole works with BeyondTrust PAM; net session can fail on PAM-managed
+:: machines even when the token includes Administrators, causing an infinite
+:: elevation loop. The --elevated flag prevents recursive self-elevation.
+powershell -NoProfile -Command "exit [int](-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))"
 if %errorlevel% neq 0 (
+    if "%~1"=="--elevated" (
+        echo.
+        echo  ERROR: Elevation did not grant administrator rights.
+        echo  Please right-click install.cmd and choose "Run as administrator",
+        echo  then approve the elevation in your privilege management dialog.
+        echo.
+        pause
+        exit /b 1
+    )
     echo.
     echo  Chum needs administrator rights to install a Windows service.
     echo  Requesting elevation...
-    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList '--elevated' -Verb RunAs"
     exit /b
 )
 

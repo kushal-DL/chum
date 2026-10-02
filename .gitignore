@@ -117,6 +117,11 @@ _workspace/
 # Deploy package output (created by install.cmd when run from source)
 chum-deploy/
 
+# Pre-built binary staging dirs at repo root (created by manual dotnet publish;
+# the real release artifacts go into dist/ via Publish-Release.ps1)
+/App/
+/Service/
+
 # Release zips / staging (created by scripts\Publish-Release.ps1)
 dist/
 
