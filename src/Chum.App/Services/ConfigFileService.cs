@@ -59,6 +59,16 @@ public sealed class ConfigFileService
         }
     }
 
+    public string? GoogleSearchApiKey
+    {
+        get => string.IsNullOrWhiteSpace(_data.GoogleSearchApiKey) ? null : _data.GoogleSearchApiKey;
+        set
+        {
+            _data = _data with { GoogleSearchApiKey = value?.Trim() ?? string.Empty };
+            TrySave();
+        }
+    }
+
     private void TrySave()
     {
         try
@@ -76,5 +86,6 @@ public sealed class ConfigFileService
     private record ConfigData(
         string AnthropicApiKey = "",
         string OpenAiApiKey = "",
-        string CloudSttApiKey = "");
+        string CloudSttApiKey = "",
+        string GoogleSearchApiKey = "");
 }

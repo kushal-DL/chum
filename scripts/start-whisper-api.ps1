@@ -24,9 +24,9 @@
         (OpenAI-compatible: multipart 'file' = 16kHz mono WAV, returns {"text": ...})
 
     Point Chum's STT settings at:
-        Base URL : http://127.0.0.1:<Port>/v1
+        Base URL : http://127.0.0.1:<Port>/v1  (or http://<lan-ip>:<Port>/v1 from another PC)
         Model    : whisper-large-v3-turbo   (label only; server uses the loaded ggml)
-        API Key  : (leave blank - server binds to 127.0.0.1, no auth)
+        API Key  : llm   (not validated by the server, but required by Chum's settings)
 
 .PARAMETER Port
     Port to listen on. Default 8000.
@@ -43,15 +43,16 @@
 .PARAMETER ApiKey / NoAuth
     API key written into Chum's config.json as CloudSttApiKey so the app has a
     non-empty value to send in the Authorization header. The local whisper-server
-    does not validate it (localhost-only binding), but Chum's settings require a
-    non-blank key when the cloud-STT path is enabled. Default: "whisper".
+    does not validate it, but Chum's settings require a non-blank key when the
+    cloud-STT path is enabled. Default: "llm" (shared with the LLM/vision server
+    so one key works across all local services on the LAN).
 #>
 param(
     [int]$Port      = 8000,
     [string]$Model  = "F:\repos\chum\local-llm\models\ggml-whisper-large-v3-turbo-tech-f16.bin",
     [int]$Threads   = 4,
     [string]$Language = "en",
-    [string]$ApiKey = "whisper",
+    [string]$ApiKey = "llm",
     [switch]$NoAuth
 )
 
@@ -82,7 +83,7 @@ if (Test-Path $configPath) {
     try {
         $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
         $needsSave = $false
-        if ([string]::IsNullOrWhiteSpace($cfg.CloudSttApiKey)) {
+        if ($cfg.CloudSttApiKey -ne $ApiKey) {
             $cfg | Add-Member -NotePropertyName CloudSttApiKey -NotePropertyValue $ApiKey -Force
             $needsSave = $true
         }
@@ -96,7 +97,7 @@ if (Test-Path $configPath) {
         Write-Warning "Could not update config.json (non-fatal): $_"
     }
 } else {
-    Write-Host "config.json not found at $configPath — Chum not installed yet (key will be set on install)." -ForegroundColor DarkGray
+    Write-Host "config.json not found at $configPath - Chum not installed yet (key will be set on install)." -ForegroundColor DarkGray
 }
 
 $BinDir   = "F:\repos\chum\local-llm\whisper.cpp\bin"

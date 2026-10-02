@@ -32,6 +32,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private readonly HotkeyService _hotkeys;
     private readonly OverlayViewModel _overlay;
     private readonly SettingsService _settings;
+    private readonly ConfigFileService? _config;
     private readonly DxgiScreenCapture? _screenCapture;
     private readonly ClipboardMonitor? _clipboardMonitor;
 
@@ -81,7 +82,8 @@ public sealed class MeetingOrchestrator : IDisposable
         DxgiScreenCapture? screenCapture = null,
         ClipboardMonitor? clipboardMonitor = null,
         TemplateService? templateService = null,
-        DocumentContextService? docContext = null)
+        DocumentContextService? docContext = null,
+        ConfigFileService? config = null)
     {
         _audio = audio;
         _stt = stt;
@@ -91,6 +93,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _hotkeys = hotkeys;
         _overlay = overlay;
         _settings = settings;
+        _config = config;
         _screenCapture = screenCapture;
         _clipboardMonitor = clipboardMonitor;
         _templateService = templateService;
@@ -579,6 +582,17 @@ public sealed class MeetingOrchestrator : IDisposable
         new(new System.Net.Http.SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) })
         { Timeout = TimeSpan.FromSeconds(60) };
 
+    private async Task<System.Net.Http.HttpResponseMessage> PostGoogleSearchAsync(string path, System.Net.Http.HttpContent content)
+    {
+        var baseUrl = (_settings.Current.GoogleSearchBaseUrl?.Trim().TrimEnd('/'));
+        if (string.IsNullOrWhiteSpace(baseUrl)) baseUrl = "http://127.0.0.1:8002";
+        var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, $"{baseUrl}{path}") { Content = content };
+        var apiKey = _config?.GoogleSearchApiKey;
+        if (!string.IsNullOrWhiteSpace(apiKey))
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+        return await _googleSearchHttp.SendAsync(request);
+    }
+
     /// <summary>
     /// Captures the given screen region and sends it to the local Google AI Search bridge
     /// (start-internet-search.ps1 must be running on port 8002).
@@ -628,7 +642,7 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             var payload = System.Text.Json.JsonSerializer.Serialize(new { image_base64 = imageBase64 });
             var content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");
-            var response = await _googleSearchHttp.PostAsync("http://127.0.0.1:8002/image", content);
+            var response = await PostGoogleSearchAsync("/image", content);
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();
@@ -776,7 +790,7 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             var payload = System.Text.Json.JsonSerializer.Serialize(new { images_base64 = images });
             var content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");
-            var response = await _googleSearchHttp.PostAsync("http://127.0.0.1:8002/images", content);
+            var response = await PostGoogleSearchAsync("/images", content);
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();

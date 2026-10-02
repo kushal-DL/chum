@@ -230,6 +230,30 @@
             <TextBox x:Name="CloudSttModelBox" Text="nvidia/canary-1b"
                      ToolTip="NVIDIA: nvidia/canary-1b or nvidia/parakeet-ctc-1.1b-asr · OpenAI: whisper-1"/>
 
+            <!-- Google Search -->
+            <Label Content="GOOGLE SEARCH (IMAGE BRIDGE)" Style="{StaticResource SectionHeader}"/>
+            <TextBlock Text="API base URL" Foreground="#374151" FontSize="11" Margin="0,4,0,2"/>
+            <TextBox x:Name="GoogleSearchBaseUrlBox" Text="http://127.0.0.1:8002"
+                     ToolTip="Local: http://127.0.0.1:8002 · from another PC on the LAN: http://&lt;host-ip&gt;:8002"/>
+            <TextBlock Text="API Key" Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <PasswordBox x:Name="GoogleSearchApiKeyBox" Grid.Column="0"/>
+                <Button Grid.Column="1" Content="Save" Margin="6,0,0,0" Click="SaveGoogleSearchApiKey_Click"/>
+                <Button Grid.Column="2" Content="Test" Margin="6,0,0,0" Background="#16A34A"
+                        Click="TestGoogleSearch_Click"/>
+            </Grid>
+            <TextBlock x:Name="GoogleSearchKeyStatus" Foreground="#16A34A" FontSize="11"
+                       Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
+            <TextBlock x:Name="GoogleSearchTestStatus" Foreground="#16A34A" FontSize="11"
+                       Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
+            <TextBlock Text="Must match the -ApiKey passed to scripts\start-internet-search.ps1 on the host machine."
+                       Style="{StaticResource Hint}"/>
+
             <!-- Local Processing -->
             <Label Content="LOCAL PROCESSING (OLLAMA)" Style="{StaticResource SectionHeader}"/>
             <CheckBox x:Name="LocalOnlyModeBox"

@@ -89,6 +89,11 @@ public sealed class AppSettings
     // Leave empty to use the public OpenAI endpoint instead.
     public string CloudSttBaseUrl { get; set; } = "http://127.0.0.1:8000/v1";
 
+    // Base URL of the Google AI Mode image-search bridge (Playwright/FastAPI process
+    // started by scripts\start-internet-search.ps1). GoogleSearchApiKey lives in
+    // config.json (ConfigFileService), not here, alongside the other API keys.
+    public string GoogleSearchBaseUrl { get; set; } = "http://127.0.0.1:8002";
+
     // --- Local-only mode (Ollama) ---
     public bool LocalOnlyMode { get; set; } = false;
     public string OllamaModel { get; set; } = "llama3.1:8b";

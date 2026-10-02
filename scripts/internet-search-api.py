@@ -29,7 +29,7 @@ import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 import uvicorn
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
@@ -47,6 +47,16 @@ QUERY_URL = (
 
 # Set CDP_URL=http://localhost:9222 to attach to your already-running Chrome.
 CDP_URL = os.environ.get("CDP_URL", "")
+
+# Shared key across Chum's local services, same default as start-llm-api.ps1 /
+# start-whisper-api.ps1 so one key works for every service exposed on the LAN.
+API_KEY = os.environ.get("API_KEY", "llm")
+
+
+def _check_api_key(authorization: str = Header(default="")) -> None:
+    token = authorization.removeprefix("Bearer ").strip()
+    if token != API_KEY:
+        raise HTTPException(401, "Invalid or missing API key")
 
 _browser: Browser | None = None
 _context: BrowserContext | None = None
@@ -332,7 +342,7 @@ def _cleanup_temp(paths: list[str]) -> None:
             pass
 
 
-@app.post("/image")
+@app.post("/image", dependencies=[Depends(_check_api_key)])
 async def search_image(req: ImageRequest):
     if _page is None:
         raise HTTPException(503, "Browser not ready")
@@ -345,7 +355,7 @@ async def search_image(req: ImageRequest):
             _cleanup_temp(paths)
 
 
-@app.post("/images")
+@app.post("/images", dependencies=[Depends(_check_api_key)])
 async def search_images(req: ImagesRequest):
     if _page is None:
         raise HTTPException(503, "Browser not ready")
@@ -360,10 +370,11 @@ async def search_images(req: ImagesRequest):
             _cleanup_temp(paths)
 
 
-@app.get("/health")
+@app.get("/health", dependencies=[Depends(_check_api_key)])
 async def health():
     return {"status": "ok", "browser_ready": _page is not None}
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8002)
+    port = int(os.environ.get("PORT", "8002"))
+    uvicorn.run(app, host="0.0.0.0", port=port)

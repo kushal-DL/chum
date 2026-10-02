@@ -105,6 +105,10 @@ public partial class SettingsWindow : Window
         CloudSttBaseUrlBox.Text = s.CloudSttBaseUrl;
         CloudSttModelBox.Text = s.CloudSttModel;
 
+        if (_config.GoogleSearchApiKey is not null)
+            ShowGoogleSearchKeyStatus("✓ API key stored", true);
+        GoogleSearchBaseUrlBox.Text = s.GoogleSearchBaseUrl;
+
         IncludeTranscriptBox.IsChecked = s.IncludeTranscriptContext;
         NoiseSuppressBox.IsChecked = s.EnableNoiseSuppression;
         VadThresholdSlider.Value = s.VadThresholdDb;
@@ -228,6 +232,66 @@ public partial class SettingsWindow : Window
         CloudSttTestStatus.Visibility = System.Windows.Visibility.Visible;
     }
 
+    private void SaveGoogleSearchApiKey_Click(object sender, RoutedEventArgs e)
+    {
+        var key = GoogleSearchApiKeyBox.Password.Trim();
+        if (string.IsNullOrWhiteSpace(key)) { ShowGoogleSearchKeyStatus("Key cannot be empty.", false); return; }
+        _config.GoogleSearchApiKey = key;
+        GoogleSearchApiKeyBox.Clear();
+        ShowGoogleSearchKeyStatus("✓ Key saved", true);
+    }
+
+    private void ShowGoogleSearchKeyStatus(string msg, bool success)
+    {
+        GoogleSearchKeyStatus.Text = msg;
+        GoogleSearchKeyStatus.Foreground = success
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.OrangeRed;
+        GoogleSearchKeyStatus.Visibility = System.Windows.Visibility.Visible;
+    }
+
+    private async void TestGoogleSearch_Click(object sender, RoutedEventArgs e)
+    {
+        var baseUrl = GoogleSearchBaseUrlBox.Text.Trim().TrimEnd('/');
+        if (string.IsNullOrEmpty(baseUrl)) { ShowGoogleSearchTestStatus("Enter an API base URL first.", false); return; }
+        var key = _config.GoogleSearchApiKey;
+        if (key is null) { ShowGoogleSearchTestStatus("No key stored — save a key first.", false); return; }
+
+        ShowGoogleSearchTestStatus("Testing...", true);
+        try
+        {
+            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(4) };
+            var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, baseUrl + "/health");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
+            var resp = await client.SendAsync(request);
+            if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                ShowGoogleSearchTestStatus("✗ Server reachable but key is wrong", false);
+            else
+                ShowGoogleSearchTestStatus($"✓ Server responding (HTTP {(int)resp.StatusCode})", true);
+        }
+        catch (System.Net.Http.HttpRequestException)
+        {
+            ShowGoogleSearchTestStatus("✗ Cannot reach server — is start-internet-search.ps1 running?", false);
+        }
+        catch (TaskCanceledException)
+        {
+            ShowGoogleSearchTestStatus("✗ Connection timed out", false);
+        }
+        catch (Exception ex)
+        {
+            ShowGoogleSearchTestStatus($"✗ {ex.Message}", false);
+        }
+    }
+
+    private void ShowGoogleSearchTestStatus(string msg, bool success)
+    {
+        GoogleSearchTestStatus.Text = msg;
+        GoogleSearchTestStatus.Foreground = success
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.OrangeRed;
+        GoogleSearchTestStatus.Visibility = System.Windows.Visibility.Visible;
+    }
+
 
     private void ProviderCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
@@ -299,6 +363,8 @@ public partial class SettingsWindow : Window
             s.CloudSttBaseUrl = CloudSttBaseUrlBox.Text.Trim();
             s.CloudSttModel = CloudSttModelBox.Text.Trim().Length > 0
                 ? CloudSttModelBox.Text.Trim() : "nvidia/canary-1b";
+            s.GoogleSearchBaseUrl = GoogleSearchBaseUrlBox.Text.Trim().Length > 0
+                ? GoogleSearchBaseUrlBox.Text.Trim() : "http://127.0.0.1:8002";
             s.IncludeTranscriptContext = IncludeTranscriptBox.IsChecked == true;
             s.EnableNoiseSuppression = NoiseSuppressBox.IsChecked == true;
             s.VadThresholdDb = (float)VadThresholdSlider.Value;

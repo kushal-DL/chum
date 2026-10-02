@@ -91,7 +91,7 @@ if (Test-Path $configPath) {
     try {
         $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
         $needsSave = $false
-        if ([string]::IsNullOrWhiteSpace($cfg.OpenAiApiKey)) {
+        if ($cfg.OpenAiApiKey -ne $ApiKey) {
             $cfg | Add-Member -NotePropertyName OpenAiApiKey -NotePropertyValue $ApiKey -Force
             $needsSave = $true
         }
@@ -105,7 +105,7 @@ if (Test-Path $configPath) {
         Write-Warning "Could not update config.json (non-fatal): $_"
     }
 } else {
-    Write-Host "config.json not found at $configPath — Chum not installed yet." -ForegroundColor DarkGray
+    Write-Host "config.json not found at $configPath - Chum not installed yet." -ForegroundColor DarkGray
 }
 
 # 1. Ensure llama-server.exe is present
