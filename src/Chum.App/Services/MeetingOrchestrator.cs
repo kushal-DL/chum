@@ -628,7 +628,7 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             var payload = System.Text.Json.JsonSerializer.Serialize(new { image_base64 = imageBase64 });
             var content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");
-            var response = await _googleSearchHttp.PostAsync("http://127.0.0.1:8002/image", content);
+            var response = await _googleSearchHttp.PostAsync(_settings.Current.InternetSearchBaseUrl.TrimEnd('/') + "/image", content);
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();
@@ -776,7 +776,7 @@ public sealed class MeetingOrchestrator : IDisposable
         {
             var payload = System.Text.Json.JsonSerializer.Serialize(new { images_base64 = images });
             var content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");
-            var response = await _googleSearchHttp.PostAsync("http://127.0.0.1:8002/images", content);
+            var response = await _googleSearchHttp.PostAsync(_settings.Current.InternetSearchBaseUrl.TrimEnd('/') + "/images", content);
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();

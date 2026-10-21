@@ -1,3 +1,5 @@
+using System.IO;
+using System.Text.Json;
 using Chum.Audio.Capture;
 using Chum.Audio.Pipeline;
 using Chum.Llm;
@@ -36,7 +38,8 @@ public sealed class ChumWorker : BackgroundService
         var loopback = new LoopbackCapture();
         var mic = new MicCapture();
         var pipeline = new AudioPipeline(loopback, mic);
-        var stt = new OpenAiSttProvider("", "whisper-large-v3-turbo", "http://localhost:8000");
+        var (sttBaseUrl, sttModel) = ReadSttSettings();
+        var stt = new OpenAiSttProvider("", sttModel, sttBaseUrl);
         var buffer = new TranscriptBuffer(TimeSpan.FromMinutes(10));
         var extractor = new ContextExtractor(buffer);
         ILlmProvider llm = new AnthropicLlmProvider(apiKey);
@@ -78,5 +81,30 @@ public sealed class ChumWorker : BackgroundService
             return cred?.Password;
         }
         catch { return null; }
+    }
+
+    private static (string baseUrl, string model) ReadSttSettings()
+    {
+        const string defaultBaseUrl = "http://127.0.0.1:8000/v1";
+        const string defaultModel   = "whisper-large-v3-turbo";
+        try
+        {
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Chum", "settings.json");
+            if (!File.Exists(path)) return (defaultBaseUrl, defaultModel);
+
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            var root = doc.RootElement;
+
+            var baseUrl = root.TryGetProperty("CloudSttBaseUrl", out var b) ? b.GetString() : null;
+            var model   = root.TryGetProperty("CloudSttModel",   out var m) ? m.GetString() : null;
+
+            return (
+                string.IsNullOrWhiteSpace(baseUrl) ? defaultBaseUrl : baseUrl,
+                string.IsNullOrWhiteSpace(model)   ? defaultModel   : model
+            );
+        }
+        catch { return (defaultBaseUrl, defaultModel); }
     }
 }

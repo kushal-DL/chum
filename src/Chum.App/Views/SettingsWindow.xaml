@@ -230,6 +230,24 @@
             <TextBox x:Name="CloudSttModelBox" Text="nvidia/canary-1b"
                      ToolTip="NVIDIA: nvidia/canary-1b or nvidia/parakeet-ctc-1.1b-asr · OpenAI: whisper-1"/>
 
+            <!-- Google AI Search -->
+            <Label Content="GOOGLE AI SEARCH" Style="{StaticResource SectionHeader}"/>
+            <TextBlock Text="Bridge URL" Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="InternetSearchUrlBox" Grid.Column="0"
+                         ToolTip="Base URL of the Google AI Search bridge (start-internet-search.ps1). Default: http://127.0.0.1:8002"/>
+                <Button Grid.Column="1" Content="Test" Margin="6,0,0,0" Background="#16A34A"
+                        Click="TestInternetSearch_Click"/>
+            </Grid>
+            <TextBlock x:Name="InternetSearchTestStatus" Foreground="#16A34A" FontSize="11"
+                       Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
+            <TextBlock Text="Must be running before using the Google AI Search toolbar button."
+                       Style="{StaticResource Hint}"/>
+
             <!-- Local Processing -->
             <Label Content="LOCAL PROCESSING (OLLAMA)" Style="{StaticResource SectionHeader}"/>
             <CheckBox x:Name="LocalOnlyModeBox"

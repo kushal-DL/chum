@@ -105,6 +105,8 @@ public partial class SettingsWindow : Window
         CloudSttBaseUrlBox.Text = s.CloudSttBaseUrl;
         CloudSttModelBox.Text = s.CloudSttModel;
 
+        InternetSearchUrlBox.Text = s.InternetSearchBaseUrl;
+
         IncludeTranscriptBox.IsChecked = s.IncludeTranscriptContext;
         NoiseSuppressBox.IsChecked = s.EnableNoiseSuppression;
         VadThresholdSlider.Value = s.VadThresholdDb;
@@ -228,6 +230,46 @@ public partial class SettingsWindow : Window
         CloudSttTestStatus.Visibility = System.Windows.Visibility.Visible;
     }
 
+    private async void TestInternetSearch_Click(object sender, RoutedEventArgs e)
+    {
+        var url = InternetSearchUrlBox.Text.Trim();
+        if (string.IsNullOrEmpty(url)) { ShowInternetSearchTestStatus("Enter a URL first.", false); return; }
+
+        ShowInternetSearchTestStatus("Testing...", true);
+        try
+        {
+            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var resp = await client.GetAsync(url.TrimEnd('/') + "/health");
+            var body = await resp.Content.ReadAsStringAsync();
+            var ready = body.Contains("\"browser_ready\":true");
+            ShowInternetSearchTestStatus(
+                ready ? "✓ Bridge running — browser ready"
+                      : $"✓ Bridge running (HTTP {(int)resp.StatusCode}) — browser not yet ready",
+                true);
+        }
+        catch (System.Net.Http.HttpRequestException)
+        {
+            ShowInternetSearchTestStatus("✗ Cannot reach bridge — is start-internet-search.ps1 running?", false);
+        }
+        catch (TaskCanceledException)
+        {
+            ShowInternetSearchTestStatus("✗ Connection timed out", false);
+        }
+        catch (Exception ex)
+        {
+            ShowInternetSearchTestStatus($"✗ {ex.Message}", false);
+        }
+    }
+
+    private void ShowInternetSearchTestStatus(string msg, bool success)
+    {
+        InternetSearchTestStatus.Text = msg;
+        InternetSearchTestStatus.Foreground = success
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.OrangeRed;
+        InternetSearchTestStatus.Visibility = System.Windows.Visibility.Visible;
+    }
+
 
     private void ProviderCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
@@ -299,6 +341,9 @@ public partial class SettingsWindow : Window
             s.CloudSttBaseUrl = CloudSttBaseUrlBox.Text.Trim();
             s.CloudSttModel = CloudSttModelBox.Text.Trim().Length > 0
                 ? CloudSttModelBox.Text.Trim() : "nvidia/canary-1b";
+            s.InternetSearchBaseUrl = string.IsNullOrWhiteSpace(InternetSearchUrlBox.Text)
+                ? "http://127.0.0.1:8002"
+                : InternetSearchUrlBox.Text.Trim();
             s.IncludeTranscriptContext = IncludeTranscriptBox.IsChecked == true;
             s.EnableNoiseSuppression = NoiseSuppressBox.IsChecked == true;
             s.VadThresholdDb = (float)VadThresholdSlider.Value;

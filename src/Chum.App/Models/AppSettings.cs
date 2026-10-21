@@ -89,6 +89,10 @@ public sealed class AppSettings
     // Leave empty to use the public OpenAI endpoint instead.
     public string CloudSttBaseUrl { get; set; } = "http://127.0.0.1:8000/v1";
 
+    // Base URL of the Google AI Search bridge (internet-search-api.py / start-internet-search.ps1).
+    // The app appends /image or /images; this must end without a trailing slash.
+    public string InternetSearchBaseUrl { get; set; } = "http://127.0.0.1:8002";
+
     // --- Local-only mode (Ollama) ---
     public bool LocalOnlyMode { get; set; } = false;
     public string OllamaModel { get; set; } = "llama3.1:8b";
