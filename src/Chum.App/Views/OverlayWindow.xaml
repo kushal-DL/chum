@@ -105,7 +105,9 @@
 
             <!-- ── Header ── -->
             <Grid Grid.Row="0" Background="#221A1A1A"
-                  MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                  MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                  MouseMove="Header_MouseMove"
+                  MouseLeftButtonUp="Header_MouseLeftButtonUp">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>

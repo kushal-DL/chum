@@ -19,9 +19,29 @@ public partial class OverlayWindow : Window
     private const uint WDA_NONE = 0x00000000;
     private const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
 
+    // Win32: suppress focus steal and Alt+Tab visibility.
+    // WS_EX_NOACTIVATE  — clicking or dragging this window never activates it, so the meeting
+    //                      app (Teams/Zoom/Meet) stays in the foreground and its title bar stays
+    //                      active. Without this, every click on the overlay shifts focus, which
+    //                      is immediately visible to everyone on the screen share.
+    // WS_EX_TOOLWINDOW  — removes the window from Alt+Tab, so it can't be spotted by other
+    //                      participants even if the user accidentally opens the switcher.
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hwnd, int nIndex);
+    [DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hwnd, int nIndex, int dwNewLong);
+    private const int GWL_EXSTYLE       = -20;
+    private const int WS_EX_NOACTIVATE  = 0x08000000;
+    private const int WS_EX_TOOLWINDOW  = 0x00000080;
+
     private bool _isResizing;
     private System.Windows.Point _resizeDragStart;
     private double _resizeStartW, _resizeStartH;
+
+    // Manual header-drag state (replaces DragMove() which activates the window and steals focus).
+    private bool _isDragging;
+    private System.Windows.Point _headerDragStart;
+    private double _dragStartLeft, _dragStartTop;
 
     public new int FontSize => (DataContext as OverlayViewModel) is not null ? 13 : 13;
 
@@ -73,6 +93,13 @@ public partial class OverlayWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
+        var hwnd = new WindowInteropHelper(this).Handle;
+
+        // Never activate this window on click/drag so the meeting app keeps focus.
+        // Also hide from Alt+Tab so participants can't spot it in the switcher.
+        int exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
+
         PositionInBottomRight();
         ApplyCaptureExclusion();
     }
@@ -136,8 +163,28 @@ public partial class OverlayWindow : Window
 
     private void Header_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
-            DragMove();
+        if (e.ButtonState != System.Windows.Input.MouseButtonState.Pressed) return;
+        _isDragging = true;
+        _headerDragStart = PointToScreen(e.GetPosition(this));
+        _dragStartLeft = Left;
+        _dragStartTop  = Top;
+        ((System.Windows.UIElement)sender).CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void Header_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (!_isDragging) return;
+        var pos = PointToScreen(e.GetPosition(this));
+        Left = _dragStartLeft + (pos.X - _headerDragStart.X);
+        Top  = _dragStartTop  + (pos.Y - _headerDragStart.Y);
+    }
+
+    private void Header_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (!_isDragging) return;
+        _isDragging = false;
+        ((System.Windows.UIElement)sender).ReleaseMouseCapture();
     }
 
     private void ResizeGrip_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
