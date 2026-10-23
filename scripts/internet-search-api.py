@@ -115,8 +115,10 @@ async def _launch_browser():
     if not CDP_URL:
         await _wait_for_ready()
 
+    _host = os.environ.get("BRIDGE_HOST", "127.0.0.1")
+    _port = os.environ.get("BRIDGE_PORT", "8002")
     print("[internet-search] Browser ready -- Google AI Mode loaded.", flush=True)
-    print("[internet-search] Listening on http://127.0.0.1:8002", flush=True)
+    print(f"[internet-search] Listening on http://{_host}:{_port}", flush=True)
 
 
 async def _wait_for_ready():

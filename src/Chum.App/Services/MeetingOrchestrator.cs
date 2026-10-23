@@ -584,7 +584,7 @@ public sealed class MeetingOrchestrator : IDisposable
 
     /// <summary>
     /// Captures the given screen region and sends it to the local Google AI Search bridge
-    /// (start-internet-search.ps1 must be running on port 8002).
+    /// (start-internet-search.ps1 must be running; URL configured in Settings → Google AI Search).
     /// </summary>
     public async Task HandleGoogleSearchAsync(System.Drawing.Rectangle region)
     {
