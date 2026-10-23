@@ -32,6 +32,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private readonly HotkeyService _hotkeys;
     private readonly OverlayViewModel _overlay;
     private readonly SettingsService _settings;
+    private readonly ConfigFileService _config;
     private readonly DxgiScreenCapture? _screenCapture;
     private readonly ClipboardMonitor? _clipboardMonitor;
 
@@ -78,6 +79,7 @@ public sealed class MeetingOrchestrator : IDisposable
         HotkeyService hotkeys,
         OverlayViewModel overlay,
         SettingsService settings,
+        ConfigFileService config,
         DxgiScreenCapture? screenCapture = null,
         ClipboardMonitor? clipboardMonitor = null,
         TemplateService? templateService = null,
@@ -91,6 +93,7 @@ public sealed class MeetingOrchestrator : IDisposable
         _hotkeys = hotkeys;
         _overlay = overlay;
         _settings = settings;
+        _config = config;
         _screenCapture = screenCapture;
         _clipboardMonitor = clipboardMonitor;
         _templateService = templateService;
@@ -627,8 +630,13 @@ public sealed class MeetingOrchestrator : IDisposable
         try
         {
             var payload = System.Text.Json.JsonSerializer.Serialize(new { image_base64 = imageBase64 });
-            var content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");
-            var response = await _googleSearchHttp.PostAsync(_settings.Current.InternetSearchBaseUrl.TrimEnd('/') + "/image", content);
+            using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post,
+                _settings.Current.InternetSearchBaseUrl.TrimEnd('/') + "/image");
+            req.Content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+            var apiKey = _config.InternetSearchApiKey;
+            if (!string.IsNullOrWhiteSpace(apiKey))
+                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+            var response = await _googleSearchHttp.SendAsync(req);
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();
@@ -775,8 +783,13 @@ public sealed class MeetingOrchestrator : IDisposable
         try
         {
             var payload = System.Text.Json.JsonSerializer.Serialize(new { images_base64 = images });
-            var content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");
-            var response = await _googleSearchHttp.PostAsync(_settings.Current.InternetSearchBaseUrl.TrimEnd('/') + "/images", content);
+            using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post,
+                _settings.Current.InternetSearchBaseUrl.TrimEnd('/') + "/images");
+            req.Content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+            var apiKey = _config.InternetSearchApiKey;
+            if (!string.IsNullOrWhiteSpace(apiKey))
+                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+            var response = await _googleSearchHttp.SendAsync(req);
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();

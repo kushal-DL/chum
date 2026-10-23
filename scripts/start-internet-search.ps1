@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
     Starts the Google AI Mode image search bridge for Chum.
-    Serves POST /image on http://127.0.0.1:8002.
+    Serves POST /image on http://127.0.0.1:8002 (localhost) by default.
+    Pass -NetworkAccess to bind to 0.0.0.0 so other machines on the LAN can reach it.
 
 TWO MODES:
 
@@ -18,9 +19,15 @@ TWO MODES:
           .\start-internet-search.ps1 -Cdp
     Playwright will attach to YOUR Chrome window -- no new browser opens.
 
+RUNNING ON A SEPARATE MACHINE (LAN):
+    .\start-internet-search.ps1 -NetworkAccess
+    Then set Chum's Google AI Search URL to http://<this-machine-ip>:8002
+
 #>
 param(
-    [switch]$Cdp  # Attach to already-running Chrome on port 9222
+    [switch]$Cdp,           # Attach to already-running Chrome on port 9222
+    [switch]$NetworkAccess, # Bind to 0.0.0.0 so other LAN machines can reach this bridge
+    [int]$Port = 8002
 )
 
 $ErrorActionPreference = "Continue"
@@ -53,12 +60,41 @@ Write-Host "[internet-search] Checking Playwright Chromium..." -ForegroundColor 
 python -m playwright install chromium
 if ($LASTEXITCODE -ne 0) { Bail "playwright install chromium failed -- check the output above." }
 
-# -- Kill any previous instance holding port 8002 --
-$old = Get-NetTCPConnection -LocalPort 8002 -ErrorAction SilentlyContinue
+# -- Kill any previous instance holding port --
+$old = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue
 if ($old) {
-    Write-Host "[internet-search] Stopping previous instance on port 8002..." -ForegroundColor Yellow
+    Write-Host "[internet-search] Stopping previous instance on port $Port..." -ForegroundColor Yellow
     $old | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
     Start-Sleep -Milliseconds 800
+}
+
+# -- Bind address --
+if ($NetworkAccess) {
+    $env:BRIDGE_HOST = "0.0.0.0"
+    $env:BRIDGE_PORT = "$Port"
+    # Add firewall rule so the LAN can reach the bridge (one-time, persists)
+    $fwRule = "Chum Google Search bridge port $Port"
+    if (-not (Get-NetFirewallRule -DisplayName $fwRule -ErrorAction SilentlyContinue)) {
+        $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        if ($isAdmin) {
+            New-NetFirewallRule -DisplayName $fwRule -Direction Inbound -Protocol TCP -LocalPort $Port -Action Allow | Out-Null
+            Write-Host "[internet-search] Firewall rule added for port $Port." -ForegroundColor Green
+        } else {
+            Write-Host "[internet-search] Adding firewall rule for port $Port (UAC prompt — one time only)..." -ForegroundColor Yellow
+            Start-Process powershell -Verb RunAs -Wait -ArgumentList "-ExecutionPolicy Bypass -NoProfile -Command `"New-NetFirewallRule -DisplayName '$fwRule' -Direction Inbound -Protocol TCP -LocalPort $Port -Action Allow | Out-Null`""
+        }
+    }
+    $lanIp = (Get-NetIPAddress -AddressFamily IPv4 |
+        Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" -and
+                       $_.PrefixOrigin -in "Dhcp","Manual" } |
+        Select-Object -First 1).IPAddress
+    Write-Host ""
+    Write-Host "[internet-search] Network access enabled — set Chum's Google Search URL to:" -ForegroundColor Cyan
+    Write-Host "    http://${lanIp}:$Port" -ForegroundColor White
+    Write-Host ""
+} else {
+    $env:BRIDGE_HOST = "127.0.0.1"
+    $env:BRIDGE_PORT = "$Port"
 }
 
 # -- Launch --

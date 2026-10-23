@@ -105,6 +105,8 @@ public partial class SettingsWindow : Window
         CloudSttBaseUrlBox.Text = s.CloudSttBaseUrl;
         CloudSttModelBox.Text = s.CloudSttModel;
 
+        if (_config.InternetSearchApiKey is not null)
+            ShowInternetSearchApiKeyStatus("✓ API key stored", true);
         InternetSearchUrlBox.Text = s.InternetSearchBaseUrl;
 
         IncludeTranscriptBox.IsChecked = s.IncludeTranscriptContext;
@@ -203,8 +205,14 @@ public partial class SettingsWindow : Window
         ShowCloudSttTestStatus("Testing...", true);
         try
         {
+            // whisper-server only exposes /v1/audio/transcriptions and /health (at the root,
+            // not under /v1). Strip the /v1 path segment to reach the health endpoint.
+            var rootUrl = baseUrl.TrimEnd('/');
+            if (rootUrl.EndsWith("/v1", StringComparison.OrdinalIgnoreCase))
+                rootUrl = rootUrl[..^3];
+
             using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(4) };
-            var resp = await client.GetAsync(baseUrl + "/models");
+            var resp = await client.GetAsync(rootUrl + "/health");
             ShowCloudSttTestStatus($"✓ Server responding (HTTP {(int)resp.StatusCode})", true);
         }
         catch (System.Net.Http.HttpRequestException)
@@ -230,6 +238,24 @@ public partial class SettingsWindow : Window
         CloudSttTestStatus.Visibility = System.Windows.Visibility.Visible;
     }
 
+    private void SaveInternetSearchApiKey_Click(object sender, RoutedEventArgs e)
+    {
+        var key = InternetSearchApiKeyBox.Password.Trim();
+        if (string.IsNullOrWhiteSpace(key)) { ShowInternetSearchApiKeyStatus("Key cannot be empty.", false); return; }
+        _config.InternetSearchApiKey = key;
+        InternetSearchApiKeyBox.Clear();
+        ShowInternetSearchApiKeyStatus("✓ Key saved", true);
+    }
+
+    private void ShowInternetSearchApiKeyStatus(string msg, bool success)
+    {
+        InternetSearchApiKeyStatus.Text = msg;
+        InternetSearchApiKeyStatus.Foreground = success
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.OrangeRed;
+        InternetSearchApiKeyStatus.Visibility = System.Windows.Visibility.Visible;
+    }
+
     private async void TestInternetSearch_Click(object sender, RoutedEventArgs e)
     {
         var url = InternetSearchUrlBox.Text.Trim();
@@ -239,6 +265,11 @@ public partial class SettingsWindow : Window
         try
         {
             using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var key = _config.InternetSearchApiKey;
+            if (!string.IsNullOrWhiteSpace(key))
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
+
             var resp = await client.GetAsync(url.TrimEnd('/') + "/health");
             var body = await resp.Content.ReadAsStringAsync();
             var ready = body.Contains("\"browser_ready\":true");

@@ -366,4 +366,8 @@ async def health():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8002)
+    # BRIDGE_HOST=0.0.0.0 to accept connections from other machines on the LAN.
+    # BRIDGE_PORT overrides the default 8002.
+    host = os.environ.get("BRIDGE_HOST", "127.0.0.1")
+    port = int(os.environ.get("BRIDGE_PORT", "8002"))
+    uvicorn.run(app, host=host, port=port)

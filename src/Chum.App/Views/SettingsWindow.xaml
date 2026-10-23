@@ -232,6 +232,19 @@
 
             <!-- Google AI Search -->
             <Label Content="GOOGLE AI SEARCH" Style="{StaticResource SectionHeader}"/>
+            <TextBlock Text="API Key (optional — required if bridge runs with authentication)"
+                       Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <PasswordBox x:Name="InternetSearchApiKeyBox" Grid.Column="0"/>
+                <Button Grid.Column="1" Content="Save" Margin="6,0,0,0"
+                        Click="SaveInternetSearchApiKey_Click"/>
+            </Grid>
+            <TextBlock x:Name="InternetSearchApiKeyStatus" Foreground="#16A34A" FontSize="11"
+                       Margin="0,4,0,0" Text="" Visibility="Collapsed"/>
             <TextBlock Text="Bridge URL" Foreground="#374151" FontSize="11" Margin="0,8,0,2"/>
             <Grid>
                 <Grid.ColumnDefinitions>
