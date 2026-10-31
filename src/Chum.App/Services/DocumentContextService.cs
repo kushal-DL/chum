@@ -25,6 +25,8 @@ public sealed class DocumentContextService
 
     public IReadOnlyList<DocumentEntry> Documents => _docs;
 
+    public event EventHandler? DocumentsChanged;
+
     public void Load()
     {
         if (!File.Exists(StorePath)) return;
@@ -59,6 +61,7 @@ public sealed class DocumentContextService
 
         _docs.Add(new DocumentEntry(Path.GetFileName(filePath), content));
         Save();
+        DocumentsChanged?.Invoke(this, EventArgs.Empty);
         return null; // null = success
     }
 
@@ -67,6 +70,7 @@ public sealed class DocumentContextService
         if (index < 0 || index >= _docs.Count) return;
         _docs.RemoveAt(index);
         Save();
+        DocumentsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>

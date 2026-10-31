@@ -47,6 +47,10 @@ public sealed class MeetingOrchestrator : IDisposable
     private readonly SessionCostTracker _costTracker = new();
     private TemplateService? _templateService;
     private readonly DocumentContextService? _docContext;
+    private readonly RagBridgeService? _rag;
+    private SessionJournal? _journal;
+    private Timer? _transcriptJournalTimer;
+    private DateTimeOffset _lastTranscriptChunkTime = DateTimeOffset.MinValue;
     private CancellationTokenSource? _cts;
     // Separate scope for the current LLM response so the user can stop a reply without
     // stopping the transcription pipeline (which lives on _cts).
@@ -83,7 +87,8 @@ public sealed class MeetingOrchestrator : IDisposable
         DxgiScreenCapture? screenCapture = null,
         ClipboardMonitor? clipboardMonitor = null,
         TemplateService? templateService = null,
-        DocumentContextService? docContext = null)
+        DocumentContextService? docContext = null,
+        RagBridgeService? rag = null)
     {
         _audio = audio;
         _stt = stt;
@@ -98,15 +103,17 @@ public sealed class MeetingOrchestrator : IDisposable
         _clipboardMonitor = clipboardMonitor;
         _templateService = templateService;
         _docContext = docContext;
+        _rag = rag;
 
         if (_clipboardMonitor is not null)
             _clipboardMonitor.ImageAvailable += (_, _) => _overlay.SetClipboardPending(true);
 
-        // Wire transcript segments to buffer
+        // Wire transcript segments to buffer and session journal
         _stt.SegmentTranscribed += (_, seg) =>
         {
             _transcript.Add(seg);
             _overlay.AddTranscriptLine($"[{seg.Timestamp:HH:mm:ss}] {seg.SpeakerLabel}: {seg.Text}");
+            _journal?.WriteSegments([seg]);
         };
 
         // Feed Teams caption lines into the transcript buffer as supplementary segments
@@ -347,6 +354,15 @@ public sealed class MeetingOrchestrator : IDisposable
             }
         }, null, latencyInterval, latencyInterval);
 
+        // Session memory: journal and periodic RAG chunk indexing
+        _journal = new SessionJournal();
+        _journal.Start();
+        _rag?.ClearSessionIndex();
+        _lastTranscriptChunkTime = DateTimeOffset.UtcNow;
+        var journalInterval = TimeSpan.FromSeconds(120);
+        _transcriptJournalTimer = new Timer(_ => _ = JournalTranscriptTickAsync(),
+            null, journalInterval, journalInterval);
+
         await Task.CompletedTask;
     }
 
@@ -357,11 +373,22 @@ public sealed class MeetingOrchestrator : IDisposable
         _gcTimer = null;
         _latencyLogTimer?.Dispose();
         _latencyLogTimer = null;
+        _transcriptJournalTimer?.Dispose();
+        _transcriptJournalTimer = null;
         _audio.Stop();
         await _cts.CancelAsync();
         _cts = null;
         if (_transcriptionLoop is not null)
             await _transcriptionLoop.ConfigureAwait(false);
+
+        // Final flush: write remaining segments and index any pending transcript chunk
+        if (_journal is { IsStarted: true })
+        {
+            await IndexTranscriptChunkAsync();
+            _journal.Stop();
+            _journal = null;
+        }
+
         _overlay.SetStatus(OverlayStatus.Idle, "Stopped");
         Serilog.Log.Information("MeetingOrchestrator stopped");
     }
@@ -508,7 +535,7 @@ public sealed class MeetingOrchestrator : IDisposable
 
     // Streams with exponential-backoff retry on LlmException (max 3 attempts: 1s, 2s, 4s gaps).
     // onFirstToken fires with elapsed time at the moment the first token is received.
-    private async Task StreamWithRetryAsync(ILlmProvider llm, LlmRequest request, Action<TimeSpan>? onFirstToken = null)
+    private async Task<string> StreamWithRetryAsync(ILlmProvider llm, LlmRequest request, Action<TimeSpan>? onFirstToken = null)
     {
         // Each response gets its own cancellation scope (linked to the pipeline token) so
         // "Stop response" cancels only the reply, leaving transcription running.
@@ -521,6 +548,7 @@ public sealed class MeetingOrchestrator : IDisposable
             try
             {
                 var sw = Stopwatch.StartNew();
+                var accumulated = new System.Text.StringBuilder();
                 bool firstToken = true;
                 await foreach (var token in llm.StreamResponseAsync(request, ct))
                 {
@@ -529,9 +557,10 @@ public sealed class MeetingOrchestrator : IDisposable
                         onFirstToken?.Invoke(sw.Elapsed);
                         firstToken = false;
                     }
+                    accumulated.Append(token);
                     _overlay.AppendResponseToken(token);
                 }
-                return;
+                return accumulated.ToString();
             }
             catch (OperationCanceledException) { throw; }
             catch (LlmException ex) when (attempt < retryDelaysMs.Length)
@@ -543,6 +572,7 @@ public sealed class MeetingOrchestrator : IDisposable
             }
             // Final attempt: LlmException propagates to caller
         }
+        return string.Empty; // unreachable in practice
     }
 
     public (int Segments, double SttP50Ms, double SttP90Ms, double SttP99Ms,
@@ -642,6 +672,8 @@ public sealed class MeetingOrchestrator : IDisposable
             var json = await response.Content.ReadAsStringAsync();
             using var doc = System.Text.Json.JsonDocument.Parse(json);
             var text = doc.RootElement.GetProperty("response").GetString() ?? "No response";
+            if (_journal is not null)
+                _ = JournalVisionAsync(imageBase64, text, "google_search");
 
             // Simulate streaming for UX consistency — chunk into 8-char pieces
             for (int i = 0; i < text.Length; i += 8)
@@ -751,7 +783,9 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=CaptureSession shots={N}",
                 visionLlm.ProviderName, visionLlm.ModelId, images.Count);
 
-            await StreamWithRetryAsync(visionLlm, request, t => _latencyTracker.RecordLlmLatency(t));
+            var responseCs = await StreamWithRetryAsync(visionLlm, request, t => _latencyTracker.RecordLlmLatency(t));
+            if (_journal is not null)
+                _ = JournalVisionBatchAsync(images, responseCs, "capture_session_llm");
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
         catch (LlmException ex)
@@ -795,6 +829,8 @@ public sealed class MeetingOrchestrator : IDisposable
             var json = await response.Content.ReadAsStringAsync();
             using var doc = System.Text.Json.JsonDocument.Parse(json);
             var text = doc.RootElement.GetProperty("response").GetString() ?? "No response";
+            if (_journal is not null)
+                _ = JournalVisionBatchAsync(images, text, "capture_session_google");
 
             for (int i = 0; i < text.Length; i += 8)
             {
@@ -812,6 +848,27 @@ public sealed class MeetingOrchestrator : IDisposable
     }
 
     private ILlmProvider GetLlm(bool requiresVision = false) => _llm;
+
+    private async Task<string?> GetDocContextAsync(string query)
+    {
+        var url = _settings.Current.RagBridgeUrl;
+        bool hasRag = _rag is not null && !string.IsNullOrWhiteSpace(url);
+
+        if (!hasRag) return _docContext?.BuildContextBlock();
+
+        int budget = _settings.Current.MaxResponseTokens;
+        var docsTask    = _rag!.RetrieveContextAsync(query, tokenBudget: budget * 2);
+        var sessionTask = _rag!.RetrieveSessionContextAsync(query, tokenBudget: budget);
+
+        await Task.WhenAll(docsTask, sessionTask);
+        var docsCtx    = docsTask.Result ?? _docContext?.BuildContextBlock();
+        var sessionCtx = sessionTask.Result;
+
+        if (docsCtx is null && sessionCtx is null) return null;
+        if (sessionCtx is null) return docsCtx;
+        if (docsCtx is null)    return sessionCtx;
+        return sessionCtx + "\n\n" + docsCtx;
+    }
 
     private string GetModeInstruction() => _overlay.ResponseMode switch
     {
@@ -920,7 +977,7 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
-            var docBlock = _docContext?.BuildContextBlock();
+            var docBlock = await GetDocContextAsync(localTranscript ?? contextText ?? "meeting context");
             if (docBlock is not null)
                 system = system + "\n\n" + docBlock;
             var modeHint = GetModeInstruction();
@@ -959,7 +1016,9 @@ public sealed class MeetingOrchestrator : IDisposable
                 activeLlm.ProviderName, activeLlm.ModelId,
                 audioBase64 is not null ? "AudioToLlm" : "LocalTranscribeToLlm");
 
-            await StreamWithRetryAsync(activeLlm, request, t => _latencyTracker.RecordLlmLatency(t));
+            var responseAq = await StreamWithRetryAsync(activeLlm, request, t => _latencyTracker.RecordLlmLatency(t));
+            if (_journal is not null)
+                _ = JournalQaAsync(localTranscript ?? contextText ?? "(audio question)", responseAq, "audio");
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -1001,7 +1060,7 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
-            var docBlock2 = _docContext?.BuildContextBlock();
+            var docBlock2 = await GetDocContextAsync("action items decisions owners");
             if (docBlock2 is not null)
                 system = system + "\n\n" + docBlock2;
             var modeHint2 = GetModeInstruction();
@@ -1013,7 +1072,9 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ActionItems",
                 activeLlm.ProviderName, activeLlm.ModelId);
 
-            await StreamWithRetryAsync(activeLlm, request, t => _latencyTracker.RecordLlmLatency(t));
+            var responseAi = await StreamWithRetryAsync(activeLlm, request, t => _latencyTracker.RecordLlmLatency(t));
+            if (_journal is not null)
+                _ = JournalQaAsync("action items and decisions", responseAi, "action_items");
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -1064,7 +1125,8 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
-            var docBlock3 = _docContext?.BuildContextBlock();
+            var docBlock3 = await GetDocContextAsync(
+                contextText.Length > 300 ? contextText[..300] : (contextText.Length > 0 ? contextText : "image analysis"));
             if (docBlock3 is not null)
                 system = system + "\n\n" + docBlock3;
             var modeHint3 = GetModeInstruction();
@@ -1079,7 +1141,9 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ImageDrop",
                 visionLlm.ProviderName, visionLlm.ModelId);
 
-            await StreamWithRetryAsync(visionLlm, request, t => _latencyTracker.RecordLlmLatency(t));
+            var responseDi = await StreamWithRetryAsync(visionLlm, request, t => _latencyTracker.RecordLlmLatency(t));
+            if (_journal is not null)
+                _ = JournalVisionAsync(imageBase64, responseDi, "dropped_image");
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -1153,7 +1217,8 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
-            var docBlock4 = _docContext?.BuildContextBlock();
+            var docBlock4 = await GetDocContextAsync(
+                contextText.Length > 300 ? contextText[..300] : (contextText.Length > 0 ? contextText : "screen capture analysis"));
             if (docBlock4 is not null)
                 system = system + "\n\n" + docBlock4;
             var modeHint4 = GetModeInstruction();
@@ -1168,7 +1233,9 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=ScreenCapture",
                 visionLlm2.ProviderName, visionLlm2.ModelId);
 
-            await StreamWithRetryAsync(visionLlm2, request, t => _latencyTracker.RecordLlmLatency(t));
+            var responseSc = await StreamWithRetryAsync(visionLlm2, request, t => _latencyTracker.RecordLlmLatency(t));
+            if (_journal is not null)
+                _ = JournalVisionAsync(imageBase64, responseSc, "screen_capture");
 
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
@@ -1255,7 +1322,9 @@ public sealed class MeetingOrchestrator : IDisposable
             Serilog.Log.Information("LLM request: provider={Provider} model={Model} type=SnipCapture region={Region} mode={Mode}",
                 visionLlm3.ProviderName, visionLlm3.ModelId, region, _overlay.ResponseMode);
 
-            await StreamWithRetryAsync(visionLlm3, request, t => _latencyTracker.RecordLlmLatency(t));
+            var responseSnip = await StreamWithRetryAsync(visionLlm3, request, t => _latencyTracker.RecordLlmLatency(t));
+            if (_journal is not null)
+                _ = JournalVisionAsync(imageBase64, responseSnip, "snip_capture");
             _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
         }
         catch (LlmException ex)
@@ -1283,11 +1352,108 @@ public sealed class MeetingOrchestrator : IDisposable
         _captureConfirmTimer?.Dispose();
         _gcTimer?.Dispose();
         _latencyLogTimer?.Dispose();
+        _transcriptJournalTimer?.Dispose();
+        _journal?.Dispose();
         _audio.Dispose();
         _stt.Dispose();
         _hotkeys.Dispose();
         _shareDetector.Dispose();
         _platformDetector.Dispose();
         _captionsReader.Dispose();
+    }
+
+    // ── Session memory helpers ─────────────────────────────────────────────────
+
+    private async Task JournalQaAsync(string question, string answer, string queryType)
+    {
+        if (_journal is null) return;
+        _journal.WriteQaEvent(question, answer, queryType);
+        var id = $"qa_{DateTimeOffset.UtcNow:yyyyMMddHHmmss}_{queryType}";
+        var title = $"Q&A [{DateTimeOffset.Now:HH:mm}] ({queryType})";
+        var text = $"Q: {question}\nA: {answer}";
+        if (_rag is not null)
+            await _rag.IndexSessionDocumentAsync(id, title, text);
+    }
+
+    private async Task JournalVisionAsync(string imageBase64, string response, string queryType)
+    {
+        if (_journal is null) return;
+        var imagePath = _journal.SaveImage(imageBase64);
+        var caption = await GenerateVisionCaptionAsync(imageBase64);
+        _journal.WriteVisionEvent(imagePath, caption, response, queryType);
+        var id = $"vision_{DateTimeOffset.UtcNow:yyyyMMddHHmmss}_{queryType}";
+        var title = $"Vision [{DateTimeOffset.Now:HH:mm}] ({queryType})";
+        var text = $"[Visual content: {caption}]\n\nResponse: {response}";
+        if (_rag is not null)
+            await _rag.IndexSessionDocumentAsync(id, title, text);
+    }
+
+    private async Task JournalVisionBatchAsync(IReadOnlyList<string> images, string response, string queryType)
+    {
+        if (_journal is null) return;
+        // Index first image for retrieval; additional frames are context only
+        var primaryImage = images.Count > 0 ? images[0] : null;
+        if (primaryImage is not null)
+            await JournalVisionAsync(primaryImage, response, queryType);
+        else
+        {
+            var id = $"vision_{DateTimeOffset.UtcNow:yyyyMMddHHmmss}_{queryType}";
+            if (_rag is not null)
+                await _rag.IndexSessionDocumentAsync(id,
+                    $"Vision [{DateTimeOffset.Now:HH:mm}] ({queryType})",
+                    $"Response: {response}");
+        }
+    }
+
+    private async Task<string> GenerateVisionCaptionAsync(string imageBase64)
+    {
+        try
+        {
+            var llm = GetLlm(requiresVision: true);
+            var captionRequest = new LlmRequest(
+                SystemPrompt: "You are a precise image describer. Describe only what is literally visible.",
+                UserMessage: "Describe this image in 2-3 sentences. Focus on specific visible details: text, numbers, UI elements, error messages, graphs, code. Be precise enough that someone who cannot see the image could understand the context.",
+                ImageBase64: imageBase64,
+                ImageMediaType: "image/jpeg",
+                MaxTokens: 150,
+                Temperature: 0.1f);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var sb = new System.Text.StringBuilder();
+            await foreach (var token in llm.StreamResponseAsync(captionRequest, cts.Token))
+                sb.Append(token);
+            return sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Debug(ex, "Visual caption generation failed — using placeholder");
+            return "(visual content)";
+        }
+    }
+
+    private async Task JournalTranscriptTickAsync()
+    {
+        if (_journal is null || _rag is null) return;
+        await IndexTranscriptChunkAsync();
+    }
+
+    private async Task IndexTranscriptChunkAsync()
+    {
+        if (_journal is null) return;
+        var cutoff = _lastTranscriptChunkTime;
+        var since  = _transcript.GetSince(cutoff);
+        if (since.Count == 0) return;
+
+        var chunkStart = since[0].Timestamp;
+        var chunkEnd   = since[since.Count - 1].Timestamp;
+        _lastTranscriptChunkTime = chunkEnd;
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var seg in since)
+            sb.AppendLine($"[{seg.Timestamp:HH:mm:ss}] {seg.SpeakerLabel}: {seg.Text}");
+
+        var id    = $"transcript_{chunkStart:yyyyMMddHHmmss}";
+        var title = $"Transcript [{chunkStart:HH:mm}–{chunkEnd:HH:mm}]";
+        if (_rag is not null)
+            await _rag.IndexSessionDocumentAsync(id, title, sb.ToString());
     }
 }

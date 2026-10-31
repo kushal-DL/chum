@@ -22,6 +22,7 @@ public partial class App : System.Windows.Application
     public SettingsService Settings { get; } = new();
     public ConfigFileService Config { get; } = new();
     public DocumentContextService DocContext { get; } = new();
+    public RagBridgeService? Rag { get; private set; }
     public MeetingOrchestrator? Orchestrator => _orchestrator;
 
     private HotkeyService? _hotkeys;
@@ -60,6 +61,10 @@ public partial class App : System.Windows.Application
         Settings.Load();
         Config.Load();
         DocContext.Load();
+
+        Rag = new RagBridgeService(Settings, Config);
+        DocContext.DocumentsChanged += async (_, _) =>
+            await Rag.ReindexAsync(DocContext.Documents);
 
         // Create overlay early so we can show startup status immediately
         _overlayVm = new OverlayViewModel(Dispatcher);
@@ -147,7 +152,7 @@ public partial class App : System.Windows.Application
 
         _orchestrator = new MeetingOrchestrator(
             audioPipeline, stt, transcriptBuffer, contextExtractor,
-            llm, _hotkeys, _overlayVm!, Settings, Config, _screenCapture, _clipboardMonitor, templates, DocContext);
+            llm, _hotkeys, _overlayVm!, Settings, Config, _screenCapture, _clipboardMonitor, templates, DocContext, Rag);
 
         _overlayWindow!.ImageFileDropped += (_, path) =>
             _ = _orchestrator.HandleDroppedImageQueryAsync(path);

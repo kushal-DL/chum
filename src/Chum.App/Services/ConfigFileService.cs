@@ -69,6 +69,16 @@ public sealed class ConfigFileService
         }
     }
 
+    public string? RagApiKey
+    {
+        get => string.IsNullOrWhiteSpace(_data.RagApiKey) ? null : _data.RagApiKey;
+        set
+        {
+            _data = _data with { RagApiKey = value?.Trim() ?? string.Empty };
+            TrySave();
+        }
+    }
+
     private void TrySave()
     {
         try
@@ -87,5 +97,6 @@ public sealed class ConfigFileService
         string AnthropicApiKey = "",
         string OpenAiApiKey = "",
         string CloudSttApiKey = "",
-        string InternetSearchApiKey = "");
+        string InternetSearchApiKey = "",
+        string RagApiKey = "");
 }

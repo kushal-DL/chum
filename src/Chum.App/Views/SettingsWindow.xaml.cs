@@ -109,6 +109,10 @@ public partial class SettingsWindow : Window
             ShowInternetSearchApiKeyStatus("✓ API key stored", true);
         InternetSearchUrlBox.Text = s.InternetSearchBaseUrl;
 
+        if (_config.RagApiKey is not null)
+            ShowRagApiKeyStatus("✓ API key stored", true);
+        RagBridgeUrlBox.Text = s.RagBridgeUrl;
+
         IncludeTranscriptBox.IsChecked = s.IncludeTranscriptContext;
         NoiseSuppressBox.IsChecked = s.EnableNoiseSuppression;
         VadThresholdSlider.Value = s.VadThresholdDb;
@@ -301,6 +305,71 @@ public partial class SettingsWindow : Window
         InternetSearchTestStatus.Visibility = System.Windows.Visibility.Visible;
     }
 
+    private void SaveRagApiKey_Click(object sender, RoutedEventArgs e)
+    {
+        var key = RagApiKeyBox.Password.Trim();
+        if (string.IsNullOrWhiteSpace(key)) { ShowRagApiKeyStatus("Key cannot be empty.", false); return; }
+        _config.RagApiKey = key;
+        RagApiKeyBox.Clear();
+        ShowRagApiKeyStatus("✓ Key saved", true);
+    }
+
+    private void ShowRagApiKeyStatus(string msg, bool success)
+    {
+        RagApiKeyStatus.Text = msg;
+        RagApiKeyStatus.Foreground = success
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.OrangeRed;
+        RagApiKeyStatus.Visibility = System.Windows.Visibility.Visible;
+    }
+
+    private async void TestRagBridge_Click(object sender, RoutedEventArgs e)
+    {
+        var url = RagBridgeUrlBox.Text.Trim();
+        if (string.IsNullOrEmpty(url)) { ShowRagTestStatus("Enter a URL first.", false); return; }
+
+        ShowRagTestStatus("Testing...", true);
+        try
+        {
+            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var key = _config.RagApiKey;
+            if (!string.IsNullOrWhiteSpace(key))
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
+
+            var resp = await client.GetAsync(url.TrimEnd('/') + "/health");
+            var body = await resp.Content.ReadAsStringAsync();
+            var indexed = System.Text.RegularExpressions.Regex.Match(body, @"""indexed_docs""\s*:\s*(\d+)");
+            var ready   = body.Contains("\"index_ready\":true");
+            var count   = indexed.Success ? indexed.Groups[1].Value : "?";
+            ShowRagTestStatus(
+                ready ? $"✓ Bridge running — {count} docs indexed"
+                      : $"✓ Bridge running — {count} docs ({(ready ? "index ready" : "index not built yet")})",
+                true);
+        }
+        catch (System.Net.Http.HttpRequestException)
+        {
+            ShowRagTestStatus("✗ Cannot reach bridge — is start-asp-rag.ps1 running?", false);
+        }
+        catch (TaskCanceledException)
+        {
+            ShowRagTestStatus("✗ Connection timed out", false);
+        }
+        catch (Exception ex)
+        {
+            ShowRagTestStatus($"✗ {ex.Message}", false);
+        }
+    }
+
+    private void ShowRagTestStatus(string msg, bool success)
+    {
+        RagTestStatus.Text = msg;
+        RagTestStatus.Foreground = success
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.OrangeRed;
+        RagTestStatus.Visibility = System.Windows.Visibility.Visible;
+    }
+
 
     private void ProviderCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
@@ -375,6 +444,7 @@ public partial class SettingsWindow : Window
             s.InternetSearchBaseUrl = string.IsNullOrWhiteSpace(InternetSearchUrlBox.Text)
                 ? "http://127.0.0.1:8002"
                 : InternetSearchUrlBox.Text.Trim();
+            s.RagBridgeUrl = RagBridgeUrlBox.Text.Trim();
             s.IncludeTranscriptContext = IncludeTranscriptBox.IsChecked == true;
             s.EnableNoiseSuppression = NoiseSuppressBox.IsChecked == true;
             s.VadThresholdDb = (float)VadThresholdSlider.Value;

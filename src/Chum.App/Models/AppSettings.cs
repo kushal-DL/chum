@@ -93,6 +93,11 @@ public sealed class AppSettings
     // The app appends /image or /images; this must end without a trailing slash.
     public string InternetSearchBaseUrl { get; set; } = "http://127.0.0.1:8002";
 
+    // Base URL of the ASP RAG bridge (asp-rag-api.py / start-asp-rag.ps1).
+    // Typically a LAN address when the bridge runs on the LLM machine, e.g. http://192.168.1.50:8003.
+    // Leave empty to use the built-in full-document injection instead.
+    public string RagBridgeUrl { get; set; } = "";
+
     // --- Local-only mode (Ollama) ---
     public bool LocalOnlyMode { get; set; } = false;
     public string OllamaModel { get; set; } = "llama3.1:8b";
