@@ -15,6 +15,7 @@ MODEL_PATH="$REPO_ROOT/local-llm/models/ggml-whisper-large-v3-turbo-tech-f16.bin
 THREADS=4
 LANGUAGE="en"
 API_KEY="llm"
+GPU_DEVICE=0
 NO_AUTH=0
 BIN_DIR="$REPO_ROOT/local-llm/whisper.cpp/bin"
 LLAMA_DIR="$REPO_ROOT/local-llm/llama.cpp"
@@ -32,6 +33,7 @@ Options:
   -m, --model <path>      Path to ggml Whisper model (default: $MODEL_PATH)
   -t, --threads <int>     CPU threads for processing (default: $THREADS)
   -l, --language <lang>   Spoken language (default: $LANGUAGE, or 'auto')
+  -g, --device <id>       GPU device ID (default: $GPU_DEVICE)
   -k, --api-key <key>     API key (default: llm)
   --no-auth               Disable authentication
   --bin-dir <dir>         whisper.cpp bin directory (default: $BIN_DIR)
@@ -52,6 +54,8 @@ while [[ $# -gt 0 ]]; do
             THREADS="$2"; shift 2 ;;
         -l|--language)
             LANGUAGE="$2"; shift 2 ;;
+        -g|--device)
+            GPU_DEVICE="$2"; shift 2 ;;
         -k|--api-key)
             API_KEY="$2"; shift 2 ;;
         --no-auth)
@@ -83,40 +87,69 @@ if [[ ! -x "$SERVER_EXE" && -x "$BIN_DIR/whisper-bin-ubuntu-x64/whisper-server" 
     SERVER_EXE="$BIN_DIR/whisper-bin-ubuntu-x64/whisper-server"
 fi
 
+# Clean out bundled CPU-only ggml libraries that shadow the system's ROCm backend
+if [[ -f /usr/lib/x86_64-linux-gnu/ggml/backends0/libggml-hip.so ]]; then
+    rm -f "$BIN_DIR"/libggml* 2>/dev/null || true
+fi
+
 if [[ ! -x "$SERVER_EXE" ]] && ! command -v whisper-server >/dev/null 2>&1; then
     if [[ $DRY_RUN -eq 1 ]]; then
         log_step "[dry-run] whisper-server check skipped"
     else
-        log_warn "whisper-server not found, checking releases from ggml-org/whisper.cpp..."
+        log_warn "whisper-server not found, resolving binary..."
         mkdir -p "$BIN_DIR"
         
-        DL_URL=""
-        RELS_JSON=$(curl -sSL "https://api.github.com/repos/ggml-org/whisper.cpp/releases" 2>/dev/null || true)
-        if [[ -n "$RELS_JSON" ]]; then
-            DL_URL=$(echo "$RELS_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]*bin-ubuntu-x64\.tar\.gz' | head -n 1 || true)
-            if [[ -z "$DL_URL" ]]; then
-                DL_URL=$(echo "$RELS_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]*bin-linux-x64[^"]*\.(tar\.gz|zip)' | head -n 1 || true)
-            fi
+        # Check if Ubuntu / Debian package repository has whisper.cpp-tools (supports ROCm / system ggml)
+        if command -v apt-get >/dev/null 2>&1 && apt-cache show whisper.cpp-tools >/dev/null 2>&1; then
+            log_step "Extracting ROCm/GPU-compatible whisper.cpp package from repository..."
+            TMP_DEB_DIR=$(mktemp -d /tmp/whisper_deb_XXXXXX)
+            (
+                cd "$TMP_DEB_DIR"
+                apt-get download whisper.cpp-tools libwhisper1 >/dev/null 2>&1 || true
+                for deb in *.deb; do
+                    [[ -f "$deb" ]] && dpkg-deb -x "$deb" "$TMP_DEB_DIR"
+                done
+                if [[ -f "$TMP_DEB_DIR/usr/bin/whisper-server" ]]; then
+                    cp "$TMP_DEB_DIR/usr/bin/whisper-server" "$BIN_DIR/"
+                    cp "$TMP_DEB_DIR/usr/bin/whisper-cli" "$BIN_DIR/" 2>/dev/null || true
+                    cp -a "$TMP_DEB_DIR"/usr/lib/*/libwhisper* "$BIN_DIR/" 2>/dev/null || true
+                    chmod +x "$BIN_DIR"/whisper-* 2>/dev/null || true
+                fi
+            )
+            rm -rf "$TMP_DEB_DIR"
         fi
 
-        if [[ -n "$DL_URL" ]]; then
-            log_step "Downloading $(basename "$DL_URL")..."
-            PKG="$BIN_DIR/$(basename "$DL_URL")"
-            curl -L -o "$PKG" "$DL_URL"
-            if [[ "$PKG" =~ \.zip$ ]]; then
-                unzip -q -o "$PKG" -d "$BIN_DIR"
+        # Fallback to GitHub release if still not found
+        if [[ ! -x "$SERVER_EXE" ]]; then
+            log_step "Checking releases from ggml-org/whisper.cpp..."
+            DL_URL=""
+            RELS_JSON=$(curl -sSL "https://api.github.com/repos/ggml-org/whisper.cpp/releases" 2>/dev/null || true)
+            if [[ -n "$RELS_JSON" ]]; then
+                DL_URL=$(echo "$RELS_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]*bin-ubuntu-x64\.tar\.gz' | head -n 1 || true)
+                if [[ -z "$DL_URL" ]]; then
+                    DL_URL=$(echo "$RELS_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]*bin-linux-x64[^"]*\.(tar\.gz|zip)' | head -n 1 || true)
+                fi
+            fi
+
+            if [[ -n "$DL_URL" ]]; then
+                log_step "Downloading $(basename "$DL_URL")..."
+                PKG="$BIN_DIR/$(basename "$DL_URL")"
+                curl -L -o "$PKG" "$DL_URL"
+                if [[ "$PKG" =~ \.zip$ ]]; then
+                    unzip -q -o "$PKG" -d "$BIN_DIR"
+                else
+                    tar -xzf "$PKG" -C "$BIN_DIR" --strip-components=1 2>/dev/null || tar -xzf "$PKG" -C "$BIN_DIR"
+                fi
+                rm -f "$PKG"
+                chmod +x "$BIN_DIR"/whisper-* "$BIN_DIR"/main 2>/dev/null || true
+                if [[ -x "$BIN_DIR/whisper-bin-ubuntu-x64/whisper-server" ]]; then
+                    SERVER_EXE="$BIN_DIR/whisper-bin-ubuntu-x64/whisper-server"
+                fi
+                log_ok "whisper.cpp installed at $BIN_DIR"
             else
-                tar -xzf "$PKG" -C "$BIN_DIR" --strip-components=1 2>/dev/null || tar -xzf "$PKG" -C "$BIN_DIR"
+                log_err "Could not find a prebuilt Linux release for whisper.cpp. Ensure whisper-server is in PATH or $BIN_DIR."
+                exit 1
             fi
-            rm -f "$PKG"
-            chmod +x "$BIN_DIR"/whisper-* "$BIN_DIR"/main 2>/dev/null || true
-            if [[ -x "$BIN_DIR/whisper-bin-ubuntu-x64/whisper-server" ]]; then
-                SERVER_EXE="$BIN_DIR/whisper-bin-ubuntu-x64/whisper-server"
-            fi
-            log_ok "whisper.cpp installed at $BIN_DIR"
-        else
-            log_err "Could not find a prebuilt Linux release for whisper.cpp. Ensure whisper-server is in PATH or $BIN_DIR."
-            exit 1
         fi
     fi
 fi
@@ -150,12 +183,19 @@ kill_port_process "$PORT" "Whisper STT server" 2
 
 # 4. Banner
 LAN_IP=$(get_lan_ip)
+DEVICE_DESC="CPU"
+if [[ -f /usr/lib/x86_64-linux-gnu/ggml/backends0/libggml-hip.so ]] || command -v rocm-smi >/dev/null 2>&1; then
+    GPU_NAME=$(rocminfo 2>/dev/null | grep -m1 "Marketing Name:.*Radeon" | awk -F': +' '{print $2}' | xargs || true)
+    DEVICE_DESC="GPU (ROCm / HIP - ${GPU_NAME:-AMD Radeon RX 7900 XTX}, device $GPU_DEVICE)"
+fi
+
 printf "\n${COLOR_CYAN}=== Chum Whisper API (whisper.cpp) ===${COLOR_RESET}\n"
 printf "Base URL : http://%s:%s/v1  (LAN)\n" "$LAN_IP" "$PORT"
 printf "           http://127.0.0.1:%s/v1  (local)\n" "$PORT"
 printf "Endpoint : POST /v1/audio/transcriptions\n"
 printf "Model    : %s\n" "$(basename "$ACTIVE_MODEL")"
 printf "Threads  : %s\n" "$THREADS"
+printf "Device   : %s\n" "$DEVICE_DESC"
 printf "Language : %s\n" "$LANGUAGE"
 printf "API Key  : %s\n" "${API_KEY:-llm}"
 printf "${COLOR_CYAN}=======================================${COLOR_RESET}\n\n"
@@ -183,6 +223,7 @@ SERVER_ARGS=(
     "-l" "$LANGUAGE"
     "-t" "$THREADS"
     "--inference-path" "/v1/audio/transcriptions"
+    "-dev" "$GPU_DEVICE"
     "-sns"
 )
 
