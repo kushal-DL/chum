@@ -127,10 +127,13 @@ async def _launch_browser():
     if not CDP_URL:
         await _wait_for_ready()
 
-    _host = os.environ.get("BRIDGE_HOST", "127.0.0.1")
+    _host = os.environ.get("BRIDGE_HOST", "0.0.0.0")
     _port = os.environ.get("BRIDGE_PORT", "8002")
     print("[internet-search] Browser ready -- Google AI Mode loaded.", flush=True)
-    print(f"[internet-search] Listening on http://{_host}:{_port}", flush=True)
+    if _host == "0.0.0.0":
+        print(f"[internet-search] Listening on http://0.0.0.0:{_port} (all interfaces / Wi-Fi / LAN)", flush=True)
+    else:
+        print(f"[internet-search] Listening on http://{_host}:{_port}", flush=True)
 
 
 async def _wait_for_ready():
@@ -380,8 +383,8 @@ async def health():
 
 
 if __name__ == "__main__":
-    # BRIDGE_HOST=0.0.0.0 to accept connections from other machines on the LAN.
+    # BRIDGE_HOST=0.0.0.0 to accept connections from other machines on the LAN / Wi-Fi.
     # BRIDGE_PORT overrides the default 8002.
-    host = os.environ.get("BRIDGE_HOST", "127.0.0.1")
+    host = os.environ.get("BRIDGE_HOST", "0.0.0.0")
     port = int(os.environ.get("BRIDGE_PORT", "8002"))
     uvicorn.run(app, host=host, port=port)

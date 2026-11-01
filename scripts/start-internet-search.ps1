@@ -26,7 +26,8 @@ RUNNING ON A SEPARATE MACHINE (LAN):
 #>
 param(
     [switch]$Cdp,           # Attach to already-running Chrome on port 9222
-    [switch]$NetworkAccess, # Bind to 0.0.0.0 so other LAN machines can reach this bridge
+    [switch]$LocalOnly,     # Bind to 127.0.0.1 (localhost only)
+    [switch]$NetworkAccess = $true, # Bind to 0.0.0.0 so other LAN/Wi-Fi machines can reach this bridge (default: true)
     [int]$Port = 8002,
     [string]$ApiKey = "llm"
 )
@@ -69,6 +70,10 @@ if ($old) {
     Start-Sleep -Milliseconds 800
 }
 
+if ($LocalOnly) {
+    $NetworkAccess = $false
+}
+
 # -- Bind address --
 if ($NetworkAccess) {
     $env:BRIDGE_HOST = "0.0.0.0"
@@ -90,12 +95,14 @@ if ($NetworkAccess) {
                        $_.PrefixOrigin -in "Dhcp","Manual" } |
         Select-Object -First 1).IPAddress
     Write-Host ""
-    Write-Host "[internet-search] Network access enabled — set Chum's Google Search URL to:" -ForegroundColor Cyan
+    Write-Host "[internet-search] Network access enabled (Wi-Fi/LAN) — set Chum's Google Search URL to:" -ForegroundColor Cyan
     Write-Host "    http://${lanIp}:$Port" -ForegroundColor White
+    Write-Host "[internet-search] Or use http://127.0.0.1:$Port if Chum runs on this machine." -ForegroundColor Gray
     Write-Host ""
 } else {
     $env:BRIDGE_HOST = "127.0.0.1"
     $env:BRIDGE_PORT = "$Port"
+    Write-Host "[internet-search] Local-only mode: binding to 127.0.0.1" -ForegroundColor Yellow
 }
 $env:SEARCH_API_KEY = $ApiKey
 
@@ -106,7 +113,7 @@ if ($Cdp) {
     Write-Host "[internet-search] Make sure Chrome is running with --remote-debugging-port=9222" -ForegroundColor Yellow
     $env:CDP_URL = "http://localhost:9222"
 } else {
-    Write-Host "[internet-search] Starting Google AI Search bridge on http://127.0.0.1:8002" -ForegroundColor Green
+    Write-Host "[internet-search] Starting Google AI Search bridge on port $Port (host: $env:BRIDGE_HOST)" -ForegroundColor Green
     Write-Host "[internet-search] A separate Chrome window will open." -ForegroundColor Yellow
     Write-Host "[internet-search] If Google shows a CAPTCHA, solve it once -- it will not appear again." -ForegroundColor Yellow
     $env:CDP_URL = ""

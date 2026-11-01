@@ -9,7 +9,8 @@ source "$SCRIPT_DIR/common.sh"
 
 PORT=8002
 CDP=0
-NETWORK_ACCESS=0
+NETWORK_ACCESS=1
+LOCAL_ONLY=0
 API_KEY="llm"
 DRY_RUN=0
 
@@ -23,7 +24,8 @@ Options:
   -p, --port <int>        Port to listen on (default: $PORT)
   -k, --api-key <key>     API key (default: llm)
   --cdp                   Attach to already-running Chrome on port 9222
-  -n, --network-access    Bind to 0.0.0.0 so other LAN machines can reach this bridge
+  -n, --network-access    Bind to 0.0.0.0 (default: enabled for Wi-Fi / LAN access)
+  --local-only            Bind to 127.0.0.1 (localhost only)
   --dry-run               Validate configuration and exit without starting server
   -h, --help              Show this help message and exit
 
@@ -44,7 +46,9 @@ while [[ $# -gt 0 ]]; do
         --cdp)
             CDP=1; shift ;;
         -n|--network-access)
-            NETWORK_ACCESS=1; shift ;;
+            NETWORK_ACCESS=1; LOCAL_ONLY=0; shift ;;
+        --local-only)
+            LOCAL_ONLY=1; NETWORK_ACCESS=0; shift ;;
         --dry-run)
             DRY_RUN=1; shift ;;
         -h|--help)
@@ -74,15 +78,17 @@ fi
 kill_port_process "$PORT" "Google AI Search bridge" 2
 
 # 3. Configure bind address and environment variables
-if [[ $NETWORK_ACCESS -eq 1 ]]; then
+if [[ $LOCAL_ONLY -eq 1 ]]; then
+    export BRIDGE_HOST="127.0.0.1"
+    export BRIDGE_PORT="$PORT"
+    printf "${COLOR_YELLOW}[internet-search] Local-only mode: binding to 127.0.0.1${COLOR_RESET}\n"
+else
     export BRIDGE_HOST="0.0.0.0"
     export BRIDGE_PORT="$PORT"
     LAN_IP=$(get_lan_ip)
     printf "\n${COLOR_CYAN}[internet-search] Network access enabled — set Chum's Google Search URL to:${COLOR_RESET}\n"
-    printf "    ${COLOR_WHITE}http://%s:%s${COLOR_RESET}\n\n" "$LAN_IP" "$PORT"
-else
-    export BRIDGE_HOST="127.0.0.1"
-    export BRIDGE_PORT="$PORT"
+    printf "    ${COLOR_WHITE}http://%s:%s${COLOR_RESET}\n" "$LAN_IP" "$PORT"
+    printf "${COLOR_GRAY}[internet-search] Or use http://127.0.0.1:%s if Chum runs on this machine.${COLOR_RESET}\n\n" "$PORT"
 fi
 
 export SEARCH_API_KEY="${API_KEY:-llm}"
@@ -92,7 +98,7 @@ if [[ $CDP -eq 1 ]]; then
     printf "${COLOR_YELLOW}[internet-search] Ensure Chrome is running with --remote-debugging-port=9222${COLOR_RESET}\n"
     export CDP_URL="http://localhost:9222"
 else
-    printf "${COLOR_GREEN}[internet-search] Starting Google AI Search bridge on http://%s:%s${COLOR_RESET}\n" "$BRIDGE_HOST" "$PORT"
+    printf "${COLOR_GREEN}[internet-search] Starting Google AI Search bridge on port %s (host: %s)${COLOR_RESET}\n" "$PORT" "$BRIDGE_HOST"
     export CDP_URL=""
 fi
 printf "API Key  : %s\n\n" "$SEARCH_API_KEY"
