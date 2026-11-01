@@ -27,9 +27,12 @@ chum/
 │   ├── Chum.App/          ← Layer 4: WPF app, services, UI
 │   ├── Chum.Service/      ← Windows service host (ChumHostSvc) + IPC
 │   └── Chum.Installer/    ← WiX v4 MSI installer (Chum.Installer.wixproj)
-├── scripts/               ← Deployment and maintenance scripts
+├── scripts/               ← Deployment and maintenance scripts (Windows PowerShell)
 │   ├── Install-Chum.ps1   ← PowerShell installer (dev/CI alternative to MSI)
 │   └── Uninstall-Chum.ps1 ← PowerShell uninstaller
+├── scripts_linux/         ← Deployment and maintenance scripts (Linux Bash)
+│   ├── install-chum.sh    ← Linux installer (systemd service, desktop entry)
+│   └── uninstall-chum.sh  ← Linux uninstaller
 ├── .claude/               ← (see above)
 ├── .gitignore
 ├── CLAUDE.md              ← Session protocol + code conventions (read every session)
