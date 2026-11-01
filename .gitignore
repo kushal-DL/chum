@@ -129,4 +129,6 @@ dist/
 scripts/google-session/
 
 # Whisper transcription logs (runtime output)
-scripts/whisper-start-log.txtwhisper-start-log.txt
+scripts/whisper-start-log.txt
+scripts_linux/whisper-start-log.txt
+*whisper-start-log.txt

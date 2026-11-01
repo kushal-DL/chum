@@ -68,23 +68,35 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Initialize log file
+# Initialize log file and tee all stdout/stderr to it (ensures crashes are always captured)
 mkdir -p "$(dirname "$LOG_FILE")"
 touch "$LOG_FILE"
+exec > >(tee -a "$LOG_FILE") 2>&1
 log_info "Logging to: $LOG_FILE"
+
+# Trap errors and log them
+trap 'log_err "Whisper API script failed at line $LINENO (exit code $?)"' ERR
 
 # 1. Ensure whisper-server is present
 SERVER_EXE="$BIN_DIR/whisper-server"
+if [[ ! -x "$SERVER_EXE" && -x "$BIN_DIR/whisper-bin-ubuntu-x64/whisper-server" ]]; then
+    SERVER_EXE="$BIN_DIR/whisper-bin-ubuntu-x64/whisper-server"
+fi
+
 if [[ ! -x "$SERVER_EXE" ]] && ! command -v whisper-server >/dev/null 2>&1; then
     if [[ $DRY_RUN -eq 1 ]]; then
         log_step "[dry-run] whisper-server check skipped"
     else
-        log_warn "whisper-server not found, checking latest release..."
+        log_warn "whisper-server not found, checking releases from ggml-org/whisper.cpp..."
         mkdir -p "$BIN_DIR"
-        REL_JSON=$(curl -sSL "https://api.github.com/repos/ggerganov/whisper.cpp/releases/latest" 2>/dev/null || true)
-        DL_URL=$(echo "$REL_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]*linux-x64[^"]*\.(zip|tar\.gz)' | head -n 1)
-        if [[ -z "$DL_URL" ]]; then
-            DL_URL=$(echo "$REL_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]*ubuntu-x64[^"]*\.zip' | head -n 1)
+        
+        DL_URL=""
+        RELS_JSON=$(curl -sSL "https://api.github.com/repos/ggml-org/whisper.cpp/releases" 2>/dev/null || true)
+        if [[ -n "$RELS_JSON" ]]; then
+            DL_URL=$(echo "$RELS_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]*bin-ubuntu-x64\.tar\.gz' | head -n 1 || true)
+            if [[ -z "$DL_URL" ]]; then
+                DL_URL=$(echo "$RELS_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]*bin-linux-x64[^"]*\.(tar\.gz|zip)' | head -n 1 || true)
+            fi
         fi
 
         if [[ -n "$DL_URL" ]]; then
@@ -94,13 +106,17 @@ if [[ ! -x "$SERVER_EXE" ]] && ! command -v whisper-server >/dev/null 2>&1; then
             if [[ "$PKG" =~ \.zip$ ]]; then
                 unzip -q -o "$PKG" -d "$BIN_DIR"
             else
-                tar -xzf "$PKG" -C "$BIN_DIR"
+                tar -xzf "$PKG" -C "$BIN_DIR" --strip-components=1 2>/dev/null || tar -xzf "$PKG" -C "$BIN_DIR"
             fi
             rm -f "$PKG"
-            chmod +x "$BIN_DIR"/whisper-* 2>/dev/null || true
+            chmod +x "$BIN_DIR"/whisper-* "$BIN_DIR"/main 2>/dev/null || true
+            if [[ -x "$BIN_DIR/whisper-bin-ubuntu-x64/whisper-server" ]]; then
+                SERVER_EXE="$BIN_DIR/whisper-bin-ubuntu-x64/whisper-server"
+            fi
             log_ok "whisper.cpp installed at $BIN_DIR"
         else
-            log_warn "Could not auto-download prebuilt whisper-server. Ensure whisper-server is in PATH or $BIN_DIR."
+            log_err "Could not find a prebuilt Linux release for whisper.cpp. Ensure whisper-server is in PATH or $BIN_DIR."
+            exit 1
         fi
     fi
 fi
@@ -114,11 +130,11 @@ if [[ ! -f "$MODEL_PATH" ]]; then
     STOCK_URL="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$STOCK_MODEL_FILE"
 
     log_warn "Fine-tuned model not found at $(basename "$MODEL_PATH")"
-    if [[ ! -f "$STOCK_MODEL_PATH" ]]; then
+    if [[ ! -f "$STOCK_MODEL_PATH" || $(stat -c%s "$STOCK_MODEL_PATH" 2>/dev/null || echo 0) -lt 1500000000 ]]; then
         if [[ $DRY_RUN -eq 1 ]]; then
             log_step "[dry-run] Stock model download check skipped"
         else
-            log_step "Downloading stock $STOCK_MODEL_FILE (~1.5 GB)..."
+            log_step "Downloading/resuming stock $STOCK_MODEL_FILE (~1.5 GB)..."
             mkdir -p "$MODELS_DIR"
             curl -L -C - -o "$STOCK_MODEL_PATH" "$STOCK_URL"
             log_ok "Stock model downloaded to $STOCK_MODEL_PATH"
@@ -170,4 +186,5 @@ SERVER_ARGS=(
 )
 
 log_step "Starting whisper-server..."
-exec "$EXEC_CMD" "${SERVER_ARGS[@]}" 2>&1 | tee -a "$LOG_FILE"
+export LD_LIBRARY_PATH="$(dirname "$EXEC_CMD"):${LD_LIBRARY_PATH:-}"
+exec "$EXEC_CMD" "${SERVER_ARGS[@]}"
