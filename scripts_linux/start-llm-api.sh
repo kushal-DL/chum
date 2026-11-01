@@ -118,26 +118,26 @@ if [[ ! -x "$SERVER_EXE" ]] && ! command -v llama-server >/dev/null 2>&1; then
     fi
 fi
 
-# 2. Ensure main model GGUF is present
+# 2. Ensure main model GGUF is present (Qwen 9B is ~6.1 GB)
 MODEL_PATH="$MODELS_DIR/$MODEL_FILE"
-if [[ ! -f "$MODEL_PATH" ]]; then
+if [[ ! -f "$MODEL_PATH" || $(stat -c%s "$MODEL_PATH" 2>/dev/null || echo 0) -lt 5000000000 ]]; then
     if [[ $DRY_RUN -eq 1 ]]; then
         log_step "[dry-run] Model download check skipped for $MODEL_FILE"
     else
-        log_step "Model not found, downloading $MODEL_FILE from $MODEL_REPO..."
+        log_step "Model missing or incomplete, downloading/resuming $MODEL_FILE from $MODEL_REPO..."
         mkdir -p "$MODELS_DIR"
         curl -L -C - -o "$MODEL_PATH" "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE"
         log_ok "Model downloaded to $MODEL_PATH"
     fi
 fi
 
-# 3. Ensure mmproj vision projector is present
+# 3. Ensure mmproj vision projector is present (mmproj is ~918 MB)
 MMPROJ_PATH="$MODELS_DIR/$MMPROJ_FILE"
-if [[ ! -f "$MMPROJ_PATH" ]]; then
+if [[ ! -f "$MMPROJ_PATH" || $(stat -c%s "$MMPROJ_PATH" 2>/dev/null || echo 0) -lt 850000000 ]]; then
     if [[ $DRY_RUN -eq 1 ]]; then
         log_step "[dry-run] mmproj download check skipped for $MMPROJ_FILE"
     else
-        log_step "Vision projector not found, downloading $MMPROJ_FILE from $MODEL_REPO..."
+        log_step "Vision projector missing or incomplete, downloading/resuming $MMPROJ_FILE from $MODEL_REPO..."
         mkdir -p "$MODELS_DIR"
         curl -L -C - -o "$MMPROJ_PATH" "https://huggingface.co/$MODEL_REPO/resolve/main/$MMPROJ_FILE"
         log_ok "mmproj downloaded to $MMPROJ_PATH"

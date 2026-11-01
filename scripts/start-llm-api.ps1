@@ -106,8 +106,8 @@ if (-not (Test-Path $serverExe)) {
 
 # 2. Ensure the main model GGUF is present
 $modelPath = Join-Path $ModelsDir $ModelFile
-if (-not (Test-Path $modelPath)) {
-    Write-Host "Model not found, downloading $ModelFile (~5.8 GB)..." -ForegroundColor Yellow
+if (-not (Test-Path $modelPath) -or (Get-Item $modelPath).Length -lt 5000000000) {
+    Write-Host "Model missing or incomplete, downloading/resuming $ModelFile (~5.8 GB)..." -ForegroundColor Yellow
     New-Item -ItemType Directory -Force -Path $ModelsDir | Out-Null
     curl.exe -L -C - -o $modelPath "https://huggingface.co/$ModelRepo/resolve/main/$ModelFile"
     Write-Host "Model downloaded to $modelPath" -ForegroundColor Green
@@ -115,8 +115,8 @@ if (-not (Test-Path $modelPath)) {
 
 # 3. Ensure the vision projector (mmproj) is present
 $mmprojPath = Join-Path $ModelsDir $MmprojFile
-if (-not (Test-Path $mmprojPath)) {
-    Write-Host "Vision projector not found, downloading $MmprojFile (~880 MB)..." -ForegroundColor Yellow
+if (-not (Test-Path $mmprojPath) -or (Get-Item $mmprojPath).Length -lt 850000000) {
+    Write-Host "Vision projector missing or incomplete, downloading/resuming $MmprojFile (~880 MB)..." -ForegroundColor Yellow
     New-Item -ItemType Directory -Force -Path $ModelsDir | Out-Null
     curl.exe -L -C - -o $mmprojPath "https://huggingface.co/$ModelRepo/resolve/main/$MmprojFile"
     Write-Host "mmproj downloaded to $mmprojPath" -ForegroundColor Green
