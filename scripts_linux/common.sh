@@ -36,6 +36,14 @@ log_info() {
     printf "%s\n" "$*"
 }
 
+# Auto-load .env from repo root if it exists
+_CHUM_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)"
+if [[ -f "$_CHUM_ROOT/.env" ]]; then
+    set -a
+    source "$_CHUM_ROOT/.env" 2>/dev/null || true
+    set +a
+fi
+
 # Resolve LAN IPv4 address
 get_lan_ip() {
     local lan_ip=""
