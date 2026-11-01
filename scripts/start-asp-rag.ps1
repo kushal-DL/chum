@@ -19,7 +19,7 @@ CUSTOM ASP WHEEL PATH:
 param(
     [int]$Port = 8003,
     [string]$AspWheelPath = "",
-    [string]$ApiKey = "llm"
+    [string]$DocsDir = ""
 )
 
 $ErrorActionPreference = "Continue"
@@ -38,11 +38,25 @@ function Bail($msg) {
 # -- Resolve ASP wheel --
 if (-not $AspWheelPath) {
     $candidates = @(
+        (Join-Path $PSScriptRoot "..\..\..\ASP\dist\asp-0.1.0-py3-none-any.whl"),
         (Join-Path $PSScriptRoot "..\..\ASP\dist\asp-0.1.0-py3-none-any.whl"),
         (Join-Path $PSScriptRoot "..\ASP\dist\asp-0.1.0-py3-none-any.whl")
     )
     foreach ($c in $candidates) {
         if (Test-Path $c) { $AspWheelPath = (Resolve-Path $c).Path; break }
+    }
+    if (-not $AspWheelPath) {
+        $distDirs = @(
+            (Join-Path $PSScriptRoot "..\..\..\ASP\dist"),
+            (Join-Path $PSScriptRoot "..\..\ASP\dist"),
+            (Join-Path $PSScriptRoot "..\ASP\dist")
+        )
+        foreach ($d in $distDirs) {
+            if (Test-Path $d) {
+                $whl = Get-ChildItem -Path $d -Filter "asp-*.whl" -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($whl) { $AspWheelPath = $whl.FullName; break }
+            }
+        }
     }
 }
 if (-not $AspWheelPath -or -not (Test-Path $AspWheelPath)) {
@@ -89,9 +103,16 @@ $lanIp = (Get-NetIPAddress -AddressFamily IPv4 |
                    $_.PrefixOrigin -in "Dhcp","Manual" } |
     Select-Object -First 1).IPAddress
 
+if (-not $DocsDir) {
+    $DocsDir = Join-Path $PSScriptRoot "..\rag_docs"
+}
+if (-not (Test-Path $DocsDir)) {
+    New-Item -ItemType Directory -Path $DocsDir -Force | Out-Null
+}
+$env:ASP_RAG_DOCS_DIR = (Resolve-Path $DocsDir).Path
+
 $env:BRIDGE_HOST = "0.0.0.0"
 $env:BRIDGE_PORT = "$Port"
-$env:RAG_API_KEY = $ApiKey
 
 Write-Host ""
 Write-Host "[asp-rag] Bridge starting on port $Port (all interfaces)" -ForegroundColor Green
@@ -100,8 +121,8 @@ if ($lanIp) {
     Write-Host "    http://${lanIp}:$Port" -ForegroundColor White
     Write-Host "[asp-rag] Or use http://127.0.0.1:$Port if Chum runs on this machine." -ForegroundColor Gray
 }
-Write-Host ""
-Write-Host "[asp-rag] Index builds on first POST /index from Chum (fast for small doc sets)." -ForegroundColor Gray
+Write-Host "[asp-rag] Dedicated RAG docs folder: $($env:ASP_RAG_DOCS_DIR)" -ForegroundColor Cyan
+Write-Host "[asp-rag] Auto-indexes documents from docs folder or via Chum desktop client." -ForegroundColor Gray
 Write-Host ""
 
 python asp-rag-api.py

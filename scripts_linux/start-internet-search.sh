@@ -10,7 +10,6 @@ source "$SCRIPT_DIR/common.sh"
 PORT=8002
 CDP=0
 NETWORK_ACCESS=0
-API_KEY="llm"
 DRY_RUN=0
 
 usage() {
@@ -21,7 +20,6 @@ Starts the Google AI Mode image search bridge for Chum on port $PORT.
 
 Options:
   -p, --port <int>        Port to listen on (default: $PORT)
-  -k, --api-key <key>     API key (default: llm)
   --cdp                   Attach to already-running Chrome on port 9222
   -n, --network-access    Bind to 0.0.0.0 so other LAN machines can reach this bridge
   --dry-run               Validate configuration and exit without starting server
@@ -39,8 +37,6 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -p|--port)
             PORT="$2"; shift 2 ;;
-        -k|--api-key)
-            API_KEY="$2"; shift 2 ;;
         --cdp)
             CDP=1; shift ;;
         -n|--network-access)
@@ -85,8 +81,6 @@ else
     export BRIDGE_PORT="$PORT"
 fi
 
-export SEARCH_API_KEY="${API_KEY:-llm}"
-
 if [[ $CDP -eq 1 ]]; then
     printf "${COLOR_GREEN}[internet-search] CDP mode: attaching to Chrome on port 9222${COLOR_RESET}\n"
     printf "${COLOR_YELLOW}[internet-search] Ensure Chrome is running with --remote-debugging-port=9222${COLOR_RESET}\n"
@@ -95,7 +89,6 @@ else
     printf "${COLOR_GREEN}[internet-search] Starting Google AI Search bridge on http://%s:%s${COLOR_RESET}\n" "$BRIDGE_HOST" "$PORT"
     export CDP_URL=""
 fi
-printf "API Key  : %s\n\n" "$SEARCH_API_KEY"
 
 if [[ $DRY_RUN -eq 1 ]]; then
     log_ok "[dry-run] Google AI Search bridge verified successfully."

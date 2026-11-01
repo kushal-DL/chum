@@ -27,24 +27,12 @@ import base64
 import os
 import tempfile
 from contextlib import asynccontextmanager
-from typing import Optional
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
-
-SEARCH_API_KEY = os.environ.get("SEARCH_API_KEY", "llm")
-_security = HTTPBearer(auto_error=False)
-
-
-def _check_auth(creds: Optional[HTTPAuthorizationCredentials] = Depends(_security)) -> None:
-    if not SEARCH_API_KEY:
-        return
-    if creds is None or creds.credentials != SEARCH_API_KEY:
-        raise HTTPException(401, "Unauthorized")
 
 # Persistent profile folder (saves cookies / Google trust across restarts)
 SESSION_DIR = Path(__file__).parent / "google-session"
@@ -346,7 +334,7 @@ def _cleanup_temp(paths: list[str]) -> None:
             pass
 
 
-@app.post("/image", dependencies=[Depends(_check_auth)])
+@app.post("/image")
 async def search_image(req: ImageRequest):
     if _page is None:
         raise HTTPException(503, "Browser not ready")
@@ -359,7 +347,7 @@ async def search_image(req: ImageRequest):
             _cleanup_temp(paths)
 
 
-@app.post("/images", dependencies=[Depends(_check_auth)])
+@app.post("/images")
 async def search_images(req: ImagesRequest):
     if _page is None:
         raise HTTPException(503, "Browser not ready")

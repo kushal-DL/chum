@@ -27,8 +27,7 @@ RUNNING ON A SEPARATE MACHINE (LAN):
 param(
     [switch]$Cdp,           # Attach to already-running Chrome on port 9222
     [switch]$NetworkAccess, # Bind to 0.0.0.0 so other LAN machines can reach this bridge
-    [int]$Port = 8002,
-    [string]$ApiKey = "llm"
+    [int]$Port = 8002
 )
 
 $ErrorActionPreference = "Continue"
@@ -97,7 +96,6 @@ if ($NetworkAccess) {
     $env:BRIDGE_HOST = "127.0.0.1"
     $env:BRIDGE_PORT = "$Port"
 }
-$env:SEARCH_API_KEY = $ApiKey
 
 # -- Launch --
 Write-Host ""

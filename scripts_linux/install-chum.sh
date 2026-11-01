@@ -347,11 +347,8 @@ CONFIG_FILE="$APP_INSTALL_DIR/config.json"
 if [[ ! -f "$CONFIG_FILE" ]]; then
     cat <<'EOF' > "$CONFIG_FILE"
 {
-  "AnthropicApiKey": "llm",
-  "OpenAiApiKey": "llm",
-  "CloudSttApiKey": "llm",
-  "InternetSearchApiKey": "llm",
-  "RagApiKey": "llm"
+  "AnthropicApiKey": "",
+  "OpenAiApiKey": ""
 }
 EOF
     chmod 664 "$CONFIG_FILE" 2>/dev/null || true

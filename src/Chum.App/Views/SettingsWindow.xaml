@@ -362,20 +362,27 @@
                        Style="{StaticResource Hint}" Margin="16,2,0,0"/>
 
             <!-- Document Context -->
-            <Label Content="DOCUMENT CONTEXT" Style="{StaticResource SectionHeader}"/>
-            <TextBlock Text="Attach documents so Chum can reference them when answering questions."
+            <Label Content="DOCUMENT CONTEXT &amp; ASP RAG" Style="{StaticResource SectionHeader}"/>
+            <TextBlock Text="Attach documents or directories. When ASP RAG is enabled, files and subfolders are chunked for semantic search."
                        Style="{StaticResource Hint}" Margin="0,0,0,6"/>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                <Button Content="Add PDF / TXT file…" Padding="10,5"
+            <WrapPanel Margin="0,0,0,6">
+                <Button Content="Add File(s)…" Padding="8,4"
                         Background="#F3F4F6" Foreground="#374151" BorderBrush="#D1D5DB" BorderThickness="1"
-                        Click="AddDocument_Click" Margin="0,0,8,0"/>
-                <Button Content="Remove selected" Padding="10,5"
+                        Click="AddDocument_Click" Margin="0,0,6,4"/>
+                <Button Content="Add Folder…" Padding="8,4"
+                        Background="#F3F4F6" Foreground="#374151" BorderBrush="#D1D5DB" BorderThickness="1"
+                        Click="AddFolder_Click" Margin="0,0,6,4"/>
+                <Button Content="Remove selected" Padding="8,4"
                         Background="#FEF2F2" Foreground="#DC2626" BorderBrush="#FCA5A5" BorderThickness="1"
-                        Click="RemoveDocument_Click"/>
-            </StackPanel>
-            <ListBox x:Name="DocumentList" Height="80" Background="White" BorderBrush="#D1D5DB"
+                        Click="RemoveDocument_Click" Margin="0,0,6,4"/>
+                <Button Content="Clear All / Clean RAG" Padding="8,4"
+                        Background="#FEF2F2" Foreground="#DC2626" BorderBrush="#FCA5A5" BorderThickness="1"
+                        Click="ClearAllRag_Click" Margin="0,0,0,4"/>
+            </WrapPanel>
+            <ListBox x:Name="DocumentList" Height="90" Background="White" BorderBrush="#D1D5DB"
                      BorderThickness="1" FontSize="11" Foreground="#374151"/>
-            <TextBlock Text="Stored in %APPDATA%\Chum\documents.json — included in every LLM query."
+            <TextBlock x:Name="DocumentCountText" Text="0 documents loaded." FontSize="10" Foreground="#6B7280" Margin="0,2,0,0"/>
+            <TextBlock Text="Stored in %APPDATA%\Chum\documents.json — automatically synced to ASP RAG bridge when configured."
                        Style="{StaticResource Hint}"/>
 
             <!-- Buttons -->

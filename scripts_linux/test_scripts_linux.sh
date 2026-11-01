@@ -60,6 +60,7 @@ ALL_SH_SCRIPTS=(
     "$SCRIPT_DIR/stop-internet-search.sh"
     "$SCRIPT_DIR/stop-qwen.sh"
     "$SCRIPT_DIR/stop-whisper.sh"
+    "$SCRIPT_DIR/clean-rag-data.sh"
     "$SCRIPT_DIR/whisper-finetune/run-finetune.sh"
 )
 
@@ -219,6 +220,29 @@ if [[ $code -eq 0 && "$out" =~ "ASP RAG bridge configuration verified" ]]; then
     report_pass "TC-START-01B: start-asp-rag.sh dry-run passed with custom port and wheel"
 else
     report_fail "TC-START-01B: start-asp-rag.sh dry-run failed" "$out"
+fi
+
+# Check dry run with custom docs dir
+TMP_WHL=$(mktemp /tmp/asp-test-XXXX.whl)
+touch "$TMP_WHL"
+TMP_DOCS=$(mktemp -d /tmp/rag-docs-test-XXXX)
+out=$("$SCRIPT_DIR/start-asp-rag.sh" --port 8083 --asp-wheel-path "$TMP_WHL" --docs-dir "$TMP_DOCS" --dry-run 2>&1)
+code=$?
+rm -f "$TMP_WHL"
+rm -rf "$TMP_DOCS"
+if [[ $code -eq 0 && "$out" =~ "Dedicated RAG docs folder" ]]; then
+    report_pass "TC-START-01C: start-asp-rag.sh dry-run accepted custom --docs-dir"
+else
+    report_fail "TC-START-01C: start-asp-rag.sh dry-run with --docs-dir failed" "$out"
+fi
+
+# TC-CLEAN-01: clean-rag-data.sh dry run
+out=$("$SCRIPT_DIR/clean-rag-data.sh" --port 8083 --dry-run 2>&1)
+code=$?
+if [[ $code -eq 0 && "$out" =~ "clean-rag-data configuration verified" ]]; then
+    report_pass "TC-CLEAN-01: clean-rag-data.sh dry-run passed and validated target URL"
+else
+    report_fail "TC-CLEAN-01: clean-rag-data.sh dry-run failed" "$out"
 fi
 
 # TC-START-02: start-internet-search.sh

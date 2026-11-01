@@ -24,7 +24,7 @@ import urllib.request
 from PIL import ImageGrab, Image
 
 API_URL = "http://127.0.0.1:8001/v1/chat/completions"
-API_KEY = "llm"
+API_KEY = "chum-llm-key-2026"
 JPEG_QUALITY = 85
 MAX_WIDTH = 1280
 

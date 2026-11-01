@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/common.sh"
 
 PORT=8003
 ASP_WHEEL_PATH=""
-API_KEY="llm"
+DOCS_DIR="${SCRIPT_DIR}/../rag_docs"
 DRY_RUN=0
 
 usage() {
@@ -20,8 +20,8 @@ Starts the ASP RAG bridge for Chum on port $PORT (binds 0.0.0.0 by default).
 
 Options:
   -p, --port <int>             Port to listen on (default: $PORT)
-  -k, --api-key <key>          API key (default: llm)
   -w, --asp-wheel-path <path>  Path to asp-*.whl package
+  -d, --docs-dir <path>        Dedicated directory for RAG documents (default: ../rag_docs)
   --dry-run                    Verify configuration without starting the bridge
   -h, --help                   Show this help message and exit
 EOF
@@ -33,10 +33,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -p|--port)
             PORT="$2"; shift 2 ;;
-        -k|--api-key)
-            API_KEY="$2"; shift 2 ;;
         -w|--asp-wheel-path)
             ASP_WHEEL_PATH="$2"; shift 2 ;;
+        -d|--docs-dir)
+            DOCS_DIR="$2"; shift 2 ;;
         --dry-run)
             DRY_RUN=1; shift ;;
         -h|--help)
@@ -54,6 +54,7 @@ log_ok "Python ready: $($PY_CMD --version) ($PY_CMD)"
 # 1. Resolve ASP wheel
 if [[ -z "$ASP_WHEEL_PATH" ]]; then
     CANDIDATES=(
+        "$SCRIPT_DIR/../../../ASP/dist"
         "$SCRIPT_DIR/../../ASP/dist"
         "$SCRIPT_DIR/../ASP/dist"
         "$SCRIPT_DIR/ASP/dist"
@@ -93,16 +94,18 @@ kill_port_process "$PORT" "ASP RAG bridge" 2
 LAN_IP=$(get_lan_ip)
 export BRIDGE_HOST="0.0.0.0"
 export BRIDGE_PORT="$PORT"
-export RAG_API_KEY="${API_KEY:-llm}"
+
+mkdir -p "$DOCS_DIR"
+export ASP_RAG_DOCS_DIR="$(cd "$DOCS_DIR" 2>/dev/null && pwd || echo "$DOCS_DIR")"
 
 printf "\n${COLOR_GREEN}[asp-rag] Bridge starting on port %s (all interfaces)${COLOR_RESET}\n" "$PORT"
-printf "API Key  : %s\n" "$RAG_API_KEY"
 if [[ -n "$LAN_IP" ]]; then
     printf "${COLOR_CYAN}[asp-rag] Set Chum's ASP RAG Bridge URL to:${COLOR_RESET}\n"
     printf "    ${COLOR_WHITE}http://%s:%s${COLOR_RESET}\n" "$LAN_IP" "$PORT"
     printf "${COLOR_GRAY}[asp-rag] Or use http://127.0.0.1:%s if Chum runs on this machine.${COLOR_RESET}\n" "$PORT"
 fi
-printf "${COLOR_GRAY}[asp-rag] Index builds on first POST /index from Chum.${COLOR_RESET}\n\n"
+printf "${COLOR_CYAN}[asp-rag] Dedicated RAG docs folder:${COLOR_RESET} %s\n" "$ASP_RAG_DOCS_DIR"
+printf "${COLOR_GRAY}[asp-rag] Auto-indexes documents from docs folder or via Chum desktop client.${COLOR_RESET}\n\n"
 
 if [[ $DRY_RUN -eq 1 ]]; then
     log_ok "[dry-run] ASP RAG bridge configuration verified."

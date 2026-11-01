@@ -31,7 +31,7 @@ public sealed class ConfigFileService
 
     public string? AnthropicApiKey
     {
-        get => string.IsNullOrWhiteSpace(_data.AnthropicApiKey) ? "llm" : _data.AnthropicApiKey;
+        get => string.IsNullOrWhiteSpace(_data.AnthropicApiKey) ? null : _data.AnthropicApiKey;
         set
         {
             _data = _data with { AnthropicApiKey = value?.Trim() ?? string.Empty };
@@ -41,7 +41,7 @@ public sealed class ConfigFileService
 
     public string? OpenAiApiKey
     {
-        get => string.IsNullOrWhiteSpace(_data.OpenAiApiKey) ? "llm" : _data.OpenAiApiKey;
+        get => string.IsNullOrWhiteSpace(_data.OpenAiApiKey) ? null : _data.OpenAiApiKey;
         set
         {
             _data = _data with { OpenAiApiKey = value?.Trim() ?? string.Empty };
@@ -51,7 +51,7 @@ public sealed class ConfigFileService
 
     public string? CloudSttApiKey
     {
-        get => string.IsNullOrWhiteSpace(_data.CloudSttApiKey) ? "llm" : _data.CloudSttApiKey;
+        get => string.IsNullOrWhiteSpace(_data.CloudSttApiKey) ? null : _data.CloudSttApiKey;
         set
         {
             _data = _data with { CloudSttApiKey = value?.Trim() ?? string.Empty };
@@ -61,7 +61,7 @@ public sealed class ConfigFileService
 
     public string? InternetSearchApiKey
     {
-        get => string.IsNullOrWhiteSpace(_data.InternetSearchApiKey) ? "llm" : _data.InternetSearchApiKey;
+        get => string.IsNullOrWhiteSpace(_data.InternetSearchApiKey) ? null : _data.InternetSearchApiKey;
         set
         {
             _data = _data with { InternetSearchApiKey = value?.Trim() ?? string.Empty };
@@ -71,7 +71,7 @@ public sealed class ConfigFileService
 
     public string? RagApiKey
     {
-        get => string.IsNullOrWhiteSpace(_data.RagApiKey) ? "llm" : _data.RagApiKey;
+        get => string.IsNullOrWhiteSpace(_data.RagApiKey) ? null : _data.RagApiKey;
         set
         {
             _data = _data with { RagApiKey = value?.Trim() ?? string.Empty };
@@ -94,9 +94,9 @@ public sealed class ConfigFileService
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     private record ConfigData(
-        string AnthropicApiKey = "llm",
-        string OpenAiApiKey = "llm",
-        string CloudSttApiKey = "llm",
-        string InternetSearchApiKey = "llm",
-        string RagApiKey = "llm");
+        string AnthropicApiKey = "",
+        string OpenAiApiKey = "",
+        string CloudSttApiKey = "",
+        string InternetSearchApiKey = "",
+        string RagApiKey = "");
 }

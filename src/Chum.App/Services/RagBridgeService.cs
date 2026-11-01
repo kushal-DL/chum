@@ -95,6 +95,34 @@ public sealed class RagBridgeService
         }
     }
 
+    /// <summary>
+    /// Calls POST /clean on the ASP RAG bridge to clear in-memory indexes, chunks, and staged documents.
+    /// </summary>
+    public async Task<bool> ClearBridgeDataAsync()
+    {
+        var url = _settings.Current.RagBridgeUrl;
+        if (string.IsNullOrWhiteSpace(url)) return true;
+
+        try
+        {
+            var payload = new
+            {
+                namespaces = new[] { "chum_docs", "chum_session" },
+                clean_staging = true
+            };
+            using var req = BuildRequest(HttpMethod.Post, url.TrimEnd('/') + "/clean", payload);
+            using var resp = await _http.SendAsync(req);
+            resp.EnsureSuccessStatusCode();
+            Log.Information("RAG bridge data cleaned successfully");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to call /clean on RAG bridge");
+            return false;
+        }
+    }
+
     private HttpRequestMessage BuildRequest(HttpMethod method, string url, object? body)
     {
         var msg = new HttpRequestMessage(method, url);

@@ -572,6 +572,7 @@ public partial class SettingsWindow : Window
         DocumentList.Items.Clear();
         foreach (var doc in _docContext.Documents)
             DocumentList.Items.Add(doc.Name);
+        DocumentCountText.Text = $"{_docContext.Documents.Count} document chunk{(_docContext.Documents.Count == 1 ? "" : "s")} loaded.";
     }
 
     private void AddDocument_Click(object sender, RoutedEventArgs e)
@@ -579,7 +580,7 @@ public partial class SettingsWindow : Window
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
             Title = "Add Reference Document",
-            Filter = "Supported files (*.pdf;*.txt;*.md)|*.pdf;*.txt;*.md|All files (*.*)|*.*",
+            Filter = "Supported files (*.pdf;*.txt;*.md;*.py;*.html;*.cs;*.js;*.ts;*.json;*.csv;*.yaml;*.*)|*.pdf;*.txt;*.md;*.markdown;*.rst;*.log;*.py;*.pyi;*.html;*.htm;*.css;*.js;*.jsx;*.ts;*.tsx;*.cs;*.xaml;*.c;*.cpp;*.cc;*.cxx;*.h;*.hpp;*.rs;*.go;*.java;*.kt;*.sql;*.graphql;*.sh;*.bash;*.ps1;*.bat;*.cmd;*.json;*.csv;*.yaml;*.yml;*.toml;*.xml;*.ini|All files (*.*)|*.*",
             Multiselect = true
         };
         if (dlg.ShowDialog() != true) return;
@@ -592,11 +593,89 @@ public partial class SettingsWindow : Window
         RefreshDocumentList();
     }
 
+    private void AddFolder_Click(object sender, RoutedEventArgs e)
+    {
+        string? selectedPath = null;
+        try
+        {
+            var dlg = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = "Select Directory for RAG Context",
+                Multiselect = false
+            };
+            if (dlg.ShowDialog() == true)
+            {
+                selectedPath = dlg.FolderName;
+            }
+        }
+        catch
+        {
+            using var fbd = new System.Windows.Forms.FolderBrowserDialog
+            {
+                Description = "Select Directory for RAG Context",
+                UseDescriptionForTitle = true,
+                ShowNewFolderButton = false
+            };
+            if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                selectedPath = fbd.SelectedPath;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(selectedPath)) return;
+
+        var (added, errors) = _docContext.AddDirectory(selectedPath, recursive: true);
+        RefreshDocumentList();
+
+        if (errors.Count > 0 && added == 0)
+        {
+            System.Windows.MessageBox.Show(
+                $"No supported documents found or errors encountered:\n{string.Join("\n", errors.Take(5))}",
+                "Chum — Add Folder",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
+        }
+        else if (errors.Count > 0)
+        {
+            System.Windows.MessageBox.Show(
+                $"Added {added} document chunks. (Some files had errors:\n{string.Join("\n", errors.Take(3))})",
+                "Chum — Add Folder",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+        }
+    }
+
     private void RemoveDocument_Click(object sender, RoutedEventArgs e)
     {
         int idx = DocumentList.SelectedIndex;
         if (idx < 0) return;
         _docContext.RemoveAt(idx);
         RefreshDocumentList();
+    }
+
+    private async void ClearAllRag_Click(object sender, RoutedEventArgs e)
+    {
+        var result = System.Windows.MessageBox.Show(
+            "Clear all documents from memory and clean remote RAG bridge chunks?",
+            "Chum — Clean RAG Data",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+
+        if (result != System.Windows.MessageBoxResult.Yes) return;
+
+        _docContext.ClearAll();
+        RefreshDocumentList();
+
+        var app = (App)Application.Current;
+        if (app.Rag is not null)
+        {
+            await app.Rag.ClearBridgeDataAsync();
+        }
+
+        System.Windows.MessageBox.Show(
+            "All RAG documents, chunks, and indexes have been cleared.",
+            "Chum — Clean RAG Data",
+            System.Windows.MessageBoxButton.OK,
+            System.Windows.MessageBoxImage.Information);
     }
 }

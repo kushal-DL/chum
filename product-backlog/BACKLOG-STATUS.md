@@ -126,7 +126,7 @@ Each story is attributed to the project where its primary implementation lives.
 | US-03-07 | Cost Estimation & Token Tracking | P2 | ✅ Done (Built & Tested) | 3 | UsageRecorded event on ILlmProvider; SessionCostTracker; cost hint in overlay status bar + About dialog; spend threshold warning |
 | US-03-08 | Prompt Templates Library | P2 | ✅ Done (Built & Tested) | 3 | PromptTemplate record; TemplateService (JSON storage); 5 built-ins; Ctrl+Alt+1–5 hotkeys; settings CRUD; passed to BuildSystemPrompt |
 | US-03-09 | OpenAI-Compatible Endpoint Support | P0 | ✅ Done (Built & Tested) | 4 | OpenAiLlmProvider accepts optional baseUrl; NVIDIA NIM at integrate.api.nvidia.com/v1 and any custom endpoint supported |
-| US-03-10 | Document Context in LLM Requests | P1 | ✅ Done (Built & Tested) | 4 | DocumentContextService loads PDF/TXT/MD; builds formatted context block injected into LLM system prompt |
+| US-03-10 | Document Context in LLM Requests | P1 | ✅ Done (Built & Tested) | 4 | DocumentContextService loads PDF/TXT/MD/JSON/CSV; recursive folder ingestion with chunking; ASP RAG bridge dedicated folder & clean-rag-data pipeline |
 
 **Epic 03 Total:** 38 SP · 38 Done · 0 Built · 0 Scaffolded · 0 Yet to Start
 

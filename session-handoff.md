@@ -45,8 +45,29 @@ User presses `Ctrl+Alt+A` near meeting end. Chum sends the full session transcri
 
 ## Current Status
 
-**Date of last update:** 2026-08-17  
-**Phase:** 🔬 STT research — Whisper LoRA fine-tune COMPLETE. Fine-tuned model saved and wired into whisper_api_server.py.
+**Date of last update:** 2026-11-01  
+**Phase:** 🚀 ASP RAG & Document Management — Dedicated RAG docs directory, recursive folder ingestion, chunking, and zero-footprint clean-rag-data pipeline implemented.
+
+### What Was Done Session 64 (2026-11-01) — ASP RAG Folder Ingestion & Clean Pipeline
+
+1. **Dedicated Host Documents Directory (`rag_docs/`):**
+   - Created `rag_docs/` with `README.md` and `.gitkeep` at repo root.
+   - Updated `.gitignore` to prevent user documents from being checked into git.
+   - `start-asp-rag.sh` and `start-asp-rag.ps1` accept `-d, --docs-dir <path>` (defaults to `rag_docs/`) and set `$ASP_RAG_DOCS_DIR`.
+   - On startup, `asp-rag-api.py` scans the folder recursively, chunks long documents (1200 chars / 200 overlap), and auto-builds the `chum_docs` vector index.
+
+2. **Recursive Folder Ingestion (Desktop App & Host):**
+   - **Host:** Added `POST /index-dir` and `GET /docs-dir` endpoints to `asp-rag-api.py`. Supports recursive traversal across all subfolders (`.pdf`, `.txt`, `.md`, `.json`, `.csv`, `.log`, etc.).
+   - **Desktop App:**
+     - Extended `DocumentContextService.cs`: `AddDirectory(string dirPath, bool recursive = true)` reads all supported files in nested subdirectories, extracts text (PDF via PdfPig), chunks long passages, and increases limit to 1000 items. Added `ClearAll()`.
+     - Extended `RagBridgeService.cs`: Added `ClearBridgeDataAsync()`.
+     - Extended `SettingsWindow.xaml` and `SettingsWindow.xaml.cs`: Added "Add Folder…" button with `OpenFolderDialog` / `FolderBrowserDialog` and "Clear All / Clean RAG" button with confirmation modal.
+
+3. **Zero-Footprint Cleanup Pipeline (`clean-rag-data`):**
+   - Added `POST /clean` endpoint in `asp-rag-api.py` that purges in-memory vector index, resets doc corpus, and removes any staged files.
+   - Created `scripts_linux/clean-rag-data.sh` and `scripts/clean-rag-data.ps1`.
+   - Verified that when documents are sent from desktop app, they live ephemerally on the host and running `clean-rag-data` purges all in-memory indexes and staged files completely.
+   - All 27 tests in `scripts_linux/test_scripts_linux.sh` passing.
 
 ### What Was Done Session 63 (2026-08-17) — Whisper LoRA fine-tune completed
 
