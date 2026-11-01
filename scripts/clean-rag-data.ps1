@@ -10,7 +10,7 @@ RUNNING CLEANUP:
 param(
     [int]$Port = 8003,
     [string]$Url = "",
-    [string]$ApiKey = $env:RAG_API_KEY,
+    [string]$ApiKey = if ($env:RAG_API_KEY) { $env:RAG_API_KEY } else { "llm" },
     [switch]$CleanDocsDir = $false,
     [switch]$DryRun = $false
 )

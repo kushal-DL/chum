@@ -404,8 +404,11 @@ $configPath = Join-Path $AppInstallDir 'config.json'
 if (-not (Test-Path $configPath)) {
     @'
 {
-  "AnthropicApiKey": "",
-  "OpenAiApiKey": ""
+  "AnthropicApiKey": "llm",
+  "OpenAiApiKey": "llm",
+  "CloudSttApiKey": "llm",
+  "InternetSearchApiKey": "llm",
+  "RagApiKey": "llm"
 }
 '@ | Out-File -FilePath $configPath -Encoding utf8 -NoNewline
 }

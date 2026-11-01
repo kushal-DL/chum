@@ -69,7 +69,7 @@ except ImportError as err:
     print(f"[asp-rag] Note: ASP library import returned: {err}. Operating with native fallback.", flush=True)
 
 MODEL_NAME = os.environ.get("ASP_VECTOR_EMBED_MODEL", "BAAI/bge-small-en-v1.5")
-RAG_API_KEY = os.environ.get("RAG_API_KEY", "")
+RAG_API_KEY = os.environ.get("RAG_API_KEY", "llm")
 
 # Dedicated RAG docs directory (defaults to ../rag_docs if present)
 _DEFAULT_DOCS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "rag_docs"))

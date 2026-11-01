@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/common.sh"
 
 PORT=8003
 URL=""
-API_KEY="${RAG_API_KEY:-}"
+API_KEY="${RAG_API_KEY:-llm}"
 CLEAN_DOCS_DIR=0
 DRY_RUN=0
 
@@ -23,7 +23,7 @@ ASP RAG bridge, ensuring zero persistent retention on the host.
 Options:
   -p, --port <int>             Port of ASP RAG bridge (default: $PORT)
   -u, --url <url>              Full bridge URL (default: http://127.0.0.1:<port>)
-  -k, --api-key <key>          RAG bridge API key (or set RAG_API_KEY env)
+  -k, --api-key <key>          RAG bridge API key (default: llm, or set RAG_API_KEY env)
       --clean-docs-dir         Also purge documents in the dedicated rag_docs directory
       --dry-run                Verify configuration without cleaning
   -h, --help                   Show this help message and exit

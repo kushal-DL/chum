@@ -49,7 +49,7 @@ param(
     [string]$Model  = "F:\repos\chum\local-llm\models\ggml-whisper-large-v3-turbo-tech-f16.bin",
     [int]$Threads   = 4,
     [string]$Language = "en",
-    [string]$ApiKey = "",
+    [string]$ApiKey = "llm",
     [switch]$NoAuth
 )
 

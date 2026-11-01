@@ -14,7 +14,7 @@ PORT=8000
 MODEL_PATH="$REPO_ROOT/local-llm/models/ggml-whisper-large-v3-turbo-tech-f16.bin"
 THREADS=4
 LANGUAGE="en"
-API_KEY=""
+API_KEY="llm"
 NO_AUTH=0
 BIN_DIR="$REPO_ROOT/local-llm/whisper.cpp/bin"
 LLAMA_DIR="$REPO_ROOT/local-llm/llama.cpp"
@@ -32,7 +32,7 @@ Options:
   -m, --model <path>      Path to ggml Whisper model (default: $MODEL_PATH)
   -t, --threads <int>     CPU threads for processing (default: $THREADS)
   -l, --language <lang>   Spoken language (default: $LANGUAGE, or 'auto')
-  -k, --api-key <key>     API key (accepted for CLI parity, not enforced)
+  -k, --api-key <key>     API key (default: llm)
   --no-auth               Disable authentication
   --bin-dir <dir>         whisper.cpp bin directory (default: $BIN_DIR)
   --dry-run               Validate configuration without starting server
@@ -157,6 +157,7 @@ printf "Endpoint : POST /v1/audio/transcriptions\n"
 printf "Model    : %s\n" "$(basename "$ACTIVE_MODEL")"
 printf "Threads  : %s\n" "$THREADS"
 printf "Language : %s\n" "$LANGUAGE"
+printf "API Key  : %s\n" "${API_KEY:-llm}"
 printf "${COLOR_CYAN}=======================================${COLOR_RESET}\n\n"
 
 if [[ $DRY_RUN -eq 1 ]]; then

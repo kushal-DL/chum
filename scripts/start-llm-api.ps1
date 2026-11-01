@@ -124,7 +124,7 @@ if (-not (Test-Path $mmprojPath) -or (Get-Item $mmprojPath).Length -lt 850000000
 
 # 4. Banner
 $thinkingLabel = if ($EnableThinking) { "ON" } else { "OFF (fast mode)" }
-$keyLabel      = if ($NoAuth) { "(none - auth disabled)" } else { if ($ApiKey) { $ApiKey } else { "chum-llm-key-2026 (default)" } }
+$keyLabel      = if ($NoAuth) { "(none - auth disabled)" } else { if ($ApiKey) { $ApiKey } else { "llm (default)" } }
 
 # Open firewall so other machines on the LAN can reach this server.
 #     Only needed once — UAC prompt appears the first time, rule persists forever.
@@ -171,6 +171,7 @@ $launchScript = Join-Path $PSScriptRoot "start-llm.py"
 $pyArgs = @("--port", $Port, "--host", "0.0.0.0")
 if ($NoAuth)         { $pyArgs += "--no-auth" }
 elseif ($ApiKey)     { $pyArgs += @("--api-key", $ApiKey) }
+else                 { $pyArgs += @("--api-key", "llm") }
 if ($EnableThinking) { $pyArgs += "--thinking" }
 
 python $launchScript @pyArgs

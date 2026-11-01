@@ -19,7 +19,8 @@ CUSTOM ASP WHEEL PATH:
 param(
     [int]$Port = 8003,
     [string]$AspWheelPath = "",
-    [string]$DocsDir = ""
+    [string]$DocsDir = "",
+    [string]$ApiKey = "llm"
 )
 
 $ErrorActionPreference = "Continue"
@@ -113,6 +114,7 @@ $env:ASP_RAG_DOCS_DIR = (Resolve-Path $DocsDir).Path
 
 $env:BRIDGE_HOST = "0.0.0.0"
 $env:BRIDGE_PORT = "$Port"
+$env:RAG_API_KEY = $ApiKey
 
 Write-Host ""
 Write-Host "[asp-rag] Bridge starting on port $Port (all interfaces)" -ForegroundColor Green
