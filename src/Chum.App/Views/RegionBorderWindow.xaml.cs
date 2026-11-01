@@ -24,7 +24,9 @@ public partial class RegionBorderWindow : Window
 
     private const int GWL_EXSTYLE = -20;
     private const int WS_EX_TRANSPARENT = 0x00000020;
-    private const int WS_EX_LAYERED = 0x00080000;
+    private const int WS_EX_LAYERED     = 0x00080000;
+    private const int WS_EX_NOACTIVATE  = 0x08000000;
+    private const int WS_EX_TOOLWINDOW  = 0x00000080;
     private static readonly IntPtr HWND_TOPMOST = new(-1);
     private const uint SWP_NOACTIVATE = 0x0010;
 
@@ -40,9 +42,9 @@ public partial class RegionBorderWindow : Window
         base.OnSourceInitialized(e);
         var hwnd = new WindowInteropHelper(this).Handle;
 
-        // Make the window click-through at Win32 level (WPF IsHitTestVisible alone isn't enough)
+        // Make the window click-through, non-activating, and hidden from Alt+Tab
         var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
 
         // Exclude from every screen capture / share — GPU-level, universal across all apps
         SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);

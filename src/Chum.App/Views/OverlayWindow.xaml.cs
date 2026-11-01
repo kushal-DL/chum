@@ -33,6 +33,8 @@ public partial class OverlayWindow : Window
     private const int GWL_EXSTYLE       = -20;
     private const int WS_EX_NOACTIVATE  = 0x08000000;
     private const int WS_EX_TOOLWINDOW  = 0x00000080;
+    private const int WM_MOUSEACTIVATE  = 0x0021;
+    private const int MA_NOACTIVATE     = 3; // Do not activate, but pass mouse event through to control
 
     private bool _isResizing;
     private System.Windows.Point _resizeDragStart;
@@ -100,8 +102,23 @@ public partial class OverlayWindow : Window
         int exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
         SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
 
+        // Subclass window procedure to intercept WM_MOUSEACTIVATE and suppress focus shift
+        var source = HwndSource.FromHwnd(hwnd);
+        source?.AddHook(WndProc);
+
         PositionInBottomRight();
         ApplyCaptureExclusion();
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_MOUSEACTIVATE)
+        {
+            // MA_NOACTIVATE: Do not activate this window, but still deliver click to the child controls
+            handled = true;
+            return new IntPtr(MA_NOACTIVATE);
+        }
+        return IntPtr.Zero;
     }
 
     /// <summary>
