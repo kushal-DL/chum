@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+if [ -z "${BASH_VERSION:-}" ]; then
+    exec bash "$0" "$@"
+fi
+
 # ==============================================================================
 # clean-rag-data.sh — Purges in-memory RAG indexes, chunks, and staged documents
 # ==============================================================================
@@ -11,6 +15,7 @@ PORT=8003
 URL=""
 API_KEY="${RAG_API_KEY:-llm}"
 CLEAN_DOCS_DIR=0
+PAUSE=0
 DRY_RUN=0
 
 usage() {
@@ -25,6 +30,7 @@ Options:
   -u, --url <url>              Full bridge URL (default: http://127.0.0.1:<port>)
   -k, --api-key <key>          RAG bridge API key (default: llm, or set RAG_API_KEY env)
       --clean-docs-dir         Also purge documents in the dedicated rag_docs directory
+      --pause                  Wait for Enter keypress before exiting (useful for GUI launchers)
       --dry-run                Verify configuration without cleaning
   -h, --help                   Show this help message and exit
 EOF
@@ -42,6 +48,8 @@ while [[ $# -gt 0 ]]; do
             API_KEY="$2"; shift 2 ;;
         --clean-docs-dir)
             CLEAN_DOCS_DIR=1; shift ;;
+        --pause)
+            PAUSE=1; shift ;;
         --dry-run)
             DRY_RUN=1; shift ;;
         -h|--help)
@@ -86,14 +94,25 @@ fi
 
 # 2. Clean local staging directory
 if [[ -d "$STAGING_DIR" ]]; then
-    rm -rf "${STAGING_DIR:?}"/*
+    rm -rf "${STAGING_DIR:?}"/* 2>/dev/null || true
     log_ok "Removed staged files from $STAGING_DIR"
 fi
 
 # 3. Clean dedicated docs directory if explicitly requested
 if [[ $CLEAN_DOCS_DIR -eq 1 && -d "$DOCS_DIR" ]]; then
-    find "$DOCS_DIR" -mindepth 1 -not -name "README.md" -not -name ".gitkeep" -delete
+    for item in "$DOCS_DIR"/* "$DOCS_DIR"/.*; do
+        base="${item##*/}"
+        if [[ "$base" == "." || "$base" == ".." || "$base" == "README.md" || "$base" == ".gitkeep" || "$base" == "*" ]]; then
+            continue
+        fi
+        rm -rf "$item" 2>/dev/null || true
+    done
     log_ok "Purged files in dedicated docs directory ($DOCS_DIR)"
 fi
 
 log_ok "RAG cleanup completed. Zero persistent document chunks remaining on host."
+
+if [[ $PAUSE -eq 1 ]]; then
+    printf "\n${COLOR_GRAY}Press Enter to close...${COLOR_RESET}"
+    read -r _ || true
+fi
