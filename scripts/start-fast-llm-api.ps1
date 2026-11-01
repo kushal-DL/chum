@@ -136,7 +136,7 @@ if (-not $lanIp) {
 }
 if (-not $lanIp) { $lanIp = "<your-lan-ip>" }
 
-$keyLabel = if ($NoAuth) { "(none - auth disabled)" } else { if ($ApiKey) { $ApiKey } else { "chum-llm-key-2026 (default)" } }
+$keyLabel = if ($NoAuth) { "(none - auth disabled)" } else { if ($ApiKey) { $ApiKey } else { "llm (default)" } }
 
 # 4. Banner
 Write-Host ""
@@ -164,6 +164,7 @@ $pyArgs = @(
 )
 if ($NoAuth)      { $pyArgs += "--no-auth" }
 elseif ($ApiKey)  { $pyArgs += @("--api-key", $ApiKey) }
+else              { $pyArgs += @("--api-key", "llm") }
 
 python $launchScript @pyArgs
 $code = $LASTEXITCODE

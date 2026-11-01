@@ -32,7 +32,7 @@ from asp.retrieval.vector.vector_retriever import RetrievalContext, build_index,
 import asp.retrieval.vector.arms  # noqa: F401 — registers all built-in arms
 
 MODEL_NAME = os.environ.get("ASP_VECTOR_EMBED_MODEL", "BAAI/bge-small-en-v1.5")
-RAG_API_KEY = os.environ.get("RAG_API_KEY", "")
+RAG_API_KEY = os.environ.get("RAG_API_KEY", "llm")
 
 VALID_NAMESPACES = {"chum_docs", "chum_session"}
 

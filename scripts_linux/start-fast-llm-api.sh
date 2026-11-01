@@ -31,7 +31,7 @@ Options:
   -r, --model-repo <repo>    Hugging Face repo for GGUF (default: $MODEL_REPO)
   -m, --model-file <file>    GGUF model filename (default: $MODEL_FILE)
   -c, --context-size <int>   Context window in tokens (default: $CONTEXT_SIZE)
-  -k, --api-key <key>        Fixed API key (default: chum-llm-key-2026)
+  -k, --api-key <key>        Fixed API key (default: llm)
   --no-auth                  Disable authentication
   --tools-dir <dir>          Directory where llama-server lives (default: $TOOLS_DIR)
   --models-dir <dir>         Directory where GGUF files live (default: $MODELS_DIR)
@@ -138,7 +138,7 @@ fi
 
 # 4. Banner
 LAN_IP=$(get_lan_ip)
-KEY_LABEL="chum-llm-key-2026 (default)"
+KEY_LABEL="llm (default)"
 if [[ $NO_AUTH -eq 1 ]]; then
     KEY_LABEL="(none - auth disabled)"
 elif [[ -n "$API_KEY" ]]; then
@@ -169,6 +169,8 @@ if [[ $NO_AUTH -eq 1 ]]; then
     PY_ARGS+=("--no-auth")
 elif [[ -n "$API_KEY" ]]; then
     PY_ARGS+=("--api-key" "$API_KEY")
+else
+    PY_ARGS+=("--api-key" "llm")
 fi
 
 if [[ $DRY_RUN -eq 1 ]]; then

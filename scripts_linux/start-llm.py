@@ -20,7 +20,7 @@ _DEFAULT_MMPROJ = ROOT / "models" / "mmproj-Qwen_Qwen3.5-9B-f16.gguf"
 parser = argparse.ArgumentParser(description="Launch llama-server for Chum")
 parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
 parser.add_argument("--port", type=int, default=8001, help="Port to listen on")
-parser.add_argument("--api-key", default="chum-llm-key-2026", help="API Key")
+parser.add_argument("--api-key", default="llm", help="API Key")
 parser.add_argument("--no-auth", action="store_true", help="Disable API key auth")
 parser.add_argument("--thinking", action="store_true", help="Enable reasoning/thinking mode")
 parser.add_argument("--model-path", default=str(_DEFAULT_MODEL), help="Path to GGUF model")

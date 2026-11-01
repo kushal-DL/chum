@@ -9,6 +9,7 @@ source "$SCRIPT_DIR/common.sh"
 
 PORT=8003
 ASP_WHEEL_PATH=""
+API_KEY="llm"
 DRY_RUN=0
 
 usage() {
@@ -19,6 +20,7 @@ Starts the ASP RAG bridge for Chum on port $PORT (binds 0.0.0.0 by default).
 
 Options:
   -p, --port <int>             Port to listen on (default: $PORT)
+  -k, --api-key <key>          API key (default: llm)
   -w, --asp-wheel-path <path>  Path to asp-*.whl package
   --dry-run                    Verify configuration without starting the bridge
   -h, --help                   Show this help message and exit
@@ -31,6 +33,8 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -p|--port)
             PORT="$2"; shift 2 ;;
+        -k|--api-key)
+            API_KEY="$2"; shift 2 ;;
         -w|--asp-wheel-path)
             ASP_WHEEL_PATH="$2"; shift 2 ;;
         --dry-run)
@@ -89,8 +93,10 @@ kill_port_process "$PORT" "ASP RAG bridge" 2
 LAN_IP=$(get_lan_ip)
 export BRIDGE_HOST="0.0.0.0"
 export BRIDGE_PORT="$PORT"
+export RAG_API_KEY="${API_KEY:-llm}"
 
 printf "\n${COLOR_GREEN}[asp-rag] Bridge starting on port %s (all interfaces)${COLOR_RESET}\n" "$PORT"
+printf "API Key  : %s\n" "$RAG_API_KEY"
 if [[ -n "$LAN_IP" ]]; then
     printf "${COLOR_CYAN}[asp-rag] Set Chum's ASP RAG Bridge URL to:${COLOR_RESET}\n"
     printf "    ${COLOR_WHITE}http://%s:%s${COLOR_RESET}\n" "$LAN_IP" "$PORT"

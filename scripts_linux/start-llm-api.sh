@@ -36,7 +36,7 @@ Options:
   --mmproj-file <file>       Vision projector GGUF filename (default: $MMPROJ_FILE)
   -g, --gpu-layers <int>     Layers to offload to GPU (default: $GPU_LAYERS)
   -c, --context-size <int>   Context window in tokens (default: $CONTEXT_SIZE)
-  -k, --api-key <key>        Fixed API key (default: chum-llm-key-2026)
+  -k, --api-key <key>        Fixed API key (default: llm)
   --no-auth                  Disable authentication
   --thinking                 Enable reasoning/thinking mode (default: OFF)
   --tools-dir <dir>          Directory where llama-server lives (default: $TOOLS_DIR)
@@ -153,7 +153,7 @@ fi
 
 # 5. Banner
 LAN_IP=$(get_lan_ip)
-KEY_LABEL="chum-llm-key-2026 (default)"
+KEY_LABEL="llm (default)"
 if [[ $NO_AUTH -eq 1 ]]; then
     KEY_LABEL="(none - auth disabled)"
 elif [[ -n "$API_KEY" ]]; then
@@ -190,6 +190,8 @@ if [[ $NO_AUTH -eq 1 ]]; then
     PY_ARGS+=("--no-auth")
 elif [[ -n "$API_KEY" ]]; then
     PY_ARGS+=("--api-key" "$API_KEY")
+else
+    PY_ARGS+=("--api-key" "llm")
 fi
 
 if [[ $ENABLE_THINKING -eq 1 ]]; then
