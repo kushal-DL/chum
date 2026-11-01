@@ -51,22 +51,19 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# 0. Check Python
-PY_CMD=$(check_python "3.10") || exit 1
-log_ok "Python ready: $($PY_CMD --version)"
+# 0. Check Python & environment
+PY_CMD=$(ensure_python_env "3.10") || exit 1
+log_ok "Python ready: $($PY_CMD --version) ($PY_CMD)"
 
 # 1. Check Python dependencies
 if [[ $DRY_RUN -eq 0 ]]; then
-    log_step "Installing/verifying Python packages..."
-    $PY_CMD -m pip install fastapi "uvicorn[standard]" playwright pydantic --quiet 2>/dev/null || {
-        # If pip isn't in system python, try uv pip or log info
-        if command -v uv >/dev/null 2>&1; then
-            uv pip install fastapi "uvicorn[standard]" playwright pydantic --quiet 2>/dev/null || true
-        fi
-    }
+    if ! "$PY_CMD" -c "import fastapi, uvicorn, playwright, pydantic" 2>/dev/null; then
+        log_step "Installing/verifying Python packages (fastapi, uvicorn, playwright, pydantic)..."
+        install_python_packages "$PY_CMD" fastapi "uvicorn[standard]" playwright pydantic || exit 1
+    fi
 
     log_step "Checking Playwright Chromium..."
-    $PY_CMD -m playwright install chromium 2>/dev/null || true
+    "$PY_CMD" -m playwright install chromium || true
 fi
 
 # 2. Kill any previous instance holding port

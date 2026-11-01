@@ -65,6 +65,8 @@ $RECYCLE.BIN/
 /models/
 __pycache__/
 *.pyc
+.venv/
+venv/
 
 # App runtime data (never commit these)
 AppData/

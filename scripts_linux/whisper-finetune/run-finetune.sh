@@ -46,11 +46,7 @@ printf "\033[0;36m╚═══════════════════�
 # 1. Dependency check
 printf "\033[0;33mStep 1/4: Checking Python dependencies...\033[0m\n"
 
-PY_CMD="python3"
-if ! command -v "$PY_CMD" >/dev/null 2>&1; then
-    printf "\033[0;31mERROR: python3 not found on PATH\033[0m\n" >&2
-    exit 1
-fi
+PY_CMD=$(ensure_python_env "3.10" "$REPO_ROOT") || exit 1
 
 MISSING=()
 DEPS=("peft" "accelerate" "soundfile" "edge_tts" "torch")
@@ -63,12 +59,8 @@ done
 if [[ ${#MISSING[@]} -gt 0 ]]; then
     printf "  Missing packages: %s\n" "${MISSING[*]}"
     if [[ $DRY_RUN -eq 0 ]]; then
-        printf "  Installing missing packages via pip...\n"
-        "$PY_CMD" -m pip install "${MISSING[@]}" -q 2>/dev/null || {
-            if command -v uv >/dev/null 2>&1; then
-                uv pip install "${MISSING[@]}" -q || true
-            fi
-        }
+        printf "  Installing missing packages...\n"
+        install_python_packages "$PY_CMD" "${MISSING[@]}" || exit 1
     fi
 else
     printf "  \033[0;32mAll Python dependencies present.\033[0m\n"

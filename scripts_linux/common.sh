@@ -159,6 +159,94 @@ check_python() {
     return 0
 }
 
+# Ensure a working Python environment, creating or using a local venv (.venv) if available
+ensure_python_env() {
+    local min_ver="${1:-3.10}"
+    local repo_root="${2:-}"
+    if [[ -z "$repo_root" ]]; then
+        repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    fi
+    local venv_dir="$repo_root/.venv"
+
+    # Add ~/.local/bin to PATH if present
+    if [[ ":$PATH:" != *":$HOME/.local/bin:"* && -d "$HOME/.local/bin" ]]; then
+        export PATH="$HOME/.local/bin:$PATH"
+    fi
+
+    # 1. If existing venv python is valid, return it
+    if [[ -x "$venv_dir/bin/python" ]]; then
+        local ver_ok
+        ver_ok=$("$venv_dir/bin/python" -c "import sys; print(int(sys.version_info >= tuple(map(int, '${min_ver}'.split('.')))))" 2>/dev/null || echo "0")
+        if [[ "$ver_ok" == "1" ]]; then
+            printf "%s" "$venv_dir/bin/python"
+            return 0
+        fi
+    fi
+
+    # 2. Check host python
+    local host_py
+    host_py=$(check_python "$min_ver") || return 1
+
+    # 3. Try to create venv using uv or host python
+    mkdir -p "$repo_root"
+    if command -v uv >/dev/null 2>&1; then
+        uv venv --seed "$venv_dir" >/dev/null 2>&1 || uv venv "$venv_dir" >/dev/null 2>&1 || true
+    elif "$host_py" -m venv "$venv_dir" >/dev/null 2>&1; then
+        true
+    fi
+
+    # 4. Return venv python if created, else fallback to host python
+    if [[ -x "$venv_dir/bin/python" ]]; then
+        printf "%s" "$venv_dir/bin/python"
+        return 0
+    fi
+
+    printf "%s" "$host_py"
+    return 0
+}
+
+# Safely install python packages using uv or pip
+install_python_packages() {
+    local py_cmd="$1"
+    shift
+    local pkgs=("$@")
+
+    if [[ ${#pkgs[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    # Add ~/.local/bin to PATH if present
+    if [[ ":$PATH:" != *":$HOME/.local/bin:"* && -d "$HOME/.local/bin" ]]; then
+        export PATH="$HOME/.local/bin:$PATH"
+    fi
+
+    # 1. Try uv pip if uv is installed
+    if command -v uv >/dev/null 2>&1; then
+        if uv pip install --python "$py_cmd" "${pkgs[@]}" --quiet 2>/dev/null; then
+            return 0
+        fi
+    fi
+
+    # 2. Try pip in the python environment
+    if "$py_cmd" -m pip install "${pkgs[@]}" --quiet 2>/dev/null; then
+        return 0
+    fi
+
+    # 3. Try with --break-system-packages (for Debian/Ubuntu PEP 668)
+    if "$py_cmd" -m pip install --break-system-packages "${pkgs[@]}" --quiet 2>/dev/null; then
+        return 0
+    fi
+
+    # 4. Try with --user --break-system-packages
+    if "$py_cmd" -m pip install --user --break-system-packages "${pkgs[@]}" --quiet 2>/dev/null; then
+        return 0
+    fi
+
+    log_err "Failed to install Python packages: ${pkgs[*]}"
+    log_err "Please install uv (curl -LsSf https://astral.sh/uv/install.sh | sh) or run: sudo apt install python3-pip python3-venv"
+    return 1
+}
+
 # Verify GGUF magic header in a binary file
 test_gguf_magic() {
     local file_path="$1"

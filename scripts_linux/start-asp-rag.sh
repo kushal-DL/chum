@@ -43,9 +43,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# 0. Check Python
-PY_CMD=$(check_python "3.10") || exit 1
-log_ok "Python ready: $($PY_CMD --version)"
+# 0. Check Python & environment
+PY_CMD=$(ensure_python_env "3.10") || exit 1
+log_ok "Python ready: $($PY_CMD --version) ($PY_CMD)"
 
 # 1. Resolve ASP wheel
 if [[ -z "$ASP_WHEEL_PATH" ]]; then
@@ -79,11 +79,7 @@ fi
 # 2. Check/install Python dependencies
 if [[ $DRY_RUN -eq 0 && -n "$ASP_WHEEL_PATH" ]]; then
     log_step "[asp-rag] Installing/verifying Python packages..."
-    $PY_CMD -m pip install "$ASP_WHEEL_PATH" fastapi "uvicorn[standard]" sentence-transformers pydantic --quiet 2>/dev/null || {
-        if command -v uv >/dev/null 2>&1; then
-            uv pip install "$ASP_WHEEL_PATH" fastapi "uvicorn[standard]" sentence-transformers pydantic --quiet 2>/dev/null || true
-        fi
-    }
+    install_python_packages "$PY_CMD" "$ASP_WHEEL_PATH" fastapi "uvicorn[standard]" sentence-transformers pydantic || exit 1
 fi
 
 # 3. Kill previous instance on port
