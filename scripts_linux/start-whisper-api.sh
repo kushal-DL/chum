@@ -16,6 +16,12 @@ THREADS=4
 LANGUAGE="en"
 API_KEY="llm"
 GPU_DEVICE=0
+if command -v rocm-smi >/dev/null 2>&1; then
+    NUM_ROCM_DEVS=$(rocm-smi 2>/dev/null | grep -E "^[0-9]+\s+" | wc -l || true)
+    if [[ "$NUM_ROCM_DEVS" -gt 1 ]]; then
+        GPU_DEVICE=1
+    fi
+fi
 NO_AUTH=0
 BIN_DIR="$REPO_ROOT/local-llm/whisper.cpp/bin"
 LLAMA_DIR="$REPO_ROOT/local-llm/llama.cpp"
@@ -228,5 +234,6 @@ SERVER_ARGS=(
 )
 
 log_step "Starting whisper-server..."
+export GPU_MAX_HW_QUEUES="${GPU_MAX_HW_QUEUES:-1}"
 export LD_LIBRARY_PATH="$(dirname "$EXEC_CMD"):${LD_LIBRARY_PATH:-}"
 exec "$EXEC_CMD" "${SERVER_ARGS[@]}"

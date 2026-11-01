@@ -44,6 +44,12 @@ if [[ -f "$_CHUM_ROOT/.env" ]]; then
     set +a
 fi
 
+# AMD ROCm / RDNA3 (Navi 31 / RX 7000) workaround: prevent hardware queue spinlock in amdgpu/MES
+# Prevents GPU staying pegged at 100% idle load and maximum boost clock
+if [[ -z "${GPU_MAX_HW_QUEUES:-}" ]]; then
+    export GPU_MAX_HW_QUEUES=1
+fi
+
 # Resolve LAN IPv4 address
 get_lan_ip() {
     local lan_ip=""
