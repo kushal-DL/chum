@@ -135,8 +135,6 @@ scripts/whisper-start-log.txt
 scripts_linux/whisper-start-log.txt
 *whisper-start-log.txt
 
-# ASP RAG dedicated docs directory contents
-rag_docs/*
-!rag_docs/README.md
-!rag_docs/.gitkeep
+# ASP RAG dedicated docs directory
+!rag_docs/
 data/rag_staging/

@@ -1,0 +1,101 @@
+Authentication error: Langfuse client initialized without public_key. Client will be disabled. Provide a public_key parameter or set LANGFUSE_PUBLIC_KEY environment variable. 
+================================================================================
+WORKED EXAMPLE — maud_contract_49_Accuracy of Target R&W Closing Condition_10-7_361
+================================================================================
+
+Question: Accuracy of Fundamental Target R&Ws-Types of R&W: Opinion of Financial Advisor
+Candidates:
+  [0] Capitalization-Other, Authority, Approval, Enforceability, Organization, No MAE, Brokers' Fee
+  [1] Capitalization-Other, Authority, Approval, Enforceability, Organization, No MAE, Takeover Statutes, Rights Agreement, Opinion of Financial Advisor ← GOLD
+
+Document length: 8,090 chars
+
+Step 1 — Parse to tree:  39 nodes
+
+Step 2 — Path-augmented BM25 (top 10 nodes by final score):
+
+  node_id                         depth   base BM25   +head   ×dep    final
+  ------------------------------  -----  ----------  ------  -----  -------
+  maud_contract_49_accuracy_of_t      1      15.235   +1.50   0.90   15.062
+    └─ §3.19 Opinion of Financial Advisor. <omitted>
+  maud_contract_49_accuracy_of_t      1      15.235   +1.50   0.90   15.062
+    └─ §3.19 Opinion of Financial Advisor. <omitted>
+  maud_contract_49_accuracy_of_t      1       0.000   +0.00   0.90    0.000
+    └─ §7.3 Conditions to the Obligations of the Parent and the Merger Sub. The obligatio...
+  maud_contract_49_accuracy_of_t      2       0.000   +0.00   1.20    0.000
+    └─ §7.3 Conditions to the Obligations of the Parent and the Merger Sub. The obligatio... > §(
+  maud_contract_49_accuracy_of_t      3       0.000   +0.00   1.20    0.000
+    └─ §7.3 Conditions to the Obligations of the Parent and the Merger Sub. The obligatio... > §(
+  maud_contract_49_accuracy_of_t      1       0.000   +0.00   0.90    0.000
+    └─ §7.3 Conditions to the Obligations of the Parent and the Merger Sub.
+  maud_contract_49_accuracy_of_t      2       0.000   +0.00   1.20    0.000
+    └─ §7.3 Conditions to the Obligations of the Parent and the Merger Sub. > §(a) <omitted>
+  maud_contract_49_accuracy_of_t      3       0.000   +0.00   1.20    0.000
+    └─ §7.3 Conditions to the Obligations of the Parent and the Merger Sub. > §(a) <omitted> > §(
+  maud_contract_49_accuracy_of_t      1       0.000   +0.00   0.90    0.000
+    └─ §3.2 Capitalization.  <omitted>
+  maud_contract_49_accuracy_of_t      1       0.000   +0.00   0.90    0.000
+    └─ §7.3 Conditions to the Obligations of the Parent and the Merger Sub. The obligatio...
+
+Step 3 — Round-robin seeds (cap=20, per-source-floor=4):  2 seeds
+  [1] score=15.062  depth=1  id=maud_contract_49_accuracy_of_target_
+  [2] score=15.062  depth=1  id=maud_contract_49_accuracy_of_target_
+
+Step 4 — Tree-traversal expansion: 2 seeds → 2 candidates
+
+Loading weights:   0%|          | 0/105 [00:00<?, ?it/s]Loading weights: 100%|##########| 105/105 [00:00<00:00, 6298.29it/s]
+Step 5 — Cross-encoder rerank (top-6 → MAUD MC uses ≤6):
+  [1] id=maud_contract_49_accuracy_of_target_  depth=1
+        path: §3.19 Opinion of Financial Advisor. <omitted>
+  [2] id=maud_contract_49_accuracy_of_target_  depth=1
+        path: §3.19 Opinion of Financial Advisor. <omitted>
+
+Step 6 — Bundle assembly with floor expansion (min_context_tokens=700):
+
+  Phase A — sequential add up to budget 5000:
+  #    node_id                                extr tok   +hdr   run total
+  ---  ------------------------------------  ---------  -----  ----------
+    1  maud_contract_49_accuracy_of_target_         10    100         110
+    2  maud_contract_49_accuracy_of_target_         10    100         220
+
+  After initial assembly: running_tokens = 220 (floor = 700)
+
+  Phase B — _expand_to_floor() fires (running=220 < floor=700):
+    enqueue parent: maud_contract_49_accuracy_of_target_r_w_::§maud_co  (of maud_contract_49_accuracy_of_target_)
+    enqueue parent: maud_contract_49_accuracy_of_target_r_w_::§maud_co  (of maud_contract_49_accuracy_of_target_)
+    step 1: +maud_contract_49_accuracy_of_target_  cost= 100  running: 220 → 320
+    step 3: +maud_contract_49_accuracy_of_target_  cost= 166  running: 320 → 486
+    step 4: +maud_contract_49_accuracy_of_target_  cost= 119  running: 486 → 605
+    step 5: +maud_contract_49_accuracy_of_target_  cost= 108  running: 605 → 713
+
+  Phase B complete: running_tokens = 713 (floor met)
+
+Step 7 — Final assembled bundle:
+  Total nodes: 6
+  Total tokens: 713
+
+  [1] maud_contract_49_accuracy_of_target_r_w_::§3.19 Opinion of Financial Advisor. <omitted>
+      heading: §3.19 Opinion of Financial Advisor. <omitted>
+      content (first 120 chars): Opinion of Financial Advisor. <omitted>
+
+  [2] maud_contract_49_accuracy_of_target_r_w_::§3.19 Opinion of Financial Advisor. <omitted>::2
+      heading: §3.19 Opinion of Financial Advisor. <omitted>
+      content (first 120 chars): Opinion of Financial Advisor. <omitted>
+
+  [3] maud_contract_49_accuracy_of_target_r_w_::§maud_contract_49_accuracy_of_target_r_w_
+      heading: §maud_contract_49_accuracy_of_target_r_w_
+      content (first 120 chars): 
+
+  [4] maud_contract_49_accuracy_of_target_r_w_::§7.3 Conditions to the Obligations of the Parent and the Merger Sub. The obligatio...
+      heading: §7.3 Conditions to the Obligations of the Parent and the Merger Sub. The obligat
+      content (first 120 chars): Conditions to the Obligations of the Parent and the Merger Sub. The obligation of the Parent and the Merger Sub to effec
+
+  [5] maud_contract_49_accuracy_of_target_r_w_::§7.3 Conditions to the Obligations of the Parent and the Merger Sub.
+      heading: §7.3 Conditions to the Obligations of the Parent and the Merger Sub.
+      content (first 120 chars): Conditions to the Obligations of the Parent and the Merger Sub.
+ <omitted>
+
+  [6] maud_contract_49_accuracy_of_target_r_w_::§3.2 Capitalization.  <omitted>
+      heading: §3.2 Capitalization.  <omitted>
+      content (first 120 chars): Capitalization.  <omitted>
+
