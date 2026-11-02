@@ -431,8 +431,8 @@ public sealed class MeetingOrchestrator : IDisposable
     }
 
     /// <summary>
-    /// UI record toggle (parallels the HoldToAsk hotkey): first call starts raw recording,
-    /// second call stops it and sends the recorded question to the LLM.
+    /// UI record toggle: first call starts raw recording, second call stops it and sends
+    /// the question to the LLM WITHOUT RAG context.
     /// </summary>
     public void ToggleRecording()
     {
@@ -441,7 +441,7 @@ public sealed class MeetingOrchestrator : IDisposable
             _uiRecording = true;
             _overlay.SetRecording(true);
             _overlay.SetListeningState(true);
-            _overlay.SetStatus(OverlayStatus.Listening, "Recording… (click ● again to send)");
+            _overlay.SetStatus(OverlayStatus.Listening, "Recording… (● again to send, RAG to send with context)");
             _audio.StartRawRecording();
         }
         else
@@ -449,8 +449,21 @@ public sealed class MeetingOrchestrator : IDisposable
             _uiRecording = false;
             _overlay.SetRecording(false);
             var recorded = _audio.StopRawRecording();
-            _ = HandleAudioQueryAsync(recorded, DateTimeOffset.UtcNow);
+            _ = HandleAudioQueryAsync(recorded, DateTimeOffset.UtcNow, useRag: false);
         }
+    }
+
+    /// <summary>
+    /// RAG button: stops an active UI recording and sends the question to the LLM WITH RAG
+    /// context (document retrieval + session memory). No-op if not currently recording.
+    /// </summary>
+    public void StopRecordingWithRag()
+    {
+        if (!_uiRecording) return;
+        _uiRecording = false;
+        _overlay.SetRecording(false);
+        var recorded = _audio.StopRawRecording();
+        _ = HandleAudioQueryAsync(recorded, DateTimeOffset.UtcNow, useRag: true);
     }
 
     /// <summary>Stops the current LLM response without affecting the transcription pipeline.</summary>
@@ -913,7 +926,7 @@ public sealed class MeetingOrchestrator : IDisposable
         return sb.ToString();
     }
 
-    private async Task HandleAudioQueryAsync(float[]? recordedSamples, DateTimeOffset holdEnd)
+    private async Task HandleAudioQueryAsync(float[]? recordedSamples, DateTimeOffset holdEnd, bool useRag = true)
     {
         var ct = _cts?.Token ?? CancellationToken.None;
         var activeLlm = GetLlm();
@@ -977,7 +990,7 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
-            var docBlock = await GetDocContextAsync(localTranscript ?? contextText ?? "meeting context");
+            var docBlock = useRag ? await GetDocContextAsync(localTranscript ?? contextText ?? "meeting context") : null;
             if (docBlock is not null)
                 system = system + "\n\n" + docBlock;
             var modeHint = GetModeInstruction();

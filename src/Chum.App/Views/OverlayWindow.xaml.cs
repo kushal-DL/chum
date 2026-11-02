@@ -231,6 +231,9 @@ public partial class OverlayWindow : Window
     private void RecordToggle_Click(object sender, RoutedEventArgs e)
         => ((App)Application.Current).ToggleRecording();
 
+    private void RagQuery_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).StopRecordingWithRag();
+
     private void ScreenshotMode_Click(object sender, RoutedEventArgs e)
         => ((App)Application.Current).ToggleScreenshotMode();
 

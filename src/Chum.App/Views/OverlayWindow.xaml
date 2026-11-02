@@ -89,6 +89,17 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <!-- RAG button: turns amber while recording to signal it will send with context -->
+        <Style x:Key="RagButtonStyle" TargetType="Button" BasedOn="{StaticResource ChumButton}">
+            <Setter Property="Content" Value="RAG"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                    <Setter Property="Foreground" Value="#F59E0B"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -160,6 +171,8 @@
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,4,0">
                     <Button Style="{StaticResource RecordButtonStyle}" Margin="2,4"
                             Click="RecordToggle_Click"/>
+                    <Button Style="{StaticResource RagButtonStyle}" Margin="2,4"
+                            Click="RagQuery_Click"/>
                     <Button Style="{StaticResource ScreenshotButtonStyle}" Margin="2,4"
                             Click="ScreenshotMode_Click"/>
                     <Button Style="{StaticResource GoogleSearchButtonStyle}" Margin="2,4"

@@ -423,6 +423,9 @@ public partial class App : System.Windows.Application
     /// <summary>Toolbar button: start/stop recording a spoken question (parallels the hotkey).</summary>
     public void ToggleRecording() => _orchestrator?.ToggleRecording();
 
+    /// <summary>RAG button: stop active recording and send question to LLM with RAG context.</summary>
+    public void StopRecordingWithRag() => _orchestrator?.StopRecordingWithRag();
+
     /// <summary>Toolbar button: stop the in-progress LLM response.</summary>
     public void StopResponse() => _orchestrator?.CancelResponse();
 
