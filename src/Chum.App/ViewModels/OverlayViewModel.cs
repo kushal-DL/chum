@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Threading;
@@ -266,7 +267,12 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
     {
         Invoke(() =>
         {
-            var list = categories.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim().ToLowerInvariant()).Distinct().ToList();
+            var list = categories
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c.Trim().ToLowerInvariant())
+                .Distinct()
+                .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+                .ToList();
             if (list.Count == 0) list = ["others"];
             Categories.Clear();
             foreach (var cat in list)
@@ -294,8 +300,11 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
             var clean = category.Trim().ToLowerInvariant();
             if (!Categories.Contains(clean))
             {
-                Categories.Add(clean);
-                CategoryPills.Add(new CategoryPillItem(clean, false));
+                var sorted = Categories.Concat([clean])
+                    .Distinct()
+                    .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                SetCategories(sorted);
             }
             ActiveCategory = clean;
         });

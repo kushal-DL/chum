@@ -572,7 +572,7 @@ async def index_directory(req: IndexDirRequest, _=Depends(_check_auth)):
         "total_documents": len(ns.raw_docs),
         "total_chunks": len(ns.corpus),
         "total_trees": len(ns.trees),
-        "categories": ns.categories,
+        "categories": {k: ns.categories[k] for k in sorted(ns.categories.keys())},
     }
 
 
