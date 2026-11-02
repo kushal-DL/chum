@@ -57,6 +57,7 @@ public sealed class MeetingOrchestrator : IDisposable
     private CancellationTokenSource? _responseCts;
     // UI record-toggle state (button-driven; parallels the HoldToAsk hotkey toggle).
     private bool _uiRecording;
+    private MeetingPlatform _lastPlatform = MeetingPlatform.Unknown;
     private readonly QaTurnHistory _qaHistory = new(5);
     private string? _lastQueryText;
     private DateTimeOffset _lastQueryHoldEnd;
