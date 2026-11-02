@@ -14,12 +14,12 @@
 
 | Status | Stories | Story Points | % of Total SP |
 |--------|---------|--------------|---------------|
-| ✅ Done | 90 | 348 SP | 93% |
-| 🔵 Built | 3 | 18 SP | 5% |
+| ✅ Done | 90 | 348 SP | 86% |
+| 🔴 Yet to Start | 8 | 32 SP | 8% |
+| 🔵 Built | 3 | 18 SP | 4% |
 | ⚠️ Superseded | 1 | 8 SP | 2% |
 | 🟡 Scaffolded | 0 | 0 SP | 0% |
-| 🔴 Yet to Start | 0 | 0 SP | 0% |
-| **Total** | **94** | **374 SP** | |
+| **Total** | **102** | **406 SP** | |
 
 > **90 stories ✅ Done. US-10-11 (ONNX DirectML, 8 SP) was superseded in S59 by US-02-09 (sherpa streaming).**
 > **US-06-08, US-06-09, US-05-10 added for multi-shot capture session feature — 🔵 Built.**
@@ -43,7 +43,8 @@
 | 08 · Privacy & Security | 11 | 36 SP | 11 (36 SP) | — | — | — |
 | 09 · Platform Compatibility | 7 | 27 SP | 7 (27 SP) | — | — | — |
 | 10 · Performance & Reliability | 11 | 48 SP | 10 (40 SP) | 1 (8 SP) | — | — |
-| **Total** | **91** | **356 SP** | **90 (348 SP)** | **1 (8 SP)** | **0** | **0** |
+| 11 · Conversational RAG & Steering | 8 | 32 SP | 8 (32 SP) | — | — | — |
+| **Total** | **99** | **388 SP** | **98 (380 SP)** | **1 (8 SP)** | **0** | **0** |
 
 ---
 
@@ -266,20 +267,37 @@ Each story is attributed to the project where its primary implementation lives.
 
 ---
 
+### Epic 11: Conversational RAG & Interactive Category Steering
+
+| Story ID | Title | Priority | Status | SP | Notes |
+|----------|-------|----------|--------|----|-------|
+| US-11-01 | Subfolder Category Discovery & Isolated Ingestion | P1 | ✅ Done | 4 | `asp-rag-api.py`: scans `rag_docs/` subfolders (`resume`, `asp`, etc.); metadata tagging; `GET /categories` endpoint |
+| US-11-02 | Category-Filtered RAG Retrieval | P1 | ✅ Done | 4 | `asp-rag-api.py`: `/retrieve` accepts `categories: list[str]`; strict TreeRetriever and CSDR candidate isolation |
+| US-11-03 | Client RAG Bridge Category Integration | P1 | ✅ Done | 3 | `RagBridgeService.cs`: `GetCategoriesAsync()`, updated `RetrieveContextAsync(categories)`; 30s cache |
+| US-11-04 | Category Pill Bar & Instant Redirection UI | P0 | ✅ Done | 5 | `OverlayWindow.xaml`: 22px category tag bar (Row 1); dynamic population; instant stream cancellation and re-query; `Alt+1..9` hotkeys |
+| US-11-05 | 4 Named Response Modes | P0 | ✅ Done | 4 | `OverlayViewModel.cs`: `ResponseModeType` enum (`Default`, `RagOnly`, `Detailed`, `Coding`); UI name display; `Ctrl+M` toggle |
+| US-11-06 | Dual-Track Detailed Mode | P1 | ✅ Done | 4 | `MeetingOrchestrator.cs`: dual output format (`━━━ FROM LOCAL DOCS ━━━` and `━━━ EXTENDED ARCHITECTURE ━━━`) |
+| US-11-07 | Universal Domain Steering Fallback | P1 | ✅ Done | 3 | `MeetingOrchestrator.cs`: steers LLM persona/domain knowledge when selected category contains 0 local documents |
+| US-11-08 | Clean Conversational Q&A Turn History & Noise Filter | P0 | ✅ Done | 5 | `MeetingOrchestrator.cs`: `QaTurnHistory` rolling buffer; Whisper silence/hallucination suppressor (<1.2s phantom tokens); multi-turn prompt builder |
+
+**Epic 11 Total:** 32 SP · 8 Done · 0 Superseded · 0 Built · 0 Scaffolded · 0 Yet to Start
+
+---
+
 ## Overall Progress
 
 | Metric | Value |
 |--------|-------|
-| Total Stories | 91 (90 active + 1 superseded) |
-| Total Story Points | 356 SP |
-| P0 Stories | 18 stories · 97 SP · **all ✅ Done** |
-| P1 Stories | 36 stories · 136 SP · **35 ✅ Done, 1 superseded (US-10-11)** |
-| P2 Stories | 27 stories · 91 SP · **all ✅ Done** |
-| P3 Stories | 10 stories · 32 SP · **all ✅ Done** |
-| ✅ Done | 90 stories · 348 SP (98%) |
+| Total Stories | 99 active (plus 3 built capture stories, 1 superseded) |
+| Total Story Points | 388 SP (406 SP overall) |
+| P0 Stories | 21 stories · 111 SP · **all 21 ✅ Done** |
+| P1 Stories | 41 stories · 154 SP · **40 ✅ Done, 1 superseded (US-10-11)** |
+| P2 Stories | 27 stories · 91 SP · **all 27 ✅ Done** |
+| P3 Stories | 10 stories · 32 SP · **all 10 ✅ Done** |
+| ✅ Done | 98 stories · 380 SP (98%) |
 | ⚠️ Superseded | 1 story · 8 SP (US-10-11 → US-02-09) |
-| 🔵 Built | 0 stories · 0 SP (0%) |
+| 🔵 Built | 3 stories · 18 SP (multi-shot capture session) |
 | 🟡 Scaffolded | 0 stories · 0 SP (0%) |
 | 🔴 Yet to Start | 0 stories · 0 SP (0%) |
 
-*Last updated: 2026-06-28 — Session 59: STT reworked to sherpa-onnx streaming + press-to-record query modes + noise suppression; 195 unit tests passing; added US-01-08/US-02-09/US-04-08, superseded US-10-11*
+*Last updated: 2026-11-02 — EPIC-11 Conversational RAG & Interactive Category Steering completed (US-11-01 to US-11-08)*

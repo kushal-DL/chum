@@ -215,7 +215,7 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
 
     public void SetRecording(bool active) => Invoke(() => IsRecording = active);
 
-    // ── Response mode (1=Default 2=Quick 3=Detailed 4=Devil's Advocate 5=Code) ──
+    // ── Response mode (1=Default 2=RAG Only 3=Detailed 4=Coding) ──
 
     private int _responseMode = 1;
     public int ResponseMode
@@ -224,10 +224,91 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
         private set { _responseMode = value; OnPropertyChanged(); OnPropertyChanged(nameof(ResponseModeLabel)); }
     }
 
-    public string ResponseModeLabel => _responseMode.ToString();
+    public ResponseModeType ResponseModeEnum => (ResponseModeType)ResponseMode;
+
+    public string ResponseModeLabel => ResponseMode switch
+    {
+        2 => "RAG Only",
+        3 => "Detailed",
+        4 => "Coding",
+        _ => "Default",
+    };
 
     public void CycleResponseMode()
-        => Invoke(() => ResponseMode = _responseMode >= 5 ? 1 : _responseMode + 1);
+        => Invoke(() => ResponseMode = _responseMode >= 4 ? 1 : _responseMode + 1);
+
+    public void SetResponseMode(ResponseModeType mode)
+        => Invoke(() => ResponseMode = (int)mode);
+
+    // ── Category Pills (Domain Steering) ──────────────────────────────────
+
+    public ObservableCollection<string> Categories { get; } = ["others"];
+    public ObservableCollection<CategoryPillItem> CategoryPills { get; } = [new("others", true)];
+
+    private string _activeCategory = "others";
+    public string ActiveCategory
+    {
+        get => _activeCategory;
+        set
+        {
+            if (_activeCategory == value) return;
+            _activeCategory = value;
+            OnPropertyChanged();
+            foreach (var pill in CategoryPills)
+                pill.IsActive = string.Equals(pill.Name, _activeCategory, StringComparison.OrdinalIgnoreCase);
+            CategoryChanged?.Invoke(value);
+        }
+    }
+
+    public event Action<string>? CategoryChanged;
+
+    public void SetCategories(IEnumerable<string> categories)
+    {
+        Invoke(() =>
+        {
+            var list = categories.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim().ToLowerInvariant()).Distinct().ToList();
+            if (list.Count == 0) list = ["others"];
+            Categories.Clear();
+            foreach (var cat in list)
+                Categories.Add(cat);
+
+            CategoryPills.Clear();
+            foreach (var cat in list)
+                CategoryPills.Add(new CategoryPillItem(cat, string.Equals(cat, _activeCategory, StringComparison.OrdinalIgnoreCase)));
+
+            if (!Categories.Contains(_activeCategory))
+                ActiveCategory = Categories[0];
+            else
+            {
+                foreach (var pill in CategoryPills)
+                    pill.IsActive = string.Equals(pill.Name, _activeCategory, StringComparison.OrdinalIgnoreCase);
+            }
+        });
+    }
+
+    public void SelectCategory(string category)
+    {
+        Invoke(() =>
+        {
+            if (string.IsNullOrWhiteSpace(category)) return;
+            var clean = category.Trim().ToLowerInvariant();
+            if (!Categories.Contains(clean))
+            {
+                Categories.Add(clean);
+                CategoryPills.Add(new CategoryPillItem(clean, false));
+            }
+            ActiveCategory = clean;
+        });
+    }
+
+    public void SelectCategoryByIndex(int index)
+    {
+        Invoke(() =>
+        {
+            if (index >= 0 && index < Categories.Count)
+                ActiveCategory = Categories[index];
+        });
+    }
 
     // ── Screenshot (region snapshot) mode state ───────────────────────────
 

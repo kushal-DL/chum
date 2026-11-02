@@ -26,6 +26,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import os
+from pathlib import Path
 import re
 import shutil
 from typing import Any, Optional
@@ -103,6 +104,7 @@ _global_router = ShapeRouter() if (ASP_AVAILABLE and ShapeRouter is not None) el
 class _Doc:
     title: str
     text: str
+    category: str = "others"
 
 
 @dataclass
@@ -110,6 +112,8 @@ class _Namespace:
     corpus: dict[str, _Doc] = field(default_factory=dict)       # chunked text for vector retrieval
     raw_docs: dict[str, _Doc] = field(default_factory=dict)     # full unchunked documents
     trees: dict[str, Any] = field(default_factory=dict)         # slug -> DocumentTree
+    doc_categories: dict[str, str] = field(default_factory=dict)# doc_slug/doc_id -> category
+    categories: dict[str, int] = field(default_factory=lambda: {"others": 0}) # category -> doc count
     tree_retriever: Any = None
     index: Any = None
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
@@ -294,14 +298,25 @@ def _build_document_tree(doc_id: str, title: str, full_text: str) -> Optional[An
     )
 
 
-def scan_directory_docs(dir_path: str, recursive: bool = True) -> tuple[list[dict], dict[str, _Doc]]:
-    """Traverses a directory and returns: (1) chunked docs for vector index, (2) raw docs for tree index."""
+def scan_directory_docs(dir_path: str, recursive: bool = True) -> tuple[list[dict], dict[str, _Doc], dict[str, int]]:
+    """Traverses a directory and returns: (1) chunked docs for vector index, (2) raw docs for tree index, (3) category counts."""
     chunks_list: list[dict] = []
     raw_map: dict[str, _Doc] = {}
+    category_counts: dict[str, int] = {}
     if not os.path.exists(dir_path):
-        return chunks_list, raw_map
+        return chunks_list, raw_map, category_counts
 
     abs_dir = os.path.abspath(dir_path)
+    # Pre-register any immediate subdirectories as discovered categories (even if empty)
+    try:
+        for entry in sorted(os.listdir(abs_dir)):
+            sub = os.path.join(abs_dir, entry)
+            if os.path.isdir(sub) and not entry.startswith((".", "_")):
+                category_counts[entry.lower()] = 0
+    except Exception:
+        pass
+    category_counts["others"] = 0
+
     walker = os.walk(abs_dir) if recursive else [(abs_dir, [], os.listdir(abs_dir))]
     for root, _, files in walker:
         for fname in sorted(files):
@@ -314,8 +329,13 @@ def scan_directory_docs(dir_path: str, recursive: bool = True) -> tuple[list[dic
             if not content.strip():
                 continue
 
+            # Determine category: first subfolder name, or "others" if at root
+            parts = Path(rel_path).parts
+            cat = parts[0].lower() if len(parts) > 1 else "others"
+            category_counts[cat] = category_counts.get(cat, 0) + 1
+
             # Store full raw document for TreeRetriever
-            raw_map[rel_path] = _Doc(title=rel_path, text=content)
+            raw_map[rel_path] = _Doc(title=rel_path, text=content, category=cat)
 
             # Split into semantic chunks for VectorRetriever
             chunks = _chunk_text(content)
@@ -326,8 +346,9 @@ def scan_directory_docs(dir_path: str, recursive: bool = True) -> tuple[list[dic
                     "id": doc_id,
                     "title": title,
                     "text": c,
+                    "category": cat,
                 })
-    return chunks_list, raw_map
+    return chunks_list, raw_map, category_counts
 
 
 def _build_sync(ns_name: str, ns: _Namespace) -> None:
@@ -344,6 +365,8 @@ def _build_sync(ns_name: str, ns: _Namespace) -> None:
             tree = _build_document_tree(doc_id, doc.title, doc.text)
             if tree:
                 ns.trees[tree.doc_slug] = tree
+                ns.doc_categories[tree.doc_slug] = doc.category
+                ns.doc_categories[doc_id] = doc.category
                 tree_list.append(tree)
         if tree_list:
             ns.tree_retriever = TreeRetriever(tree_list, expansion_cap=8)
@@ -376,16 +399,23 @@ async def lifespan(app: FastAPI):
     # Auto-index dedicated docs directory on startup if configured and non-empty
     if DOCS_DIR and os.path.isdir(DOCS_DIR):
         print(f"[asp-rag] Dedicated docs directory: {DOCS_DIR}", flush=True)
-        chunks, raw = scan_directory_docs(DOCS_DIR, recursive=True)
+        chunks, raw, cat_counts = scan_directory_docs(DOCS_DIR, recursive=True)
         if chunks:
-            print(f"[asp-rag] Discovered {len(raw)} documents ({len(chunks)} chunks) in {DOCS_DIR}. Indexing chum_docs...", flush=True)
+            print(f"[asp-rag] Discovered {len(raw)} documents ({len(chunks)} chunks, {len(cat_counts)} categories) in {DOCS_DIR}. Indexing chum_docs...", flush=True)
             ns = _namespaces["chum_docs"]
             async with ns.lock:
                 ns.raw_docs = raw
-                ns.corpus = {d["id"]: _Doc(title=d["title"], text=d["text"]) for d in chunks}
+                ns.corpus = {d["id"]: _Doc(title=d["title"], text=d["text"], category=d.get("category", "others")) for d in chunks}
+                if "others" not in cat_counts:
+                    cat_counts["others"] = 0
+                ns.categories = cat_counts
                 await asyncio.get_event_loop().run_in_executor(None, _build_sync, "chum_docs", ns)
         else:
-            print(f"[asp-rag] Dedicated docs directory '{DOCS_DIR}' is empty (ready for files).", flush=True)
+            ns = _namespaces["chum_docs"]
+            if "others" not in cat_counts:
+                cat_counts["others"] = 0
+            ns.categories = cat_counts
+            print(f"[asp-rag] Dedicated docs directory '{DOCS_DIR}' is empty (ready for files). Discovered {len(cat_counts)} categories.", flush=True)
     yield
 
 
@@ -421,6 +451,7 @@ class IndexDirRequest(BaseModel):
 class RetrieveRequest(BaseModel):
     query: str
     namespace: str = "chum_docs"
+    categories: Optional[list[str]] = None
     top_k: int = 5
     token_budget: int = 2000
 
@@ -458,6 +489,7 @@ async def health():
                 "raw_docs": len(ns.raw_docs),
                 "chunks": len(ns.corpus),
                 "trees": len(ns.trees),
+                "categories": ns.categories,
                 "tree_ready": ns.tree_retriever is not None,
                 "vector_ready": ns.index is not None and ns.index != "fallback",
             }
@@ -513,7 +545,7 @@ async def index_directory(req: IndexDirRequest, _=Depends(_check_auth)):
     if not os.path.isdir(req.dir_path):
         raise HTTPException(400, f"Directory '{req.dir_path}' does not exist.")
     ns = _resolve_namespace(req.namespace)
-    chunks, raw = scan_directory_docs(req.dir_path, recursive=req.recursive)
+    chunks, raw, cat_counts = scan_directory_docs(req.dir_path, recursive=req.recursive)
     if not chunks and not raw:
         return {"indexed": 0, "message": "No valid documents found in directory."}
 
@@ -522,10 +554,15 @@ async def index_directory(req: IndexDirRequest, _=Depends(_check_auth)):
             ns.corpus.clear()
             ns.raw_docs.clear()
             ns.trees.clear()
+            ns.doc_categories.clear()
+            ns.categories.clear()
 
         ns.raw_docs.update(raw)
         for d in chunks:
-            ns.corpus[d["id"]] = _Doc(title=d["title"], text=d["text"])
+            ns.corpus[d["id"]] = _Doc(title=d["title"], text=d["text"], category=d.get("category", "others"))
+        if "others" not in cat_counts:
+            cat_counts["others"] = 0
+        ns.categories.update(cat_counts)
 
         await asyncio.get_event_loop().run_in_executor(None, _build_sync, req.namespace, ns)
 
@@ -535,6 +572,21 @@ async def index_directory(req: IndexDirRequest, _=Depends(_check_auth)):
         "total_documents": len(ns.raw_docs),
         "total_chunks": len(ns.corpus),
         "total_trees": len(ns.trees),
+        "categories": ns.categories,
+    }
+
+
+@app.get("/categories")
+async def get_categories(namespace: str = "chum_docs"):
+    ns = _resolve_namespace(namespace)
+    counts = dict(ns.categories)
+    if "others" not in counts:
+        counts["others"] = 0
+    return {
+        "namespace": namespace,
+        "categories": sorted(list(counts.keys())),
+        "counts": counts,
+        "total_categories": len(counts),
     }
 
 
@@ -547,6 +599,13 @@ async def retrieve_context(req: RetrieveRequest, _=Depends(_check_auth)):
 
     top_k = max(1, req.top_k)
     char_budget = req.token_budget * 4
+
+    # Resolve category filter if specified
+    requested_cats: Optional[set[str]] = None
+    if req.categories:
+        clean_cats = {c.strip().lower() for c in req.categories if c and c.strip()}
+        if clean_cats and "*" not in clean_cats and "all" not in clean_cats:
+            requested_cats = clean_cats
 
     strategy = "fallback"
     selected_shape = "vector"
@@ -570,9 +629,20 @@ async def retrieve_context(req: RetrieveRequest, _=Depends(_check_auth)):
         is_multi_shape = len(detected_shapes) > 1
 
         tree_nodes = []
-        if is_tree_query and ns.tree_retriever is not None:
-            strategy = "asp_tree_4stage"
-            tree_nodes = ns.tree_retriever.retrieve(req.query, k=top_k)
+        if is_tree_query and (ns.tree_retriever is not None or ns.trees):
+            if requested_cats is not None:
+                # Isolate tree retrieval strictly to trees matching the requested categories
+                matching_trees = [
+                    t for t in ns.trees.values()
+                    if ns.doc_categories.get(t.doc_slug, "others") in requested_cats
+                ]
+                if matching_trees:
+                    strategy = "asp_tree_4stage"
+                    cat_tree_retriever = TreeRetriever(matching_trees, expansion_cap=8)
+                    tree_nodes = cat_tree_retriever.retrieve(req.query, k=top_k)
+            elif ns.tree_retriever is not None:
+                strategy = "asp_tree_4stage"
+                tree_nodes = ns.tree_retriever.retrieve(req.query, k=top_k)
 
         vector_doc_ids = []
         if (not is_tree_query or is_multi_shape or not tree_nodes) and ns.index and ns.index != "fallback":
@@ -584,8 +654,16 @@ async def retrieve_context(req: RetrieveRequest, _=Depends(_check_auth)):
                 model_name=MODEL_NAME,
                 params={"pool": pool, "gamma": 0.25, "centroid_k": pool},
             )
-            # Use Centroid-Subtracted Dense Reranking (CSDR / APEX) with small-corpus guard
-            vector_doc_ids = retrieve("csdr", req.query, ctx, top_k)
+            # Fetch candidates (expand pool if category-filtering to ensure top_k matching chunks)
+            k_fetch = top_k * 4 if requested_cats else top_k
+            raw_vector_ids = retrieve("csdr", req.query, ctx, k_fetch)
+            if requested_cats is not None:
+                vector_doc_ids = [
+                    did for did in raw_vector_ids
+                    if did in ns.corpus and ns.corpus[did].category in requested_cats
+                ][:top_k]
+            else:
+                vector_doc_ids = raw_vector_ids[:top_k]
 
         if is_multi_shape and tree_nodes and vector_doc_ids:
             strategy = "asp_multi_shape_fanout"
@@ -631,6 +709,8 @@ async def retrieve_context(req: RetrieveRequest, _=Depends(_check_auth)):
         query_words = set(req.query.lower().split())
         scored = []
         for doc_id, doc in ns.corpus.items():
+            if requested_cats is not None and doc.category not in requested_cats:
+                continue
             text_lower = doc.text.lower()
             score = sum(1 for w in query_words if w in text_lower)
             scored.append((score, doc_id, doc))

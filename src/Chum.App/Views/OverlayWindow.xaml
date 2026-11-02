@@ -100,6 +100,46 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <!-- Category Pill Style (US-11-04): compact 20px pill with active cyan border/glow -->
+        <Style x:Key="CategoryPillButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#15FFFFFF"/>
+            <Setter Property="Foreground" Value="#999999"/>
+            <Setter Property="BorderBrush" Value="#22FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="7,1"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="PillBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="PillBorder" Property="Background" Value="#2AFFFFFF"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                    <Setter Property="Foreground" Value="#22D3EE"/>
+                    <Setter Property="BorderBrush" Value="#22D3EE"/>
+                    <Setter Property="Background" Value="#2622D3EE"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -108,13 +148,14 @@
             Visibility="{Binding OverlayVisibility}">
         <Grid RenderOptions.BitmapScalingMode="NearestNeighbor">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>  <!-- Header / drag bar -->
-                <RowDefinition Height="*"/>      <!-- Response area -->
-                <RowDefinition Height="Auto"/>   <!-- History navigation -->
-                <RowDefinition Height="Auto"/>   <!-- Notification banners -->
-                <RowDefinition Height="Auto"/>   <!-- Capture session panel -->
-                <RowDefinition Height="Auto"/>   <!-- Transcript strip (collapsible) -->
-                <RowDefinition Height="Auto"/>   <!-- Status bar -->
+                <RowDefinition Height="Auto"/>  <!-- 0: Header / drag bar -->
+                <RowDefinition Height="Auto"/>  <!-- 1: Category Pill Bar -->
+                <RowDefinition Height="*"/>      <!-- 2: Response area -->
+                <RowDefinition Height="Auto"/>   <!-- 3: History navigation -->
+                <RowDefinition Height="Auto"/>   <!-- 4: Notification banners -->
+                <RowDefinition Height="Auto"/>   <!-- 5: Capture session panel -->
+                <RowDefinition Height="Auto"/>   <!-- 6: Transcript strip (collapsible) -->
+                <RowDefinition Height="Auto"/>   <!-- 7: Status bar -->
             </Grid.RowDefinitions>
 
             <!-- ── Header ── -->
@@ -196,8 +237,31 @@
                 </StackPanel>
             </Grid>
 
+            <!-- ── Category Pill Bar (US-11-04) ── -->
+            <Border Grid.Row="1" Background="#14000000" Padding="8,3,8,3"
+                    BorderBrush="#18FFFFFF" BorderThickness="0,0,0,1">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding CategoryPills}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource CategoryPillButtonStyle}"
+                                        Content="{Binding DisplayLabel}"
+                                        Tag="{Binding Name}"
+                                        Margin="0,0,5,0"
+                                        Click="CategoryPill_Click"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+
             <!-- ── Response area ── -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
                           Padding="10,8" x:Name="ResponseScroller">
                 <TextBlock Text="{Binding ResponseText}"
                            Foreground="White"
@@ -214,7 +278,7 @@
             </ScrollViewer>
 
             <!-- Streaming cursor -->
-            <TextBlock Grid.Row="1" Text="▋" Foreground="#22C55E" FontSize="13"
+            <TextBlock Grid.Row="2" Text="▋" Foreground="#22C55E" FontSize="13"
                        VerticalAlignment="Bottom" HorizontalAlignment="Left"
                        Margin="10,0,0,4"
                        Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -231,7 +295,7 @@
             </TextBlock>
 
             <!-- ── History navigation ── -->
-            <Border Grid.Row="2" Background="#10FFFFFF" Padding="6,3"
+            <Border Grid.Row="3" Background="#10FFFFFF" Padding="6,3"
                     Visibility="{Binding HasHistory, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -252,7 +316,7 @@
             </Border>
 
             <!-- ── Notification banners (disclosure + paused + clipboard) ── -->
-            <StackPanel Grid.Row="3">
+            <StackPanel Grid.Row="4">
                 <!-- Disclosure reminder — shown once on first capture start; dismissed with "Got it" -->
                 <Border Background="#1FF59E0B" BorderBrush="#F59E0B"
                         BorderThickness="0,1,0,0" Padding="8,5"
@@ -344,7 +408,7 @@
             </StackPanel>
 
             <!-- ── Capture session panel ── -->
-            <Border Grid.Row="4" Background="#1222D3EE" BorderBrush="#0088AA"
+            <Border Grid.Row="5" Background="#1222D3EE" BorderBrush="#0088AA"
                     BorderThickness="0,1,0,0" Padding="6,5"
                     Visibility="{Binding IsCaptureSessionActive, Converter={StaticResource BoolToVisibilityConverter}}">
                 <StackPanel>
@@ -428,7 +492,7 @@
             </Border>
 
             <!-- ── Transcript strip (collapsed by default) ── -->
-            <Expander Grid.Row="5" Header="Transcript" Foreground="#777"
+            <Expander Grid.Row="6" Header="Transcript" Foreground="#777"
                       FontSize="10" Margin="6,0" IsExpanded="False">
                 <ItemsControl ItemsSource="{Binding TranscriptLines}" Margin="4,4">
                     <ItemsControl.ItemTemplate>
@@ -441,7 +505,7 @@
             </Expander>
 
             <!-- ── Status bar ── -->
-            <Border Grid.Row="6" Background="#15FFFFFF" CornerRadius="0,0,10,10">
+            <Border Grid.Row="7" Background="#15FFFFFF" CornerRadius="0,0,10,10">
                 <Grid Margin="10,4">
                     <TextBlock Text="Chum v0.1" Foreground="#444" FontSize="10"
                                HorizontalAlignment="Left"/>

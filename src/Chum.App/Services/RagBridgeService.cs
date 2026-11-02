@@ -53,14 +53,54 @@ public sealed class RagBridgeService
         }
     }
 
-    public async Task<string?> RetrieveContextAsync(string query, int tokenBudget = 2_000)
+    private IReadOnlyList<string>? _cachedCategories;
+    private DateTimeOffset _categoriesCachedAt = DateTimeOffset.MinValue;
+    private static readonly TimeSpan CategoriesTtl = TimeSpan.FromSeconds(30);
+
+    public async Task<IReadOnlyList<string>> GetCategoriesAsync(CancellationToken ct = default, bool forceRefresh = false)
+    {
+        if (!forceRefresh && _cachedCategories is not null && DateTimeOffset.UtcNow - _categoriesCachedAt < CategoriesTtl)
+            return _cachedCategories;
+
+        var url = _settings.Current.RagBridgeUrl;
+        if (string.IsNullOrWhiteSpace(url)) return ["others"];
+
+        try
+        {
+            using var req = BuildRequest(HttpMethod.Get, url.TrimEnd('/') + "/categories", null);
+            using var resp = await _http.SendAsync(req, ct);
+            if (!resp.IsSuccessStatusCode) return _cachedCategories ?? ["others"];
+
+            var data = await resp.Content.ReadFromJsonAsync<CategoriesResponse>(cancellationToken: ct);
+            if (data?.categories is { Length: > 0 })
+            {
+                _cachedCategories = data.categories;
+                _categoriesCachedAt = DateTimeOffset.UtcNow;
+                return _cachedCategories;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Failed to fetch categories from RAG bridge — using fallback");
+        }
+
+        return _cachedCategories ?? ["others"];
+    }
+
+    public async Task<string?> RetrieveContextAsync(string query, int tokenBudget = 2_000, IReadOnlyList<string>? categories = null)
     {
         var url = _settings.Current.RagBridgeUrl;
         if (string.IsNullOrWhiteSpace(url)) return null;
 
         try
         {
-            var payload = new { query, top_k = 5, token_budget = tokenBudget };
+            var payload = new
+            {
+                query,
+                top_k = 5,
+                token_budget = tokenBudget,
+                categories = categories != null && categories.Count > 0 ? categories.ToArray() : null
+            };
             using var req = BuildRequest(HttpMethod.Post, url.TrimEnd('/') + "/retrieve", payload);
             using var resp = await _http.SendAsync(req);
             resp.EnsureSuccessStatusCode();
@@ -68,8 +108,9 @@ public sealed class RagBridgeService
             var body = await resp.Content.ReadFromJsonAsync<RetrieveResponse>();
             if (body?.context is null) return null;
 
-            Log.Information("RAG context: {Chars} chars from {Count} sources",
-                body.context.Length, body.sources?.Length ?? 0);
+            Log.Information("RAG context: {Chars} chars from {Count} sources (categories: {Cats})",
+                body.context.Length, body.sources?.Length ?? 0,
+                categories != null ? string.Join(", ", categories) : "all");
             return body.context;
         }
         catch (Exception ex)
@@ -220,6 +261,7 @@ public sealed class RagBridgeService
     }
 
     private sealed record RetrieveResponse(string? context, string[]? sources, int dropped_count);
+    private sealed record CategoriesResponse(string? namespace_name, string[]? categories, Dictionary<string, int>? counts, int total_categories);
 
     private sealed record SessionDoc(
         [property: System.Text.Json.Serialization.JsonPropertyName("id")]    string Id,

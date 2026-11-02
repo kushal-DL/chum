@@ -308,6 +308,21 @@ public partial class App : System.Windows.Application
         _hotkeys.Register("Template3", System.Windows.Input.Key.D3, templateMods);
         _hotkeys.Register("Template4", System.Windows.Input.Key.D4, templateMods);
         _hotkeys.Register("Template5", System.Windows.Input.Key.D5, templateMods);
+
+        // Response mode cycle: Ctrl+M (US-11-05)
+        _hotkeys.Register("CycleResponseMode", System.Windows.Input.Key.M, System.Windows.Input.ModifierKeys.Control);
+
+        // Category selection: Alt+1..9 (US-11-04)
+        var categoryMods = System.Windows.Input.ModifierKeys.Alt;
+        _hotkeys.Register("Category1", System.Windows.Input.Key.D1, categoryMods);
+        _hotkeys.Register("Category2", System.Windows.Input.Key.D2, categoryMods);
+        _hotkeys.Register("Category3", System.Windows.Input.Key.D3, categoryMods);
+        _hotkeys.Register("Category4", System.Windows.Input.Key.D4, categoryMods);
+        _hotkeys.Register("Category5", System.Windows.Input.Key.D5, categoryMods);
+        _hotkeys.Register("Category6", System.Windows.Input.Key.D6, categoryMods);
+        _hotkeys.Register("Category7", System.Windows.Input.Key.D7, categoryMods);
+        _hotkeys.Register("Category8", System.Windows.Input.Key.D8, categoryMods);
+        _hotkeys.Register("Category9", System.Windows.Input.Key.D9, categoryMods);
     }
 
     private IVad BuildVad()

@@ -57,7 +57,39 @@ public sealed class MeetingOrchestrator : IDisposable
     private CancellationTokenSource? _responseCts;
     // UI record-toggle state (button-driven; parallels the HoldToAsk hotkey toggle).
     private bool _uiRecording;
-    private MeetingPlatform _lastPlatform = MeetingPlatform.Unknown;
+    private readonly QaTurnHistory _qaHistory = new(5);
+    private string? _lastQueryText;
+    private DateTimeOffset _lastQueryHoldEnd;
+    private bool _lastQueryUsedRag;
+
+    private static readonly HashSet<string> WhisperHallucinationPhrases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "thank you",
+        "thank you.",
+        "thank you!",
+        "thank you very much",
+        "thank you very much.",
+        "thanks for watching",
+        "thanks for watching.",
+        "i don't know",
+        "i don't know.",
+        "i don't know?",
+        "bye",
+        "bye.",
+        "you",
+        "you."
+    };
+
+    public static bool IsWhisperHallucination(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        var trimmed = text.Trim();
+        if (trimmed == "." || trimmed == "..." || trimmed == "!" || trimmed == "?") return true;
+        if (WhisperHallucinationPhrases.Contains(trimmed)) return true;
+        var stripped = trimmed.TrimEnd('.', '!', '?', ' ');
+        if (WhisperHallucinationPhrases.Contains(stripped)) return true;
+        return false;
+    }
 
     public bool IsRunning => _cts != null;
 
@@ -111,6 +143,11 @@ public sealed class MeetingOrchestrator : IDisposable
         // Wire transcript segments to buffer and session journal
         _stt.SegmentTranscribed += (_, seg) =>
         {
+            if (IsWhisperHallucination(seg.Text))
+            {
+                Serilog.Log.Debug("Discarded Whisper silence hallucination: '{Text}'", seg.Text);
+                return;
+            }
             _transcript.Add(seg);
             _overlay.AddTranscriptLine($"[{seg.Timestamp:HH:mm:ss}] {seg.SpeakerLabel}: {seg.Text}");
             _journal?.WriteSegments([seg]);
@@ -213,10 +250,18 @@ public sealed class MeetingOrchestrator : IDisposable
                 TogglePause();
             else if (actionId == "HideOverlay")
                 _overlay.ToggleVisibility();
+            else if (actionId == "CycleResponseMode")
+                _overlay.CycleResponseMode();
+            else if (actionId.StartsWith("Category", StringComparison.Ordinal) &&
+                     int.TryParse(actionId["Category".Length..], out int cIdx))
+                _overlay.SelectCategoryByIndex(cIdx - 1);
             else if (actionId.StartsWith("Template", StringComparison.Ordinal) &&
                      int.TryParse(actionId["Template".Length..], out int tIdx))
                 SwitchTemplate(tIdx);
         };
+
+        _overlay.CategoryChanged += OnCategoryChanged;
+        _ = RefreshCategoriesAsync();
     }
 
     private void OnPlatformChanged(object? sender, MeetingPlatform platform)
@@ -324,6 +369,7 @@ public sealed class MeetingOrchestrator : IDisposable
         if (_settings.Current.ShowDisclosureReminder)
             _overlay.ShowDisclosureReminder();
         Serilog.Log.Information("MeetingOrchestrator started");
+        _ = RefreshCategoriesAsync();
 
         // Periodic Gen2 GC every 10 min to reclaim memory after transcription bursts
         var gcInterval = TimeSpan.FromMinutes(10);
@@ -862,35 +908,165 @@ public sealed class MeetingOrchestrator : IDisposable
 
     private ILlmProvider GetLlm(bool requiresVision = false) => _llm;
 
-    private async Task<string?> GetDocContextAsync(string query)
+    public async Task RefreshCategoriesAsync(CancellationToken ct = default)
     {
+        if (_rag is null) return;
+        try
+        {
+            var categories = await _rag.GetCategoriesAsync(ct);
+            if (categories.Count > 0)
+            {
+                _overlay.SetCategories(categories);
+                Serilog.Log.Information("Discovered RAG categories: {Categories}", string.Join(", ", categories));
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Failed to fetch categories from RAG bridge");
+        }
+    }
+
+    private void OnCategoryChanged(string newCategory)
+    {
+        Serilog.Log.Information("Category steered to '{Category}'", newCategory);
+        _responseCts?.Cancel();
+
+        if (!string.IsNullOrWhiteSpace(_lastQueryText))
+        {
+            _ = RequeryAsync(_lastQueryText, newCategory);
+        }
+    }
+
+    private async Task RequeryAsync(string query, string category)
+    {
+        var activeLlm = GetLlm();
+        _overlay.SetListeningState(false);
+        _overlay.SetStatus(OverlayStatus.Thinking, $"Redirecting to [{category}] via {activeLlm.ModelId}…");
+        _overlay.StartNewResponse();
+
+        try
+        {
+            _overlay.AppendResponseToken($"[Redirected to: {category}]\nQ: {query}\n\nA: ");
+
+            var (docBlock, hasDocs) = await GetDocContextAsync(query, category);
+            var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
+                MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
+                _stt.DetectedLanguage,
+                _templateService?.GetByName(_settings.Current.ActiveTemplateName));
+
+            if (docBlock is not null)
+                system = system + "\n\n" + docBlock;
+
+            var modeHint = GetModeInstruction(category, hasDocs);
+            if (!string.IsNullOrEmpty(modeHint))
+                system = system + "\n\n" + modeHint;
+
+            var qaTurnsPrompt = _qaHistory.BuildContextPrompt(3);
+            if (!string.IsNullOrWhiteSpace(qaTurnsPrompt))
+                system = system + "\n\n" + qaTurnsPrompt;
+
+            var user = $"I'm in a live meeting. Focus on the category/domain: '{category}'. Here is my question/statement:\n\n\"{query}\"\n\n" +
+                       "Answer it helpfully. Do not repeat the question back.";
+
+            var activeTemplate = _templateService?.GetByName(_settings.Current.ActiveTemplateName);
+            int maxTokens = activeTemplate?.MaxTokensOverride ?? _settings.Current.MaxResponseTokens;
+
+            var request = new LlmRequest(system, user,
+                MaxTokens: maxTokens,
+                Temperature: _settings.Current.Temperature);
+
+            Serilog.Log.Information("LLM category redirect: provider={Provider} model={Model} category={Category}",
+                activeLlm.ProviderName, activeLlm.ModelId, category);
+
+            var responseAq = await StreamWithRetryAsync(activeLlm, request, t => _latencyTracker.RecordLlmLatency(t));
+            if (!string.IsNullOrWhiteSpace(responseAq))
+            {
+                _qaHistory.AddTurn(query, responseAq, category, _overlay.ResponseModeEnum);
+            }
+            if (_journal is not null)
+                _ = JournalQaAsync(query, responseAq, "audio_redirect");
+
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (OperationCanceledException) { }
+        catch (LlmException ex)
+        {
+            _overlay.ShowError($"AI error: {ex.Message}");
+            Serilog.Log.Error(ex, "LLM error during category redirect query");
+            _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
+        }
+        catch (Exception ex)
+        {
+            _overlay.ShowError("Unexpected error — check logs");
+            Serilog.Log.Error(ex, "Unexpected error in category redirect query");
+        }
+    }
+
+    private async Task<(string? ContextBlock, bool HasDocs)> GetDocContextAsync(string query, string? category = null)
+    {
+        var targetCategory = string.IsNullOrWhiteSpace(category) ? _overlay.ActiveCategory : category.Trim().ToLowerInvariant();
         var url = _settings.Current.RagBridgeUrl;
         bool hasRag = _rag is not null && !string.IsNullOrWhiteSpace(url);
 
-        if (!hasRag) return _docContext?.BuildContextBlock();
+        if (!hasRag)
+        {
+            var fallback = _docContext?.BuildContextBlock();
+            return (fallback, fallback is not null);
+        }
 
         int budget = _settings.Current.MaxResponseTokens;
-        var docsTask    = _rag!.RetrieveContextAsync(query, tokenBudget: budget * 2);
+        IReadOnlyList<string>? catFilter = string.IsNullOrWhiteSpace(targetCategory) || targetCategory == "*" ? null : [targetCategory];
+        var docsTask    = _rag!.RetrieveContextAsync(query, tokenBudget: budget * 2, categories: catFilter);
         var sessionTask = _rag!.RetrieveSessionContextAsync(query, tokenBudget: budget);
 
         await Task.WhenAll(docsTask, sessionTask);
-        var docsCtx    = docsTask.Result ?? _docContext?.BuildContextBlock();
+        var docsCtx    = docsTask.Result;
         var sessionCtx = sessionTask.Result;
+        bool hasDocs   = !string.IsNullOrWhiteSpace(docsCtx);
 
-        if (docsCtx is null && sessionCtx is null) return null;
-        if (sessionCtx is null) return docsCtx;
-        if (docsCtx is null)    return sessionCtx;
-        return sessionCtx + "\n\n" + docsCtx;
+        if (!hasDocs && !string.IsNullOrWhiteSpace(targetCategory))
+        {
+            // Universal Domain Steering Fallback (US-11-07):
+            docsCtx = $"Domain Focus: {targetCategory}. (Local docs: None). Answer using authoritative technical depth on {targetCategory}.";
+        }
+        else if (!hasDocs)
+        {
+            docsCtx = _docContext?.BuildContextBlock();
+        }
+
+        if (docsCtx is null && sessionCtx is null) return (null, hasDocs);
+        if (sessionCtx is null) return (docsCtx, hasDocs);
+        if (docsCtx is null)    return (sessionCtx, hasDocs);
+        return (sessionCtx + "\n\n" + docsCtx, hasDocs);
     }
 
-    private string GetModeInstruction() => _overlay.ResponseMode switch
+    private string GetModeInstruction(string? category = null, bool hasDocs = false)
     {
-        2 => "Respond concisely. Limit your answer to 1-3 sentences.",
-        3 => "Give a detailed explanation with examples and context.",
-        4 => "Take a devil's advocate stance. Challenge assumptions and identify risks or alternative perspectives.",
-        5 => "Respond with code examples. Prefer code over prose.",
-        _ => string.Empty
-    };
+        var catName = string.IsNullOrWhiteSpace(category) ? _overlay.ActiveCategory : category.Trim();
+        return _overlay.ResponseModeEnum switch
+        {
+            ResponseModeType.RagOnly =>
+                $"Strict Grounding Mode: Your answer must be strictly derived ONLY from the provided local documents for category '{catName}'. If the information is not present in the provided local documents, respond with: \"Information not found in local documents.\"",
+
+            ResponseModeType.Detailed =>
+                hasDocs
+                    ? $"Format your response into exactly two distinct sections:\n\n" +
+                      $"━━━ FROM LOCAL DOCS ━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                      $"Summarize specific project architecture, metrics, responsibilities, and facts directly from the provided local documents.\n\n" +
+                      $"━━━ EXTENDED ARCHITECTURE & BEST PRACTICES ━\n" +
+                      $"Elaborate with industry best practices, architectural trade-offs, scalability considerations, and theoretical depth relevant to the question and category '{catName}'."
+                    : $"Format your response into exactly two distinct sections:\n\n" +
+                      $"━━━ FROM LOCAL DOCS ━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                      $"No local documents found for category '{catName}'.\n\n" +
+                      $"━━━ EXTENDED ARCHITECTURE & BEST PRACTICES ━\n" +
+                      $"Provide complete, authoritative theoretical coverage, best practices, and architectural depth on the question for domain '{catName}'.",
+
+            ResponseModeType.Coding =>
+                "Respond with code examples. Prefer working, idiomatic code over prose. Briefly explain key design decisions, complexity, and edge cases.",
+
+            _ => "Respond directly and conversationally in 2-3 clear, informative paragraphs."
+        };
+    }
 
     /// <summary>
     /// Activates or deactivates low-power mode. In low-power mode, the periodic GC
@@ -973,7 +1149,7 @@ public sealed class MeetingOrchestrator : IDisposable
                 localTranscript = await _stt.TranscribeAsync(recordedSamples, AudioSource.Microphone, ct);
                 Array.Clear(recordedSamples);
                 Serilog.Log.Information("Local STT ({Secs:F1}s) → '{Text}'", secs, localTranscript);
-                if (string.IsNullOrWhiteSpace(localTranscript))
+                if (string.IsNullOrWhiteSpace(localTranscript) || IsWhisperHallucination(localTranscript))
                 {
                     _overlay.ShowError("Didn't catch any speech in the recording — try again.");
                     _overlay.SetStatus(OverlayStatus.Listening, "Listening...");
@@ -981,21 +1157,44 @@ public sealed class MeetingOrchestrator : IDisposable
                 }
             }
 
+            var activeCategory = _overlay.ActiveCategory;
+            _lastQueryText = localTranscript;
+            _lastQueryHoldEnd = holdEnd;
+            _lastQueryUsedRag = useRag;
+
             // Only attach the rolling meeting transcript if the user explicitly opted in.
             var contextText = _settings.Current.IncludeTranscriptContext
                 ? _context.BuildContext(holdEnd, _settings.Current.MaxResponseTokens * 2)
                 : string.Empty;
 
+            var ragQuery = localTranscript ?? contextText ?? "meeting context";
+            // Enrich retrieval query with previous question topic if follow-up is terse
+            var recentTurns = _qaHistory.GetRecentTurns(1);
+            if (recentTurns.Count > 0 && ragQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 8)
+            {
+                ragQuery = $"{ragQuery} (Context: {recentTurns[0].Question})";
+            }
+
+            var (docBlock, hasDocs) = useRag ? await GetDocContextAsync(ragQuery, activeCategory) : (null, false);
+
+            if (useRag && !hasDocs && !string.IsNullOrWhiteSpace(activeCategory))
+            {
+                _overlay.SetStatus(OverlayStatus.Thinking, $"Asking {activeLlm.ModelId} ({activeCategory} - Domain mode)…");
+            }
+
             var system = PromptBuilder.BuildSystemPrompt(_settings.Current.UserName,
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
-            var docBlock = useRag ? await GetDocContextAsync(localTranscript ?? contextText ?? "meeting context") : null;
             if (docBlock is not null)
                 system = system + "\n\n" + docBlock;
-            var modeHint = GetModeInstruction();
+            var modeHint = GetModeInstruction(activeCategory, hasDocs);
             if (!string.IsNullOrEmpty(modeHint))
                 system = system + "\n\n" + modeHint;
+
+            var qaTurnsPrompt = _qaHistory.BuildContextPrompt(3);
+            if (!string.IsNullOrWhiteSpace(qaTurnsPrompt))
+                system = system + "\n\n" + qaTurnsPrompt;
 
             string user;
             if (audioBase64 is not null)
@@ -1010,7 +1209,7 @@ public sealed class MeetingOrchestrator : IDisposable
             {
                 // Local path: show the recognised question, then ask the model to answer it.
                 _overlay.AppendResponseToken($"Q: {localTranscript}\n\nA: ");
-                user = $"I'm in a live meeting. Here is my question/statement, transcribed from audio:\n\n\"{localTranscript}\"\n\n" +
+                user = $"I'm in a live meeting. Domain focus: '{activeCategory}'. Here is my question/statement, transcribed from audio:\n\n\"{localTranscript}\"\n\n" +
                        "Answer it helpfully. Do not repeat the question back.";
                 if (!string.IsNullOrWhiteSpace(contextText))
                     user += $"\n\nMeeting context:\n{contextText}";
@@ -1025,11 +1224,16 @@ public sealed class MeetingOrchestrator : IDisposable
                 MaxTokens: maxTokens,
                 Temperature: _settings.Current.Temperature);
 
-            Serilog.Log.Information("LLM request: provider={Provider} model={Model} mode={Mode}",
+            Serilog.Log.Information("LLM request: provider={Provider} model={Model} mode={Mode} category={Category}",
                 activeLlm.ProviderName, activeLlm.ModelId,
-                audioBase64 is not null ? "AudioToLlm" : "LocalTranscribeToLlm");
+                audioBase64 is not null ? "AudioToLlm" : "LocalTranscribeToLlm",
+                activeCategory);
 
             var responseAq = await StreamWithRetryAsync(activeLlm, request, t => _latencyTracker.RecordLlmLatency(t));
+            if (!string.IsNullOrWhiteSpace(responseAq))
+            {
+                _qaHistory.AddTurn(localTranscript ?? "(audio question)", responseAq, activeCategory, _overlay.ResponseModeEnum);
+            }
             if (_journal is not null)
                 _ = JournalQaAsync(localTranscript ?? contextText ?? "(audio question)", responseAq, "audio");
 
@@ -1073,10 +1277,10 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
-            var docBlock2 = await GetDocContextAsync("action items decisions owners");
+            var (docBlock2, hasDocs2) = await GetDocContextAsync("action items decisions owners");
             if (docBlock2 is not null)
                 system = system + "\n\n" + docBlock2;
-            var modeHint2 = GetModeInstruction();
+            var modeHint2 = GetModeInstruction(_overlay.ActiveCategory, hasDocs2);
             if (!string.IsNullOrEmpty(modeHint2))
                 system = system + "\n\n" + modeHint2;
             var user = $"Extract all action items, decisions, and owners from this meeting transcript. Format as a bulleted list with owner names where identifiable.\n\n{sb}";
@@ -1138,11 +1342,11 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
-            var docBlock3 = await GetDocContextAsync(
+            var (docBlock3, hasDocs3) = await GetDocContextAsync(
                 contextText.Length > 300 ? contextText[..300] : (contextText.Length > 0 ? contextText : "image analysis"));
             if (docBlock3 is not null)
                 system = system + "\n\n" + docBlock3;
-            var modeHint3 = GetModeInstruction();
+            var modeHint3 = GetModeInstruction(_overlay.ActiveCategory, hasDocs3);
             if (!string.IsNullOrEmpty(modeHint3))
                 system = system + "\n\n" + modeHint3;
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);
@@ -1230,11 +1434,11 @@ public sealed class MeetingOrchestrator : IDisposable
                 MeetingPlatformDetector.FriendlyName(_platformDetector.CurrentPlatform),
                 _stt.DetectedLanguage,
                 _templateService?.GetByName(_settings.Current.ActiveTemplateName));
-            var docBlock4 = await GetDocContextAsync(
+            var (docBlock4, hasDocs4) = await GetDocContextAsync(
                 contextText.Length > 300 ? contextText[..300] : (contextText.Length > 0 ? contextText : "screen capture analysis"));
             if (docBlock4 is not null)
                 system = system + "\n\n" + docBlock4;
-            var modeHint4 = GetModeInstruction();
+            var modeHint4 = GetModeInstruction(_overlay.ActiveCategory, hasDocs4);
             if (!string.IsNullOrEmpty(modeHint4))
                 system = system + "\n\n" + modeHint4;
             var user = PromptBuilder.BuildUserMessage(contextText, hasImage: true);

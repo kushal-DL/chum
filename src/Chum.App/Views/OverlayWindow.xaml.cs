@@ -294,4 +294,45 @@ public partial class OverlayWindow : Window
 
     private void AudioDismiss_Click(object sender, RoutedEventArgs e)
         => ((App)Application.Current).DismissAudioDeviceMismatch();
+
+    private void CategoryPill_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button btn && btn.Tag is string category)
+        {
+            var vm = (OverlayViewModel)DataContext;
+            vm.SelectCategory(category);
+        }
+    }
+
+    protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+        var vm = DataContext as OverlayViewModel;
+        if (vm is null) return;
+
+        // Ctrl + M: cycle response mode (US-11-05)
+        if (e.Key == System.Windows.Input.Key.M &&
+            (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) == System.Windows.Input.ModifierKeys.Control)
+        {
+            ((App)Application.Current).CycleResponseMode();
+            e.Handled = true;
+            return;
+        }
+
+        // Alt + 1..9: switch active category (US-11-04)
+        if ((System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Alt) == System.Windows.Input.ModifierKeys.Alt)
+        {
+            int catIdx = -1;
+            if (e.Key >= System.Windows.Input.Key.D1 && e.Key <= System.Windows.Input.Key.D9)
+                catIdx = e.Key - System.Windows.Input.Key.D1;
+            else if (e.Key >= System.Windows.Input.Key.NumPad1 && e.Key <= System.Windows.Input.Key.NumPad9)
+                catIdx = e.Key - System.Windows.Input.Key.NumPad1;
+
+            if (catIdx >= 0)
+            {
+                vm.SelectCategoryByIndex(catIdx);
+                e.Handled = true;
+            }
+        }
+    }
 }
